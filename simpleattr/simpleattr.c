@@ -126,6 +126,7 @@ static int __init simpleattr_init(void)
 	for (i = 0; i < simpleattr_num_of_devices; i++) {
 		dev = simpleattr_device_create(i);
 		if (IS_ERR(dev)) {
+			err = PTR_ERR(dev);
 			printk(KERN_ERR "%s: unwinding\n", DRIVER_NAME);
 			goto fail_simpleattr_device_create_loop;
 		}
@@ -135,7 +136,7 @@ static int __init simpleattr_init(void)
 	return 0;
 fail_simpleattr_device_create_loop:
 	/* device at [i] isn't created */
-	for (i--; i; i--)
+	while (i--)
 		simpleattr_device_destroy(i);
 	class_destroy(simpleattr_class);
 fail_class_create:
