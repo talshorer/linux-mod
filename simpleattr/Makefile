@@ -1,6 +1,6 @@
 obj-m := simpleattr.o
 
-KERNEL=/lib/modules/$(shell uname -r)/build
+include $(PWD)/../env.mk
 
 all:
 	make -C $(KERNEL) M=$(PWD) modules
