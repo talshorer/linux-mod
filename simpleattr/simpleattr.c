@@ -1,4 +1,3 @@
-
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -11,9 +10,9 @@
 
 static char DRIVER_NAME[] = "simpleattr";
 
-static int simpleattr_num_of_devices = -1;
-module_param_named(num_of_devices, simpleattr_num_of_devices, int, 0);
-MODULE_PARM_DESC(num_of_devices, "number of simpleattr devices to create");
+static int simpleattr_ndevices = -1;
+module_param_named(ndevices, simpleattr_ndevices, int, 0);
+MODULE_PARM_DESC(ndevices, "number of simpleattr devices to create");
 
 /* these declarations are needed for the DEVICE_ATTR declaration */
 static ssize_t simpleattr_sys_attr_show(struct device *dev,
@@ -96,12 +95,12 @@ static int __init simpleattr_init(void)
 	int i;
 	struct device *dev;
 	printk(KERN_INFO "%s: in %s\n", DRIVER_NAME, __func__);
-	if (simpleattr_num_of_devices < 0) {
-		printk(KERN_ERR "%s: simpleattr_num_of_devices < 0. value = %d\n",
-				DRIVER_NAME, simpleattr_num_of_devices);
+	if (simpleattr_ndevices < 0) {
+		printk(KERN_ERR "%s: simpleattr_ndevices < 0. value = %d\n",
+				DRIVER_NAME, simpleattr_ndevices);
 		return -EINVAL;
 	}
-	simpleattr_devices = kmalloc(sizeof(simpleattr_devices[0]) * simpleattr_num_of_devices,
+	simpleattr_devices = kmalloc(sizeof(simpleattr_devices[0]) * simpleattr_ndevices,
 			GFP_KERNEL);
 	if (!simpleattr_devices) {
 		printk(KERN_ERR "%s: failed to allocate simpleattr_devices\n",
@@ -110,7 +109,7 @@ static int __init simpleattr_init(void)
 		goto fail_kmalloc_simpleattr_devices;
 	}
 	err = alloc_chrdev_region(&simpleattr_dev_base, SIMPLEATTR_MAGIC_FIRST_MINOR,
-			simpleattr_num_of_devices, DRIVER_NAME);
+			simpleattr_ndevices, DRIVER_NAME);
 	if (err) {
 		printk(KERN_ERR "%s: alloc_chrdev_region failed. err = %d\n",
 				DRIVER_NAME, err);
@@ -123,7 +122,7 @@ static int __init simpleattr_init(void)
 				DRIVER_NAME, err);
 		goto fail_class_create;
 	}
-	for (i = 0; i < simpleattr_num_of_devices; i++) {
+	for (i = 0; i < simpleattr_ndevices; i++) {
 		dev = simpleattr_device_create(i);
 		if (IS_ERR(dev)) {
 			err = PTR_ERR(dev);
@@ -140,7 +139,7 @@ fail_simpleattr_device_create_loop:
 		simpleattr_device_destroy(i);
 	class_destroy(simpleattr_class);
 fail_class_create:
-	unregister_chrdev_region(simpleattr_dev_base, simpleattr_num_of_devices);
+	unregister_chrdev_region(simpleattr_dev_base, simpleattr_ndevices);
 fail_alloc_chrdev_region:
 	kfree(simpleattr_devices);
 fail_kmalloc_simpleattr_devices:
@@ -152,10 +151,10 @@ static void __exit simpleattr_exit(void)
 {
 	int i;
 	printk(KERN_INFO "%s: in %s\n", DRIVER_NAME, __func__);
-	for (i = 0; i < simpleattr_num_of_devices; i++)
+	for (i = 0; i < simpleattr_ndevices; i++)
 		simpleattr_device_destroy(i);
 	class_destroy(simpleattr_class);
-	unregister_chrdev_region(simpleattr_dev_base, simpleattr_num_of_devices);
+	unregister_chrdev_region(simpleattr_dev_base, simpleattr_ndevices);
 	kfree(simpleattr_devices);
 	printk(KERN_INFO "%s: exited successfully\n", DRIVER_NAME);
 }
