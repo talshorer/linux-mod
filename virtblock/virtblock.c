@@ -31,7 +31,7 @@ struct virtblock_dev {
 };
 
 static int virtblock_major;
-struct virtblock_dev *virtblock_devices;
+static struct virtblock_dev *virtblock_devices;
 
 static int virtblock_open(struct block_device *bdev, fmode_t mode)
 {
@@ -43,19 +43,33 @@ static int virtblock_open(struct block_device *bdev, fmode_t mode)
 
 static int virtblock_release(struct gendisk *disk, fmode_t mode)
 {
+	/* struct virtblock_dev *dev = disk->private_data; */
 	printk(KERN_INFO "%s: in %s\n", DRIVER_NAME, __func__);
 	/* nothing to do here */
 	return 0;
 }
 
-struct block_device_operations virtblock_ops = {
+static int virtblock_getgeo(struct block_device *bdev, struct hd_geometry *geo)
+{
+	/* struct virtblock_dev *dev = bdev->bd_dev->private_data; */
+	/*
+	 * since this is a virtual device, we have nothing to return.
+	 * this function exists for the sole pupose of this printk.
+	 * ENOTTY will make it look as if we didn't implement getgeo.
+	 */
+	printk("%s: in %s\n", DRIVER_NAME, __func__);
+	return -ENOTTY;
+}
+
+static struct block_device_operations virtblock_ops = {
 	.owner = THIS_MODULE,
 	.open = virtblock_open,
 	.release = virtblock_release,
+	.getgeo = virtblock_getgeo,
 };
 
 
-int virtblock_check_module_params(void) {
+static int virtblock_check_module_params(void) {
 	int err = 0;
 	if (virtblock_ndevices < 0) {
 		printk(KERN_ERR "%s: virtblock_ndevices < 0. value = %d\n",
@@ -140,13 +154,14 @@ static int __init virtblock_dev_setup(struct virtblock_dev *dev,
 {
 	int err;
 	dev->size = virtblock_nsectors * virtblock_hardsect_size;
-	dev->data = kzalloc(dev->size, GFP_KERNEL);
+	dev->data = vmalloc(dev->size);
 	if (!dev->data) {
 		err = -ENOMEM;
 		printk(KERN_ERR "%s: failed to allocate data for virtual disk",
 				DRIVER_NAME);
-		goto fail_kzalloc_devdata;
+		goto fail_vmalloc_devdata;
 	}
+	memset(dev->data, 0, dev->size);
 	spin_lock_init(&dev->lock);
 	dev->queue = blk_init_queue(virtblock_request, &dev->lock);
 	if (!dev->queue) {
@@ -175,8 +190,8 @@ static int __init virtblock_dev_setup(struct virtblock_dev *dev,
 fail_alloc_disk:
 	blk_cleanup_queue(dev->queue);
 fail_blk_init_queue:
-	kfree(dev->data);
-fail_kzalloc_devdata:
+	vfree(dev->data);
+fail_vmalloc_devdata:
 	return err;
 }
 
@@ -186,7 +201,7 @@ static void virtblock_dev_cleanup(struct virtblock_dev *dev)
 			DRIVER_NAME, dev->gd->disk_name);
 	del_gendisk(dev->gd);
 	blk_cleanup_queue(dev->queue);
-	kfree(dev->data);
+	vfree(dev->data);
 }
 
 static int __init virtblock_init(void)
