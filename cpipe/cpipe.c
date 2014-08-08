@@ -2,21 +2,19 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/mutex.h>
+#include <linux/kfifo.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
+#include <linux/poll.h>
+
+#include "cpipe_ioctl.h"
 
 #define CPIPE_MAGIC_FIRST_MINOR 0
 
 static const char DRIVER_NAME[] = "cpipe";
 
-struct cpipe_buf {
-	void *data;
-	size_t len;
-	size_t cap;
-};
-
 struct cpipe_dev {
-	struct cpipe_buf rbuf;
+	DECLARE_KFIFO_PTR(rfifo, char);
 	struct mutex rmutex; /* protects rbuf */
 	wait_queue_head_t rq, wq;
 	struct cdev cdev;
@@ -28,7 +26,6 @@ struct cpipe_dev {
 #define cpipe_dev_kobj(cpdev) (&(cpdev)->dev->kobj)
 #define cpipe_dev_name(cpdev) (cpipe_dev_kobj(cpdev)->name)
 
-/* REVISIT needed? */
 struct cpipe_pair {
 	struct cpipe_dev devices[2];
 };
@@ -53,6 +50,12 @@ static int __init cpipe_check_module_params(void) {
 				DRIVER_NAME, cpipe_bsize);
 		err = -EINVAL;
 	}
+	/* cpipe_bsize must be a power of two */
+	if (cpipe_bsize & (cpipe_bsize -1)) {
+		printk(KERN_ERR "%s: cpipe_bsize is not a power of two. value = %d\n",
+				DRIVER_NAME, cpipe_bsize);
+		err = -EINVAL;
+	}
 	return err;
 }
 
@@ -61,32 +64,71 @@ static dev_t cpipe_dev_base;
 static struct class *cpipe_class;
 static const char cpipe_twin_link_name[] = "twin";
 
+static ssize_t cpipe_read(struct file *filp, char __user *buf,
+		size_t count, loff_t *ppos)
+{
+	//struct cpipe_dev *dev = filp->private_data;
+	/* TODO */
+	return 0;
+}
+
+static ssize_t cpipe_write(struct file *filp, const char __user *buf,
+		size_t count, loff_t *ppos)
+{
+	//struct cpipe_dev *dev = filp->private_data;
+	/* TODO */
+	return count;
+}
+
+static unsigned int cpipe_poll(struct file *filp, poll_table *wait)
+{
+	//struct cpipe_dev *dev = filp->private_data;
+	/* TODO */
+	return 0;
+}
+
+static long cpipe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+{
+	//struct cpipe_dev *dev = filp->private_data;
+	/* TODO */
+	return -ENOTTY;
+}
+
+static int cpipe_open (struct inode *inode, struct file *filp)
+{
+	struct cpipe_dev *dev = container_of(inode->i_cdev,
+			struct cpipe_dev, cdev);
+	filp->private_data = dev;
+	return 0;
+}
+
+static int cpipe_release (struct inode *inode, struct file *filp)
+{
+	filp->private_data = NULL;
+	return 0;
+}
+
 struct file_operations cpipe_fops = {
 	.owner = THIS_MODULE,
 	.llseek = no_llseek,
-	/* TODO add opertaions
-	 * open
-	 * release
-	 * read
-	 * write
-	 * poll
-	 * ioctl
-	 */
+	.read = cpipe_read,
+	.write = cpipe_write,
+	.poll = cpipe_poll,
+	.unlocked_ioctl = cpipe_ioctl,
+	.open = cpipe_open,
+	.release = cpipe_release,
 };
 
 static int __init cpipe_dev_init(struct cpipe_dev *dev, int i, int j)
 {
 	int err;
 	dev_t devno = MKDEV(MAJOR(cpipe_dev_base), i * 2 + j);
-	dev->rbuf.data = vmalloc(cpipe_bsize);
-	if (!dev->rbuf.data) {
-		err = -ENOMEM;
-		printk(KERN_ERR "%s: failed to allocate dev->rbuf.data "
-				"i=%d j=%d\n", DRIVER_NAME, i, j);
-		goto fail_vmalloc_dev_rbuf_data;
+	err = kfifo_alloc(&dev->rfifo, cpipe_bsize, GFP_KERNEL);
+	if (err) {
+		printk(KERN_ERR "%s: kfifo_alloc failed i=%d j=%d err=%d\n",
+				DRIVER_NAME, i, j, err);
+		goto fail_kfifo_alloc;
 	}
-	dev->rbuf.len = 0;
-	dev->rbuf.cap = cpipe_bsize;
 	mutex_init(&dev->rmutex);
 	init_waitqueue_head(&dev->rq);
 	init_waitqueue_head(&dev->wq);
@@ -112,8 +154,8 @@ static int __init cpipe_dev_init(struct cpipe_dev *dev, int i, int j)
 fail_device_create:
 	cdev_del(&dev->cdev);
 fail_cdev_add:
-	vfree(dev->rbuf.data);
-fail_vmalloc_dev_rbuf_data:
+	kfifo_free(&dev->rfifo);
+fail_kfifo_alloc:
 	return err;
 }
 
@@ -122,7 +164,7 @@ static void cpipe_dev_destroy(struct cpipe_dev *dev)
 	printk(KERN_INFO "%s: destroying device %s\n", DRIVER_NAME, cpipe_dev_name(dev));
 	device_destroy(cpipe_class, cpipe_dev_devt(dev));
 	cdev_del(&dev->cdev);
-	vfree(dev->rbuf.data);
+	kfifo_free(&dev->rfifo);
 }
 
 static int __init cpipe_pair_init(struct cpipe_pair *pair, int i)
