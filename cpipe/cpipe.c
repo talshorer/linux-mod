@@ -37,11 +37,11 @@ struct cpipe_pair {
 };
 
 static int cpipe_npipes = 1;
-module_param_named(npipes, cpipe_npipes, int, 0);
+module_param_named(npipes, cpipe_npipes, int, 0444);
 MODULE_PARM_DESC(npipes, "number of pipes to create");
 
 static int cpipe_bsize = PAGE_SIZE;
-module_param_named(bsize, cpipe_bsize, int, 0);
+module_param_named(bsize, cpipe_bsize, int, 0444);
 MODULE_PARM_DESC(bsize, "size (in bytes) of each buffer");
 
 static int __init cpipe_check_module_params(void) {
@@ -101,7 +101,11 @@ again:
 			goto out;
 		} else {
 			mutex_unlock(mutex);
-			wait_event_interruptible(dev->rq, !kfifo_is_empty(fifo));
+			/* NOTE
+			 * can't have condition !kfifo_is_empty(fifo)
+			 * since we don't hold the mutex
+			 */
+			wait_event_interruptible(dev->rq, true);
 			goto again;
 		}
 	}
@@ -135,7 +139,11 @@ again:
 			goto out;
 		} else {
 			mutex_unlock(mutex);
-			wait_event_interruptible(dev->wq, !kfifo_is_full(fifo));
+			/* NOTE
+			 * can't have condition !kfifo_is_full(fifo)
+			 * since we don't hold the mutex
+			 */
+			wait_event_interruptible(dev->wq, true);
 			goto again;
 		}
 	}
@@ -150,16 +158,77 @@ out:
 
 static unsigned int cpipe_poll(struct file *filp, poll_table *wait)
 {
-	//struct cpipe_dev *dev = filp->private_data;
-	/* TODO */
-	return 0;
+	struct cpipe_dev *dev = filp->private_data;
+	unsigned int mask = 0;
+	/* read */
+	mutex_lock(&dev->rmutex);
+	if (!kfifo_is_empty(&dev->rfifo))
+		mask |= POLLIN | POLLRDNORM;
+	mutex_unlock(&dev->rmutex);
+	poll_wait(filp, &dev->rq, wait);
+	/* write */
+	mutex_lock(cpipe_dev_wmutex(dev));
+	if (!kfifo_is_full(cpipe_dev_wfifo(dev)))
+		mask |= POLLOUT | POLLWRNORM;
+	mutex_unlock(cpipe_dev_wmutex(dev));
+	poll_wait(filp, &dev->wq, wait);
+	return mask;
+}
+
+/*
+ * get avaliable read size
+ * called with the mutex locked
+ * kfifo_len is a macro and can't be addressed
+ */
+static int cpipe_fifo_len(cpipe_fifo_t *fifo)
+{
+	return kfifo_len(fifo);
+}
+
+/*
+ * get avaliable write write
+ * called with the mutex locked
+ * kfifo_avail is a macro and can't be addressed
+ */
+static int cpipe_fifo_avail(cpipe_fifo_t *fifo)
+{
+	return kfifo_avail(fifo);
+}
+
+static int cpipe_ioctl_IOCGAVAILXX(struct mutex *mutex, cpipe_fifo_t *fifo,
+	int (*get_availxx)(cpipe_fifo_t *), int f_flags, int __user *ret)
+{
+	int err;
+	err = cpipe_mutex_lock(mutex, f_flags);
+	if (err)
+		return err;
+	err = put_user(get_availxx(fifo), ret);
+	/* not checking err since there's nothing else to do before returning it */
+	mutex_unlock(mutex);
+	return err;
 }
 
 static long cpipe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	//struct cpipe_dev *dev = filp->private_data;
-	/* TODO */
-	return -ENOTTY;
+	struct cpipe_dev *dev = filp->private_data;
+	long ret = 0;
+	if ((_IOC_TYPE(cmd) != CPIPE_IOC_MAGIC) ||
+			(_IOC_NR(cmd) > CPIPE_IOC_MAXNR))
+		return -ENOTTY;
+	switch (cmd) {
+	case CPIPE_IOCGAVAILRD:
+		ret = cpipe_ioctl_IOCGAVAILXX(&dev->rmutex, &dev->rfifo,
+				cpipe_fifo_len, filp->f_flags, (int __user *)arg);
+		break;
+	case CPIPE_IOCGAVAILWR:
+		ret = cpipe_ioctl_IOCGAVAILXX(cpipe_dev_wmutex(dev),
+				cpipe_dev_wfifo(dev), cpipe_fifo_avail,
+				filp->f_flags, (int __user *)arg);
+		break;
+	default:
+		ret = -ENOTTY;
+	}
+	return ret;
 }
 
 static int cpipe_open (struct inode *inode, struct file *filp)
@@ -176,7 +245,7 @@ static int cpipe_release (struct inode *inode, struct file *filp)
 	return 0;
 }
 
-struct file_operations cpipe_fops = {
+static struct file_operations cpipe_fops = {
 	.owner = THIS_MODULE,
 	.llseek = no_llseek,
 	.read = cpipe_read,
@@ -354,6 +423,6 @@ module_exit(cpipe_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("0.2");
+MODULE_VERSION("1.0");
 MODULE_LICENSE("GPL");
 
