@@ -354,6 +354,6 @@ module_exit(cpipe_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("0.1");
+MODULE_VERSION("0.2");
 MODULE_LICENSE("GPL");
 
