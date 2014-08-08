@@ -166,10 +166,15 @@ fail_cpipe_dev_init:
 
 static void cpipe_pair_destroy(struct cpipe_pair *pair)
 {
-	int i = MINOR(cpipe_dev_devt(&pair->devices[0])) / 2;
+	int i, j;
+	i = MINOR(cpipe_dev_devt(&pair->devices[0])) / 2;
 	printk(KERN_INFO "%s: destroying pair %s%d\n",
 			DRIVER_NAME, DRIVER_NAME, i);
-	/* TODO */
+	for (j = 0; j < ARRAY_SIZE(pair->devices); j++) {
+		sysfs_remove_link(cpipe_dev_kobj(&pair->devices[j]),
+				cpipe_twin_link_name);
+		cpipe_dev_destroy(&pair->devices[j]);
+	}
 }
 
 static int __init cpipe_init(void)
