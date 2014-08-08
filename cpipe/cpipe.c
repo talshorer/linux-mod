@@ -5,6 +5,7 @@
 #include <linux/kfifo.h>
 #include <linux/cdev.h>
 #include <linux/device.h>
+#include <linux/sched.h>
 #include <linux/poll.h>
 
 #include "cpipe_ioctl.h"
@@ -13,8 +14,10 @@
 
 static const char DRIVER_NAME[] = "cpipe";
 
+typedef STRUCT_KFIFO_PTR(char) cpipe_fifo_t;
+
 struct cpipe_dev {
-	DECLARE_KFIFO_PTR(rfifo, char);
+	cpipe_fifo_t rfifo;
 	struct mutex rmutex; /* protects rbuf */
 	wait_queue_head_t rq, wq;
 	struct cdev cdev;
@@ -25,6 +28,9 @@ struct cpipe_dev {
 #define cpipe_dev_devt(cpdev) ((cpdev)->cdev.dev)
 #define cpipe_dev_kobj(cpdev) (&(cpdev)->dev->kobj)
 #define cpipe_dev_name(cpdev) (cpipe_dev_kobj(cpdev)->name)
+#define cpipe_dev_twin(cpdev) ((cpdev)->twin)
+#define cpipe_dev_wfifo(cpdev) (&cpipe_dev_twin(cpdev)->rfifo)
+#define cpipe_dev_wmutex(cpdev) (&cpipe_dev_twin(cpdev)->rmutex)
 
 struct cpipe_pair {
 	struct cpipe_dev devices[2];
@@ -64,20 +70,82 @@ static dev_t cpipe_dev_base;
 static struct class *cpipe_class;
 static const char cpipe_twin_link_name[] = "twin";
 
+static int cpipe_mutex_lock(struct mutex *mutex, int f_flags)
+{
+	if ((f_flags & O_NONBLOCK) == O_NONBLOCK) {
+		if (!mutex_trylock(mutex))
+			return -EAGAIN;
+	} else if (mutex_lock_interruptible(mutex))
+			return -ERESTARTSYS;
+	return 0;
+}
+
 static ssize_t cpipe_read(struct file *filp, char __user *buf,
 		size_t count, loff_t *ppos)
 {
-	//struct cpipe_dev *dev = filp->private_data;
-	/* TODO */
-	return 0;
+	struct cpipe_dev *dev = filp->private_data;
+	cpipe_fifo_t *fifo = &dev->rfifo;
+	struct mutex *mutex = &dev->rmutex;
+	ssize_t ret;
+	unsigned int copied;
+again:
+	ret = cpipe_mutex_lock(mutex, filp->f_flags);
+	if (ret)
+		return ret;
+	ret = kfifo_to_user(fifo, buf, count, &copied);
+	if (ret)
+		goto out;
+	if (!copied) {
+		if ((filp->f_flags & O_NONBLOCK) == O_NONBLOCK) {
+			ret = -EAGAIN;
+			goto out;
+		} else {
+			mutex_unlock(mutex);
+			wait_event_interruptible(dev->rq, !kfifo_is_empty(fifo));
+			goto again;
+		}
+	}
+	/* some data was read, wake up writers waiting on this pipe */
+	wake_up_interruptible(&dev->twin->wq);
+	*ppos += copied;
+	ret = copied;
+out:
+	mutex_unlock(mutex);
+	return ret;
 }
 
 static ssize_t cpipe_write(struct file *filp, const char __user *buf,
 		size_t count, loff_t *ppos)
 {
-	//struct cpipe_dev *dev = filp->private_data;
-	/* TODO */
-	return count;
+	struct cpipe_dev *dev = filp->private_data;
+	cpipe_fifo_t *fifo = cpipe_dev_wfifo(dev);
+	struct mutex *mutex = cpipe_dev_wmutex(dev);
+	ssize_t ret;
+	unsigned int copied;
+again:
+	ret = cpipe_mutex_lock(mutex, filp->f_flags);
+	if (ret)
+		return ret;
+	ret = kfifo_from_user(fifo, buf, count, &copied);
+	if (ret)
+		goto out;
+	if (!copied) {
+		if ((filp->f_flags & O_NONBLOCK) == O_NONBLOCK) {
+			ret = -EAGAIN;
+			goto out;
+		} else {
+			mutex_unlock(mutex);
+			wait_event_interruptible(dev->wq, !kfifo_is_full(fifo));
+			goto again;
+		}
+	}
+	/* some data was read, wake up readers waiting on this pipe */
+	wake_up_interruptible(&dev->twin->rq);
+	*ppos += copied;
+	ret = copied;
+out:
+	mutex_unlock(mutex);
+	return ret;
 }
 
 static unsigned int cpipe_poll(struct file *filp, poll_table *wait)
