@@ -1,6 +1,3 @@
-pipe (char device)
-	for each "pipe", create two devices.
-	writing to one adds data to the other's stream and vice versa
 ttyecho (tty framework)
 	reads back whatever is written to it
 
