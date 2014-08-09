@@ -231,7 +231,7 @@ static long cpipe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	return ret;
 }
 
-static int cpipe_open (struct inode *inode, struct file *filp)
+static int cpipe_open(struct inode *inode, struct file *filp)
 {
 	struct cpipe_dev *dev = container_of(inode->i_cdev,
 			struct cpipe_dev, cdev);
@@ -239,7 +239,7 @@ static int cpipe_open (struct inode *inode, struct file *filp)
 	return 0;
 }
 
-static int cpipe_release (struct inode *inode, struct file *filp)
+static int cpipe_release(struct inode *inode, struct file *filp)
 {
 	filp->private_data = NULL;
 	return 0;
