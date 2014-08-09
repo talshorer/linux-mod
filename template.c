@@ -2,7 +2,7 @@
 #include <linux/kernel.h>
 
 /* FARNAME stands for "find and replace NAME" */
-static char DRIVER_NAME[] = "FARNAME";
+static const char DRIVER_NAME[] = "FARNAME";
 
 static int __init FARNAME_init(void)
 {

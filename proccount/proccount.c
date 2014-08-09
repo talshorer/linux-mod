@@ -6,7 +6,9 @@
 
 #define PROCCOUNT_MODE 0444
 
-static char DRIVER_NAME[] = "proccount";
+static const char DRIVER_NAME[] = "proccount";
+
+static const char proccount_file_name[] = "opencounter";
 
 static atomic_t proccount_counter;
 
@@ -46,7 +48,7 @@ static int __init proccount_init(void)
 	struct proc_dir_entry *pde;
 	printk(KERN_INFO "%s: in %s\n", DRIVER_NAME, __func__);
 	atomic_set(&proccount_counter, 0);
-	pde = proc_create_data(DRIVER_NAME, PROCCOUNT_MODE, NULL,
+	pde = proc_create_data(proccount_file_name, PROCCOUNT_MODE, NULL,
 			&proccount_fops, &proccount_counter);
 	if (!pde) {
 		printk(KERN_ERR "%s: proc_create_data failed\n", DRIVER_NAME);
@@ -60,7 +62,7 @@ module_init(proccount_init);
 static void __exit proccount_exit(void)
 {
 	printk(KERN_INFO "%s: in %s\n", DRIVER_NAME, __func__);
-	remove_proc_entry(DRIVER_NAME, NULL);
+	remove_proc_entry(proccount_file_name, NULL);
 	printk(KERN_INFO "%s: exited successfully\n", DRIVER_NAME);
 }
 module_exit(proccount_exit);
