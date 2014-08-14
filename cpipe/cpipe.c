@@ -389,7 +389,7 @@ static int __init cpipe_init(void)
 		err = cpipe_pair_init(&cpipe_pairs[i], i);
 		if (err) {
 			printk(KERN_ERR "%s: cpipe_pair_init failed. i = %d, "
-			"err = %d\n", DRIVER_NAME, i, err);
+					"err = %d\n", DRIVER_NAME, i, err);
 			goto fail_cpipe_pair_init_loop;
 		}
 	}
