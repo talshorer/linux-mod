@@ -3,19 +3,17 @@
 #include <linux/serial_core.h>
 #include <linux/kfifo.h>
 
+#define ECHOSERIAL_PORT_NAME_LEN 8
+
 static const char DRIVER_NAME[] = "echoserial";
 
 typedef STRUCT_KFIFO_PTR(char) echoserial_fifo_t;
 
 struct echoserial_port {
 	struct uart_port port;
-	struct device *dev;
 	echoserial_fifo_t fifo;
+	char name[ECHOSERIAL_PORT_NAME_LEN];
 };
-
-#define echoserial_port_devno(esp) ((esp)->dev->devt)
-#define echoserial_port_kobj(esp) (&(esp)->dev->kobj)
-#define echoserial_port_name(esp) (echoserial_port_kobj(esp)->name)
 
 static int echoserial_nports = 1;
 module_param_named(nports, echoserial_nports, int, 0444);
@@ -55,10 +53,8 @@ static struct uart_driver echoserial_driver = {
 	.owner = THIS_MODULE,
 	.driver_name = DRIVER_NAME,
 	.dev_name = echoserial_devname,
-	/* .nr set during init */
+	/* .nr is set during init */
 };
-
-static struct class *echoserial_class;
 
 /* TODO port ops */
 
@@ -66,12 +62,9 @@ static struct uart_ops echoserial_uart_ops = {
 
 };
 
-/* TODO port setup/cleanup */
-
 static int __init echoserial_port_setup(struct echoserial_port *esp, int i)
 {
-	struct uart_port *up = &esp->port;
-	struct device *dev;
+	struct uart_port *uport = &esp->port;
 	int err;
 
 	err = kfifo_alloc(&esp->fifo, echoserial_bsize, GFP_KERNEL);
@@ -81,27 +74,23 @@ static int __init echoserial_port_setup(struct echoserial_port *esp, int i)
 		goto fail_kfifo_alloc;
 	}
 
-	dev = device_create(echoserial_class, NULL,
-			MKDEV(echoserial_driver.major, echoserial_driver.minor + i),
-			esp, "%s%d", DRIVER_NAME, i);
-	if (IS_ERR(dev)) {
-		err = PTR_ERR(dev);
-		printk(KERN_ERR "%s: device_create failed i=%d err=%d\n",
+	uport->ops = &echoserial_uart_ops;
+	uport->line = i;
+	err = uart_add_one_port(&echoserial_driver, uport);
+	if (err) {
+		printk(KERN_ERR "%s: uart_add_one_port failed i=%d err=%d\n",
 				DRIVER_NAME, i, err);
-		goto fail_device_create;
+		goto fail_uart_add_one_port;
 	}
-	esp->dev = dev;
 
-	up->ops = &echoserial_uart_ops;
-	up->dev = dev;
-	up->line = i;
-	/* TODO uart_add_one_port() */
+	snprintf(esp->name, sizeof(esp->name), "%s%d",
+			echoserial_driver.dev_name, i);
 
 	printk(KERN_INFO "%s: created port %s successfully\n",
-			DRIVER_NAME, echoserial_port_name(esp));
+			DRIVER_NAME, esp->name);
 
 	return 0;
-fail_device_create:
+fail_uart_add_one_port:
 	kfifo_free(&esp->fifo);
 fail_kfifo_alloc:
 	return err;
@@ -109,9 +98,8 @@ fail_kfifo_alloc:
 
 static void echoserial_port_cleanup(struct echoserial_port *esp)
 {
-	printk(KERN_INFO "%s: destroying port %s\n", DRIVER_NAME,
-			echoserial_port_name(esp));
-	device_destroy(echoserial_class, echoserial_port_devno(esp));
+	printk(KERN_INFO "%s: destroying port %s\n", DRIVER_NAME, esp->name);
+	uart_remove_one_port(&echoserial_driver, &esp->port);
 	kfifo_free(&esp->fifo);
 }
 
@@ -132,6 +120,8 @@ static int __init echoserial_init(void)
 				DRIVER_NAME);
 		goto fail_vmalloc_echoserial_ports;
 	}
+	memset(echoserial_ports, 0,
+			sizeof(echoserial_ports[0]) * echoserial_nports);
 
 	echoserial_driver.nr = echoserial_nports;
 	err = uart_register_driver(&echoserial_driver);
@@ -142,14 +132,6 @@ static int __init echoserial_init(void)
 	}
 	echoserial_driver.major = echoserial_driver.tty_driver->major;
 	echoserial_driver.minor = echoserial_driver.tty_driver->minor_start;
-
-	echoserial_class = class_create(THIS_MODULE, DRIVER_NAME);
-	if (IS_ERR(echoserial_class)) {
-		err = PTR_ERR(echoserial_class);
-		printk(KERN_ERR "%s: class_create failed. err = %d\n",
-				DRIVER_NAME, err);
-		goto fail_class_create;
-	}
 
 	for (i = 0; i < echoserial_nports; i++) {
 		err = echoserial_port_setup(&echoserial_ports[i], i);
@@ -166,8 +148,6 @@ static int __init echoserial_init(void)
 fail_echoserial_port_setup_loop:
 	while (i--)
 		echoserial_port_cleanup(&echoserial_ports[i]);
-	class_destroy(echoserial_class);
-fail_class_create:
 	uart_unregister_driver(&echoserial_driver);
 fail_uart_register_driver:
 	vfree(echoserial_ports);
@@ -181,7 +161,6 @@ static void __exit echoserial_exit(void)
 	int i;
 	for (i = 0; i < echoserial_nports; i++)
 		echoserial_port_cleanup(&echoserial_ports[i]);
-	class_destroy(echoserial_class);
 	uart_unregister_driver(&echoserial_driver);
 	vfree(echoserial_ports);
 	printk(KERN_INFO "%s: exited successfully\n", DRIVER_NAME);
