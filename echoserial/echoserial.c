@@ -16,13 +16,15 @@ typedef STRUCT_KFIFO_PTR(char) echoserial_fifo_t;
 struct echoserial_port {
 	struct uart_port port;
 	char name[ECHOSERIAL_PORT_NAME_LEN];
-	echoserial_fifo_t fifo; /* protected by port.lock */
+	/* all mutable fields in this struct are protected by port.lock */
+	echoserial_fifo_t fifo;
 	struct timer_list rx_timer;
-	bool rx_active; /* protected by port.lock */
+	bool rx_active;
 	struct timer_list tx_timer;
-	bool tx_active; /* protected by port.lock */
+	bool tx_active;
 	/* set during startup/set_termios */
-	unsigned int baud; /* protected by port.lock */
+	unsigned int baud;
+	bool rtscts;
 	/* fake uart machine registers */
 	unsigned char mcr; /* Out: Modem Control Register */
 	unsigned char lsr; /* In:  Line Status Register */
@@ -63,9 +65,14 @@ static int __init echoserial_check_module_params(void) {
 				DRIVER_NAME, echoserial_bsize);
 		err = -EINVAL;
 	}
-	/* echoserial_interval must be a multiple of 5 */
-	if (echoserial_interval % 5) {
-		printk(KERN_ERR "%s: echoserial_interval is not a multiple of 5. "
+	if (echoserial_interval <= 0) {
+		printk(KERN_ERR "%s: echoserial_interval <= 0. value = %d\n",
+				DRIVER_NAME, echoserial_interval);
+		err = -EINVAL;
+	}
+	/* echoserial_interval must be a multiple of 20 */
+	if (echoserial_interval % 20) {
+		printk(KERN_ERR "%s: echoserial_interval is not a multiple of 20. "
 				"value = %d\n", DRIVER_NAME, echoserial_interval);
 		err = -EINVAL;
 	}
@@ -100,7 +107,7 @@ static void echoserial_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned char new_mcr, old_mcr;
-	printk(KERN_INFO "%s %s: %s mctrl=0x%x\n", DRIVER_NAME, esp->name,
+	printk(KERN_INFO "%s %s: %s, mctrl=0x%x\n", DRIVER_NAME, esp->name,
 			__func__, mctrl);
 	new_mcr = 0;
 	if (mctrl & TIOCM_RTS)
@@ -135,7 +142,7 @@ static unsigned int echoserial_get_mctrl(struct uart_port *port)
 		mctrl |= TIOCM_DSR;
 	if (msr & UART_MSR_CTS)
 		mctrl |= TIOCM_CTS;
-	printk(KERN_INFO "%s %s: %s mctrl=0x%x\n", DRIVER_NAME, esp->name,
+	printk(KERN_INFO "%s %s: %s, mctrl=0x%x\n", DRIVER_NAME, esp->name,
 			__func__, mctrl);
 	return mctrl;
 }
@@ -182,6 +189,13 @@ static void echoserial_stop_rx(struct uart_port *port)
 	echoserial_do_stop_rx(esp);
 }
 
+/* called with port->lock held */
+static void echoserial_enable_ms(struct uart_port *port)
+{
+	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
+	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+}
+
 static int echoserial_startup(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
@@ -189,6 +203,7 @@ static int echoserial_startup(struct uart_port *port)
 	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	spin_lock_irqsave(&port->lock, flags);
 	esp->baud = ECHOSERIAL_DEFAULT_BAUD;
+	esp->msr |= UART_MSR_CTS;
 	esp->rx_active = true;
 	mod_timer(&esp->rx_timer,
 			jiffies + echoserial_interval_jiffies);
@@ -211,8 +226,40 @@ static void echoserial_set_termios(struct uart_port *port,
 		struct ktermios *termios, struct ktermios *old)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
-	/* TODO */
+	tcflag_t cflag = termios->c_cflag;
+	unsigned int bits, baud;
+	char parity;
+	const char *flow;
+	unsigned long flags;
+	switch (cflag & CSIZE) {
+		case CS5:
+			bits = 5;
+			break;
+		case CS6:
+			bits = 6;
+			break;
+		case CS7:
+			bits = 7;
+			break;
+		default: /* case CS8: */
+			bits = 8;
+			break;
+	}
+	if (cflag & PARENB) {
+		if (cflag & PARODD)
+			parity = 'o';
+		else parity = 'e';
+	} else parity = 'n';
+	flow = (cflag & CRTSCTS) ? "r" : "";
+	baud = uart_get_baud_rate(port, termios, old, 0, UINT_MAX);
+	printk(KERN_INFO "%s %s: %s, %d%c%d%s\n", DRIVER_NAME, esp->name,
+			__func__, baud, parity, bits, flow); /* example: 115200n8r */
+	spin_lock_irqsave(&port->lock, flags);
+	esp->baud = baud;
+	esp->rtscts = !!flow[0]; /* nonempty flow string makes rtscts = 1 */
+	if (esp->rtscts)
+		uart_handle_cts_change(port, esp->msr & UART_MSR_CTS);
+	spin_unlock_irqrestore(&port->lock, flags);
 }
 
 static const char *echoserial_type(struct uart_port *port)
@@ -242,6 +289,7 @@ static struct uart_ops echoserial_uart_ops = {
 	.stop_tx = echoserial_stop_tx,
 	.start_tx = echoserial_start_tx,
 	.stop_rx = echoserial_stop_rx,
+	.enable_ms = echoserial_enable_ms,
 	.startup = echoserial_startup,
 	.shutdown = echoserial_shutdown,
 	.set_termios = echoserial_set_termios,
@@ -275,9 +323,8 @@ static void echoserial_rx_timer_func(unsigned long data)
 	unsigned char ch;
 	unsigned long flags;
 	spin_lock_irqsave(&port->lock, flags);
-	/* rts is set, port doesn't want to receive data */
-	if (esp->mcr & UART_MCR_RTS && \
-			port->state->port.tty->termios.c_cflag & CRTSCTS)
+	/* rts is not set, port doesn't want to receive data */
+	if (!(esp->mcr & UART_MCR_RTS) && esp->rtscts)
 		goto out;
 	count = min3(
 		uart_circ_chars_free(xmit),
@@ -292,10 +339,10 @@ static void echoserial_rx_timer_func(unsigned long data)
 		kfifo_out(fifo, &ch, 1);
 		uart_insert_char(port, lsr, UART_LSR_OE, ch, TTY_NORMAL);
 	}
-	if (count) { /* receiving side should drop cts */
-		if (esp->msr & UART_MSR_CTS) {
-			esp->msr &= ~UART_MSR_CTS;
-			uart_handle_cts_change(port, 0);
+	if (count) { /* receiving side should allow cts */
+		if (!(esp->msr & UART_MSR_CTS)) {
+			esp->msr |= UART_MSR_CTS;
+			uart_handle_cts_change(port, 1);
 		}
 		tty_flip_buffer_push(port->state->port.tty);
 	}
@@ -328,14 +375,13 @@ static void echoserial_tx_timer_func(unsigned long data)
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
 		port->icount.tx++;
 	}
-	/* receiving side should raise cts */
-	if (kfifo_is_full(fifo) && !(esp->msr & UART_MSR_CTS)) {
-		esp->msr |= UART_MSR_CTS;
-		uart_handle_cts_change(port, 1);
+	/* receiving side should disallow cts */
+	if (kfifo_is_full(fifo) && esp->msr & UART_MSR_CTS) {
+		esp->msr &= ~UART_MSR_CTS;
+		uart_handle_cts_change(port, 0);
 	}
 	else if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
 		uart_write_wakeup(port);
-	/* REVISIT mod_timer even if cts? */
 	if (esp->tx_active)
 		mod_timer(&esp->tx_timer,
 				jiffies + echoserial_interval_jiffies);
@@ -443,7 +489,7 @@ fail_vmalloc_echoserial_ports:
 }
 module_init(echoserial_init);
 
-static void /*__exit*/ echoserial_exit(void)
+static void __exit echoserial_exit(void)
 {
 	int i;
 	for (i = 0; i < echoserial_nports; i++)
@@ -457,6 +503,6 @@ module_exit(echoserial_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("0.2");
+MODULE_VERSION("1.0");
 MODULE_LICENSE("GPL");
 
