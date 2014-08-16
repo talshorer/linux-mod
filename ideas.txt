@@ -1,3 +1,5 @@
-ttyecho (tty framework)
-	reads back whatever is written to it
+npipe (network device)
+	a network interface that pipes its data to a char device and vice versa
+platlogger (platform driver)
+	a platform driver that logs devices as they're probed/removed
 
