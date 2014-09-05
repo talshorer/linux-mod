@@ -1,5 +1,18 @@
 npipe (network device)
-	a network interface that pipes its data to a char device and vice versa
+	a network interface that pipes its data to a char device and vice versa.
 platlogger (platform driver)
-	a platform driver that logs devices as they're probed/removed
+	a platform driver that logs devices as they're probed/removed.
+knotifier (kthread, uevent)
+	spawn kthreads that work somewhat like userspace processes, using vfs_* ops
+	to track inotify events in directories.
+	have them pop a uvenet for each inotify event, and make a udev rule to log
+	these events.
+virtusb kit
+	virtudc (usb gadget framework)
+		register a virtual usb to which gadget drivers can connect.
+	g_hub (usb gadget)
+		spawns many virtudc and pipes them to the host computer.
+	virthcd (usb host framework)
+		register a virtual usb host controller to which gadgets connected to
+		virtudc can connect, creating a complete virtual usb system.
 
