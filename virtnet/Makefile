@@ -1,6 +1,6 @@
 obj-m := virtnet.o
 
-virtnet-y := virtnet_net.o
+virtnet-y := virtnet_net.o virtnet_lb.o
 
 include $(PWD)/../env.mk
 

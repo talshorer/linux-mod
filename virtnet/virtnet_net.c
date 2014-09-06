@@ -12,7 +12,9 @@
 #include <linux/u64_stats_sync.h>
 #include <net/rtnetlink.h>
 
-static const char DRIVER_NAME[] = "virtnet";
+#include "virtnet.h"
+
+const char DRIVER_NAME[] = "virtnet";
 
 struct virtnet_iface {
 };
@@ -20,6 +22,10 @@ struct virtnet_iface {
 struct pcpu_dstats {
 	u64 tx_packets;
 	u64 tx_bytes;
+	u64 tx_dropped;
+	u64 rx_packets;
+	u64 rx_bytes;
+	u64 rx_dropped;
 	struct u64_stats_sync syncp;
 };
 
@@ -41,6 +47,8 @@ static const char virtnet_iface_fmt[] = "virt%d";
 
 static int virtnet_dev_init(struct net_device *dev)
 {
+	printk(KERN_INFO "%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
+			dev->name, __func__);
 	dev->dstats = alloc_percpu(struct pcpu_dstats);
 	if (!dev->dstats)
 		return -ENOMEM;
@@ -50,12 +58,16 @@ static int virtnet_dev_init(struct net_device *dev)
 
 static void virtnet_dev_uninit(struct net_device *dev)
 {
+	printk(KERN_INFO "%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
+			dev->name, __func__);
 	free_percpu(dev->dstats);
 }
 
 /* fake multicast ability */
 static void virtnet_set_multicast_list(struct net_device *dev)
 {
+	printk(KERN_INFO "%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
+			dev->name, __func__);
 }
 
 static struct rtnl_link_stats64 *virtnet_get_stats64(struct net_device *dev,
@@ -63,9 +75,13 @@ static struct rtnl_link_stats64 *virtnet_get_stats64(struct net_device *dev,
 {
 	int i;
 
+	printk(KERN_INFO "%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
+			dev->name, __func__);
+
 	for_each_possible_cpu(i) {
 		const struct pcpu_dstats *dstats;
-		u64 tbytes, tpackets;
+		u64 tbytes, tpackets, tdropped;
+		u64 rbytes, rpackets, rdropped;
 		unsigned int start;
 
 		dstats = per_cpu_ptr(dev->dstats, i);
@@ -73,9 +89,17 @@ static struct rtnl_link_stats64 *virtnet_get_stats64(struct net_device *dev,
 			start = u64_stats_fetch_begin_bh(&dstats->syncp);
 			tbytes = dstats->tx_bytes;
 			tpackets = dstats->tx_packets;
+			tdropped = dstats->tx_dropped;
+			rbytes = dstats->rx_bytes;
+			rpackets = dstats->rx_packets;
+			rdropped = dstats->rx_dropped;
 		} while (u64_stats_fetch_retry_bh(&dstats->syncp, start));
 		stats->tx_bytes += tbytes;
 		stats->tx_packets += tpackets;
+		stats->tx_dropped += tdropped;
+		stats->rx_bytes += rbytes;
+		stats->rx_packets += rpackets;
+		stats->rx_dropped += rdropped;
 	}
 	return stats;
 }
@@ -83,10 +107,27 @@ static struct rtnl_link_stats64 *virtnet_get_stats64(struct net_device *dev,
 static netdev_tx_t virtnet_xmit(struct sk_buff *skb, struct net_device *dev)
 {
 	struct pcpu_dstats *dstats = this_cpu_ptr(dev->dstats);
+	int err;
 
+	printk(KERN_INFO "%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
+			dev->name, __func__);
+
+	skb_orphan(skb);
+
+	printk(KERN_INFO "%s: interface %s tx packet of length %d\n",
+			DRIVER_NAME, dev->name, skb->len);
+	print_hex_dump(KERN_INFO, "tx data: ", DUMP_PREFIX_OFFSET, 16, 1,
+			skb->data, skb->len, false);
+
+	err = virtnet_do_xmit(dev, skb);
 	u64_stats_update_begin(&dstats->syncp);
-	dstats->tx_packets++;
-	dstats->tx_bytes += skb->len;
+	if (err) {
+		dev->stats.tx_errors++;
+		dev->stats.tx_dropped++;
+	} else {
+		dstats->tx_packets++;
+		dstats->tx_bytes += skb->len;
+	}
 	u64_stats_update_end(&dstats->syncp);
 
 	dev_kfree_skb(skb);
@@ -137,7 +178,65 @@ static struct rtnl_link_ops virtnet_link_ops = {
 	.validate = virtnet_validate,
 };
 
-int virtnet_init_iface(void)
+/* simulate an rx packet transport */
+int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
+{
+	struct sk_buff *skb;
+	struct pcpu_dstats *dstats;
+	char *dst;
+	int err = 0;
+
+	skb = netdev_alloc_skb(dev, len);
+	if (unlikely(!skb)) {
+		err = -ENOMEM;
+		printk(KERN_ERR "%s: <%s> netdev_alloc_skb failed\n",
+				DRIVER_NAME, __func__);
+		goto fail_netdev_alloc_skb;
+	}
+	skb_reserve(skb, NET_IP_ALIGN);
+	dst = skb_put(skb, len);
+	memcpy(dst, buf, len);
+	skb->protocol = eth_type_trans(skb, dev);
+
+	switch(in_interrupt() ? netif_rx(skb) : netif_rx_ni(skb)) {
+	case NET_RX_DROP:
+		err = -EIO;
+		printk(KERN_ERR "%s: <%s> netif_rx failed\n",
+				DRIVER_NAME, __func__);
+		break;
+	case NET_RX_SUCCESS:
+		/* HACK: eth_type_trans() pulled ETH_HLEN bytes from skb's head, so
+		 * when we print the buffer, we subtract ETH_HLEN from the pointer
+		 * and add ETH_HLEN to the length. This has no effect on upper layer
+		 * since all it changes is the log messages.
+		 */
+		printk(KERN_INFO "%s: interface %s rx packet of length %d\n",
+				DRIVER_NAME, dev->name, skb->len + ETH_HLEN);
+		print_hex_dump(KERN_INFO, "rx data: ", DUMP_PREFIX_OFFSET, 16, 1,
+				skb->data - ETH_HLEN, skb->len + ETH_HLEN, false);
+		break;
+	}
+
+	/* don't free skb unless an error occured
+	 * the higher layers will do that for us
+	 */
+	if (err)
+		dev_kfree_skb(skb);
+fail_netdev_alloc_skb:
+	dstats = this_cpu_ptr(dev->dstats);
+	u64_stats_update_begin(&dstats->syncp);
+	if (err) {
+		dev->stats.rx_errors++;
+		dev->stats.rx_dropped++;
+	} else {
+		dstats->rx_packets++;
+		dstats->rx_bytes += len;
+	}
+	u64_stats_update_end(&dstats->syncp);
+	return err;
+}
+
+static int virtnet_init_iface(void)
 {
 	struct net_device *dev;
 	int err;
@@ -215,5 +314,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("0.1");
+MODULE_VERSION("1.0");
 MODULE_LICENSE("GPL");
