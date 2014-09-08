@@ -1,6 +1,7 @@
+BACKEND ?= lb
+ccflags-y += -DVIRTNET_BACKEND=$(BACKEND)
 obj-m := virtnet.o
-
-virtnet-y := virtnet_net.o virtnet_lb.o
+virtnet-y := virtnet_net.o virtnet_$(BACKEND).o
 
 include $(PWD)/../env.mk
 
@@ -9,4 +10,3 @@ all:
 
 clean:
 	make -C $(KERNEL) M=$(PWD) clean
-

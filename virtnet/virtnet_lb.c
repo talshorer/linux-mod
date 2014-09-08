@@ -1,7 +1,5 @@
 #include "virtnet.h"
 
-#ifdef VIRTNET_LOOPBACK
-
 /* one second */
 #define VIRTNET_LB_DELAY_JIFFIES (1 * HZ)
 
@@ -19,7 +17,7 @@ static void virtnet_lb_timer_func(unsigned long data)
 	kfree(lbe);
 }
 
-int virtnet_do_loopback(struct net_device *dev, struct sk_buff *skb)
+int virtnet_backend_xmit(struct net_device *dev, struct sk_buff *skb)
 {
 	struct virtnet_lb_entry *lbe;
 	lbe = kzalloc(sizeof(*lbe) + skb->len, GFP_ATOMIC);
@@ -41,4 +39,13 @@ int virtnet_do_loopback(struct net_device *dev, struct sk_buff *skb)
 
 	return 0;
 }
-#endif /* VIRTNET_LOOPBACK */
+
+int __init virtnet_backend_init(void)
+{
+	return 0;
+}
+
+void virtnet_backend_exit(void)
+{
+}
+

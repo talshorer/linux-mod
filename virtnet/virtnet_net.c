@@ -119,7 +119,7 @@ static netdev_tx_t virtnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	print_hex_dump(KERN_INFO, "tx data: ", DUMP_PREFIX_OFFSET, 16, 1,
 			skb->data, skb->len, false);
 
-	err = virtnet_do_xmit(dev, skb);
+	err = virtnet_backend_xmit(dev, skb);
 	u64_stats_update_begin(&dstats->syncp);
 	if (err) {
 		dev->stats.tx_errors++;
@@ -276,6 +276,13 @@ static int __init virtnet_init(void)
 	if (err)
 		return err;
 
+	err = virtnet_backend_init();
+	if (err) {
+		printk(KERN_ERR "%s: virtnet_backend_init failed. err = %d\n",
+				DRIVER_NAME, err);
+		goto fail_virtnet_backend_init;
+	}
+
 	err = rtnl_link_register(&virtnet_link_ops);
 	if (err) {
 		printk(KERN_ERR "%s: rtnl_link_register failed. err = %d\n",
@@ -301,6 +308,8 @@ fail_virtnet_init_device_loop:
 	rtnl_unlock();
 	rtnl_link_unregister(&virtnet_link_ops);
 fail_rtnl_link_register:
+	virtnet_backend_exit();
+fail_virtnet_backend_init:
 	return err;
 }
 module_init(virtnet_init);
@@ -308,11 +317,12 @@ module_init(virtnet_init);
 static void __exit virtnet_exit(void)
 {
 	rtnl_link_unregister(&virtnet_link_ops);
+	virtnet_backend_exit();
 }
 module_exit(virtnet_exit);
 
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.1");
 MODULE_LICENSE("GPL");
