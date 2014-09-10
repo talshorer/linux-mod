@@ -16,14 +16,12 @@ extern int virtnet_recv(struct net_device *, const char *, size_t);
 /* backends */
 extern struct virtnet_backend_ops virtnet_lb_backend_ops;
 
-static inline int virtnet_get_backend(char *name,
-		struct virtnet_backend_ops **backend)
-{
-	if (!strcmp(name, "lb"))
-		*backend = &virtnet_lb_backend_ops;
-	else {
-		printk(KERN_ERR "%s: unknown backend %s\n", DRIVER_NAME, name);
-		return -EINVAL;
-	}
-	return 0;
-}
+#define virtnet_get_backend(name) \
+({ \
+	struct virtnet_backend_ops *backend = NULL; \
+	if (!strcmp(name, "lb")) \
+		backend = &virtnet_lb_backend_ops; \
+	else \
+		printk(KERN_ERR "%s: unknown backend %s\n", DRIVER_NAME, name); \
+	backend; \
+})

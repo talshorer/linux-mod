@@ -50,7 +50,9 @@ static int __init virtnet_check_module_params(void) {
 				DRIVER_NAME, virtnet_nifaces);
 		err = -EINVAL;
 	}
-	err |= virtnet_get_backend(virtnet_backend, &virtnet_backend_ops);
+	virtnet_backend_ops = virtnet_get_backend(virtnet_backend);
+	if (!virtnet_backend_ops)
+		err = -EINVAL;
 	return err;
 }
 
@@ -383,5 +385,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.2");
+MODULE_VERSION("1.3");
 MODULE_LICENSE("GPL");
