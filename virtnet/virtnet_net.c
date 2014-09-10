@@ -33,6 +33,16 @@ static int virtnet_nifaces = 1;
 module_param_named(nifaces, virtnet_nifaces, int, 0444);
 MODULE_PARM_DESC(nifaces, "number of ifaces to create");
 
+static bool virtnet_packetdump = false;
+module_param_named(packetdump, virtnet_packetdump, bool, 0644);
+MODULE_PARM_DESC(packetdump, "print incoming and outgoing packets to log");
+
+static char *virtnet_backend = "lb";
+module_param_named(backend, virtnet_backend, charp, 0444);
+MODULE_PARM_DESC(backend, "backend to use");
+
+static struct virtnet_backend_ops *virtnet_backend_ops;
+
 static int __init virtnet_check_module_params(void) {
 	int err = 0;
 	if (virtnet_nifaces < 0) {
@@ -40,18 +50,62 @@ static int __init virtnet_check_module_params(void) {
 				DRIVER_NAME, virtnet_nifaces);
 		err = -EINVAL;
 	}
+	err |= virtnet_get_backend(virtnet_backend, &virtnet_backend_ops);
 	return err;
 }
+
+static inline int virtnet_backend_init(void)
+{
+	if (virtnet_backend_ops->init)
+		return virtnet_backend_ops->init();
+	return 0;
+}
+
+static inline void virtnet_backend_exit(void)
+{
+	if (virtnet_backend_ops->exit)
+		virtnet_backend_ops->exit();
+}
+
+static inline int virtnet_backend_dev_init(void *priv, unsigned int minor)
+{
+	if (virtnet_backend_ops->dev_init)
+		return virtnet_backend_ops->dev_init(priv, minor);
+	return 0;
+}
+
+static inline void virtnet_backend_dev_uninit(void *priv)
+{
+	if (virtnet_backend_ops->dev_uninit)
+		virtnet_backend_ops->dev_uninit(priv);
+}
+
+static inline int virtnet_backend_xmit(struct net_device *dev,
+		struct sk_buff *skb)
+{
+	if (virtnet_backend_ops->xmit)
+		return virtnet_backend_ops->xmit(dev, skb);
+	return -ENODEV;
+}
+
+#define virtnet_backend_priv_size (virtnet_backend_ops->priv_size)
 
 static const char virtnet_iface_fmt[] = "virt%d";
 
 static int virtnet_dev_init(struct net_device *dev)
 {
+	unsigned int minor;
+
 	printk(KERN_INFO "%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
 			dev->name, __func__);
+
 	dev->dstats = alloc_percpu(struct pcpu_dstats);
 	if (!dev->dstats)
 		return -ENOMEM;
+
+	sscanf(virtnet_iface_fmt, dev->name, &minor);
+	if (virtnet_backend_dev_init(netdev_priv(dev), minor))
+		free_percpu(dev->dstats);
 
 	return 0;
 }
@@ -60,6 +114,7 @@ static void virtnet_dev_uninit(struct net_device *dev)
 {
 	printk(KERN_INFO "%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
 			dev->name, __func__);
+	virtnet_backend_dev_uninit(netdev_priv(dev));
 	free_percpu(dev->dstats);
 }
 
@@ -114,10 +169,12 @@ static netdev_tx_t virtnet_xmit(struct sk_buff *skb, struct net_device *dev)
 
 	skb_orphan(skb);
 
-	printk(KERN_INFO "%s: interface %s tx packet of length %d\n",
-			DRIVER_NAME, dev->name, skb->len);
-	print_hex_dump(KERN_INFO, "tx data: ", DUMP_PREFIX_OFFSET, 16, 1,
-			skb->data, skb->len, false);
+	if (virtnet_packetdump) {
+		printk(KERN_INFO "%s: interface %s tx packet of length %d\n",
+				DRIVER_NAME, dev->name, skb->len);
+		print_hex_dump(KERN_INFO, "tx data: ", DUMP_PREFIX_OFFSET, 16, 1,
+				skb->data, skb->len, false);
+	}
 
 	err = virtnet_backend_xmit(dev, skb);
 	u64_stats_update_begin(&dstats->syncp);
@@ -210,10 +267,12 @@ int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
 		 * and add ETH_HLEN to the length. This has no effect on upper layer
 		 * since all it changes is the log messages.
 		 */
-		printk(KERN_INFO "%s: interface %s rx packet of length %d\n",
-				DRIVER_NAME, dev->name, skb->len + ETH_HLEN);
-		print_hex_dump(KERN_INFO, "rx data: ", DUMP_PREFIX_OFFSET, 16, 1,
-				skb->data - ETH_HLEN, skb->len + ETH_HLEN, false);
+		if (virtnet_packetdump) {
+			printk(KERN_INFO "%s: interface %s rx packet of length %d\n",
+					DRIVER_NAME, dev->name, skb->len + ETH_HLEN);
+			print_hex_dump(KERN_INFO, "rx data: ", DUMP_PREFIX_OFFSET, 16, 1,
+					skb->data - ETH_HLEN, skb->len + ETH_HLEN, false);
+		}
 		break;
 	}
 
@@ -241,7 +300,7 @@ static int virtnet_init_iface(void)
 	struct net_device *dev;
 	int err;
 
-	dev = alloc_netdev(sizeof(struct virtnet_iface),
+	dev = alloc_netdev(virtnet_backend_priv_size,
 			virtnet_iface_fmt, virtnet_setup);
 	if (!dev) {
 		err = -ENOMEM;
@@ -324,5 +383,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.1");
+MODULE_VERSION("1.2");
 MODULE_LICENSE("GPL");

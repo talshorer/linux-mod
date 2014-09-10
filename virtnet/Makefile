@@ -1,7 +1,5 @@
-BACKEND ?= lb
-ccflags-y += -DVIRTNET_BACKEND=$(BACKEND)
 obj-m := virtnet.o
-virtnet-y := virtnet_net.o virtnet_$(BACKEND).o
+virtnet-y := virtnet_net.o virtnet_lb.o
 
 include $(PWD)/../env.mk
 

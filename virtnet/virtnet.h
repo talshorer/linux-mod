@@ -1,10 +1,29 @@
 #include <linux/netdevice.h>
 
-/* virtnet_$(BACKEND) exported symbols */
-extern int virtnet_backend_xmit(struct net_device *dev, struct sk_buff *skb);
-int __init virtnet_backend_init(void);
-void virtnet_backend_exit(void);
+struct virtnet_backend_ops {
+	int (*init)(void);
+	void (*exit)(void);
+	int (*dev_init)(void *, unsigned int);
+	void (*dev_uninit)(void *);
+	int (*xmit)(struct net_device *, struct sk_buff *);
+	size_t priv_size;
+};
 
 /* virtnet_net exported symbols */
 extern const char DRIVER_NAME[];
 extern int virtnet_recv(struct net_device *, const char *, size_t);
+
+/* backends */
+extern struct virtnet_backend_ops virtnet_lb_backend_ops;
+
+static inline int virtnet_get_backend(char *name,
+		struct virtnet_backend_ops **backend)
+{
+	if (!strcmp(name, "lb"))
+		*backend = &virtnet_lb_backend_ops;
+	else {
+		printk(KERN_ERR "%s: unknown backend %s\n", DRIVER_NAME, name);
+		return -EINVAL;
+	}
+	return 0;
+}
