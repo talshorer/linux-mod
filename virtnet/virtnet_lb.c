@@ -6,6 +6,8 @@
 struct virtnet_lb_dev {
 	struct list_head entries;
 	spinlock_t lock;
+	atomic_t allocated;
+	atomic_t active;
 };
 
 struct virtnet_lb_entry {
@@ -25,19 +27,25 @@ static void virtnet_lb_timer_func(unsigned long data)
 	spin_lock_irqsave(&lbdev->lock, flags);
 	list_del(&lbe->link);
 	kfree(lbe);
+	atomic_dec(&lbdev->allocated);
 	spin_unlock_irqrestore(&lbdev->lock, flags);
 }
 
-static  int virtnet_lb_xmit(struct net_device *dev, struct sk_buff *skb)
+static int virtnet_lb_xmit(struct net_device *dev, struct sk_buff *skb)
 {
 	struct virtnet_lb_dev *lbdev = netdev_priv(dev);
 	struct virtnet_lb_entry *lbe;
 	unsigned long flags;
+
+	if (!atomic_read(&lbdev->active))
+		return -ENODEV;
+
 	lbe = kzalloc(sizeof(*lbe) + skb->len, GFP_ATOMIC);
 	if (!lbe) {
 		printk(KERN_ERR "%s: <%s> failed to allocate entry\n", DRIVER_NAME, __func__);
 		return -ENOMEM;
 	}
+	atomic_inc(&lbdev->allocated);
 
 	lbe->dev = dev;
 	INIT_LIST_HEAD(&lbe->link);
@@ -60,6 +68,8 @@ int virtnet_lb_dev_init(void *priv, unsigned int minor)
 	struct virtnet_lb_dev *lbdev = priv;
 	spin_lock_init(&lbdev->lock);
 	INIT_LIST_HEAD(&lbdev->entries);
+	atomic_set(&lbdev->allocated, 0);
+	atomic_set(&lbdev->active, 1);
 	return 0;
 }
 
@@ -68,20 +78,26 @@ void virtnet_lb_dev_uninit(void *priv)
 	struct virtnet_lb_dev *lbdev = priv;
 	struct virtnet_lb_entry *lbe, *tmp;
 	unsigned long flags;
+	atomic_set(&lbdev->active, 0);
 	spin_lock_irqsave(&lbdev->lock, flags);
 	list_for_each_entry_safe(lbe, tmp, &lbdev->entries, link) {
+		spin_unlock_irqrestore(&lbdev->lock, flags);
 		/*
 		 * if it's active, it's not running.
 		 * if it's running, let it kfree itself.
 		 */
-		if (del_timer(&lbe->timer))
+		if (del_timer_sync(&lbe->timer)) {
 			kfree(lbe);
-		/* give timers a chance to run on another processor */
-		spin_unlock_irqrestore(&lbdev->lock, flags);
-		udelay(jiffies_to_usecs(1));
+			atomic_dec(&lbdev->allocated);
+		}
 		spin_lock_irqsave(&lbdev->lock, flags);
 	}
 	spin_unlock_irqrestore(&lbdev->lock, flags);
+	/*
+	 * if not smp, all timers were deleted by the loop.
+	 * else, wait for any that are still running to finish on other processors.
+	 */
+	while (atomic_read(&lbdev->allocated)) /* do nothing */;
 }
 
 struct virtnet_backend_ops virtnet_lb_backend_ops = {
