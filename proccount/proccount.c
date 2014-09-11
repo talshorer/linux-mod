@@ -70,6 +70,6 @@ module_exit(proccount_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A file in procfs that returns open count upon read");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.0.0");
 MODULE_LICENSE("GPL");
 

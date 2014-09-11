@@ -21,6 +21,6 @@ void cleanup_module(void)
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple module that prints to log upon init and exit");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.0.0");
 MODULE_LICENSE("GPL");
 

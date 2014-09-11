@@ -162,6 +162,6 @@ module_exit(simpleattr_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple dummy device with a sysfs attribute");
-MODULE_VERSION("1.1");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
 

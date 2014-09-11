@@ -272,6 +272,6 @@ module_exit(virtblock_exit)
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple block device residing in ram");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.0.0");
 MODULE_LICENSE("GPL");
 

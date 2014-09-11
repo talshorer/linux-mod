@@ -503,6 +503,6 @@ module_exit(echoserial_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.0.0");
 MODULE_LICENSE("GPL");
 
