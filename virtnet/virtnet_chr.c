@@ -1,28 +1,28 @@
-#include <linux/kfifo.h>
 #include <linux/cdev.h>
 #include <linux/poll.h>
 
 #include "virtnet.h"
 
 #define VIRTNET_CHR_MAGIC_FIRST_MINOR 0
-#define VIRTNET_CHR_KFIFO_SIZE PAGE_SIZE
 
 static const char DRIVER_NAME[] = "virtnet_chr";
 
-typedef STRUCT_KFIFO_PTR(char) virtnet_chr_fifo_t;
-
 struct virtnet_chr_dev {
 	struct cdev cdev;
-	virtnet_chr_fifo_t fifo;
-	struct mutex mutex;
+	struct list_head packets;
+	spinlock_t lock;
 	wait_queue_head_t waitq;
 	struct device *dev;
 };
-
 #define virtnet_chr_dev_devt(vcdev) ((vcdev)->cdev.dev)
-
 #define virtnet_chr_dev_to_netdev(vcdev) \
 		(((void *)vcdev) - ALIGN(sizeof(struct net_device), NETDEV_ALIGN))
+
+struct virtnet_chr_packet {
+	char *data;
+	size_t len;
+	struct list_head link;
+};
 
 static dev_t virtnet_chr_dev_base;
 static unsigned int virtnet_chr_ndev;
@@ -32,10 +32,41 @@ static struct class *virtnet_chr_class;
 static ssize_t virtnet_chr_read(struct file *filp, char __user *buf,
 		size_t count, loff_t *ppos)
 {
-	/* struct virtnet_chr_dev *vcdev = filp->private_data; */
-	/* ssize_t ret; */
-	/* TODO */
-	return 0;
+	struct virtnet_chr_dev *vcdev = filp->private_data;
+	struct virtnet_chr_packet *packet;
+	ssize_t ret;
+	unsigned long flags;
+
+	spin_lock_irqsave(&vcdev->lock, flags);
+	while (list_empty(&vcdev->packets)) {
+		spin_unlock_irqrestore(&vcdev->lock, flags);
+		if ((filp->f_flags & O_NONBLOCK) == O_NONBLOCK)
+			return -EAGAIN;
+		/* NOTE
+		 * can't have condition !list_empty(&vcdev->packets)
+		 * since we don't hold the lock
+		 */
+		else if(wait_event_interruptible(vcdev->waitq, true))
+				return -ERESTARTSYS;
+		spin_lock_irqsave(&vcdev->lock, flags);
+	}
+	packet = list_first_entry(&vcdev->packets,
+			struct virtnet_chr_packet, link);
+	list_del(&packet->link);
+	spin_unlock_irqrestore(&vcdev->lock, flags);
+
+	count = min(count, packet->len);
+
+	if (copy_to_user(buf, packet->data, count)) {
+		ret = -EFAULT;
+		goto out;
+	}
+
+	ret = count;
+
+out:
+	kfree(packet);
+	return count;
 }
 
 static ssize_t virtnet_chr_write(struct file *filp, const char __user *buf,
@@ -74,15 +105,16 @@ static unsigned int virtnet_chr_poll(struct file *filp, poll_table *wait)
 {
 	struct virtnet_chr_dev *vcdev = filp->private_data;
 	unsigned int mask = 0;
+	unsigned long flags;
 
 	/* always writable */
 	mask |= POLLOUT | POLLWRNORM;
 
-	/* readable when the fifo is not empty */
-	mutex_lock(&vcdev->mutex);
-	if (!kfifo_is_empty(&vcdev->fifo))
+	/* readable when the packet list is not empty */
+	spin_lock_irqsave(&vcdev->lock, flags);
+	if (!list_empty(&vcdev->packets))
 		mask |= POLLIN | POLLRDNORM;
-	mutex_unlock(&vcdev->mutex);
+	spin_unlock_irqrestore(&vcdev->lock, flags);
 	poll_wait(filp, &vcdev->waitq, wait);
 
 	return mask;
@@ -112,9 +144,30 @@ static struct file_operations virtnet_chr_fops = {
 	.release = virtnet_chr_release,
 };
 
-static int virtnet_chr_xmit(struct net_device *dev, struct sk_buff *skb)
+static int virtnet_chr_xmit(struct net_device *dev,
+		const char *buf, size_t len)
 {
-	/* TODO */
+	struct virtnet_chr_dev *vcdev = netdev_priv(dev);
+	struct virtnet_chr_packet *packet;
+	unsigned long flags;
+
+	packet = kzalloc(sizeof(*packet) + len, GFP_ATOMIC);
+	if (!packet) {
+		printk(KERN_ERR "%s: <%s> failed to allocate packet\n", DRIVER_NAME, __func__);
+		return -ENOMEM;
+	}
+
+	INIT_LIST_HEAD(&packet->link);
+	packet->data = (void *)(packet + 1);
+	packet->len = len;
+	memcpy(packet->data, buf, len);
+
+	spin_lock_irqsave(&vcdev->lock, flags);
+	list_add_tail(&packet->link, &vcdev->packets);
+	spin_unlock_irqrestore(&vcdev->lock, flags);
+
+	wake_up_interruptible(&vcdev->waitq);
+
 	return 0;
 }
 
@@ -124,15 +177,9 @@ static int virtnet_chr_dev_init(void *priv, unsigned int minor)
 	int err;
 	dev_t devno = MKDEV(MAJOR(virtnet_chr_dev_base), minor);
 
-	mutex_init(&vcdev->mutex);
+	spin_lock_init(&vcdev->lock);
 	init_waitqueue_head(&vcdev->waitq);
-
-	err = kfifo_alloc(&vcdev->fifo, VIRTNET_CHR_KFIFO_SIZE, GFP_KERNEL);
-	if (err) {
-		printk(KERN_ERR "%s: kfifo_alloc failed minor=%d err=%d\n",
-				DRIVER_NAME, minor, err);
-		goto fail_kfifo_alloc;
-	}
+	INIT_LIST_HEAD(&vcdev->packets);
 
 	cdev_init(&vcdev->cdev, &virtnet_chr_fops);
 	vcdev->cdev.owner = THIS_MODULE;
@@ -157,17 +204,20 @@ static int virtnet_chr_dev_init(void *priv, unsigned int minor)
 fail_device_create:
 	cdev_del(&vcdev->cdev);
 fail_cdev_add:
-	kfifo_free(&vcdev->fifo);
-fail_kfifo_alloc:
 	return err;
 }
 
 static void virtnet_chr_dev_uninit(void *priv)
 {
 	struct virtnet_chr_dev *vcdev = (struct virtnet_chr_dev *)priv;
+	struct virtnet_chr_packet *packet, *tmp;
+	unsigned long flags;
+	spin_lock_irqsave(&vcdev->lock, flags);
+	list_for_each_entry_safe(packet, tmp, &vcdev->packets, link)
+		kfree(packet);
+	spin_unlock_irqrestore(&vcdev->lock, flags);
 	device_destroy(virtnet_chr_class, virtnet_chr_dev_devt(vcdev));
 	cdev_del(&vcdev->cdev);
-	kfifo_free(&vcdev->fifo);
 }
 
 static int virtnet_chr_init(unsigned int nifaces)

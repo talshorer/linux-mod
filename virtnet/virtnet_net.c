@@ -83,10 +83,10 @@ static inline void virtnet_backend_dev_uninit(void *priv)
 }
 
 static inline int virtnet_backend_xmit(struct net_device *dev,
-		struct sk_buff *skb)
+		const char *buf, size_t len)
 {
 	if (virtnet_backend_ops->xmit)
-		return virtnet_backend_ops->xmit(dev, skb);
+		return virtnet_backend_ops->xmit(dev, buf, len);
 	return -ENODEV;
 }
 
@@ -178,7 +178,7 @@ static netdev_tx_t virtnet_xmit(struct sk_buff *skb, struct net_device *dev)
 				skb->data, skb->len, false);
 	}
 
-	err = virtnet_backend_xmit(dev, skb);
+	err = virtnet_backend_xmit(dev, skb->data, skb->len);
 	u64_stats_update_begin(&dstats->syncp);
 	if (err) {
 		dev->stats.tx_errors++;
@@ -386,5 +386,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.1.1");
 MODULE_LICENSE("GPL");

@@ -5,7 +5,7 @@ struct virtnet_backend_ops {
 	void (*exit)(void);
 	int (*dev_init)(void *, unsigned int);
 	void (*dev_uninit)(void *);
-	int (*xmit)(struct net_device *, struct sk_buff *);
+	int (*xmit)(struct net_device *, const char*, size_t);
 	size_t priv_size;
 };
 

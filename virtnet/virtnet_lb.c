@@ -9,7 +9,6 @@ struct virtnet_lb_dev {
 	struct list_head entries;
 	spinlock_t lock;
 	atomic_t allocated;
-	atomic_t active;
 };
 
 struct virtnet_lb_entry {
@@ -22,44 +21,41 @@ struct virtnet_lb_entry {
 
 static void virtnet_lb_timer_func(unsigned long data)
 {
-	struct virtnet_lb_entry *lbe = (struct virtnet_lb_entry *)data;
-	struct virtnet_lb_dev *lbdev = netdev_priv(lbe->dev);
+	struct virtnet_lb_entry *entry = (struct virtnet_lb_entry *)data;
+	struct virtnet_lb_dev *lbdev = netdev_priv(entry->dev);
 	unsigned long flags;
-	virtnet_recv(lbe->dev, lbe->data, lbe->len);
+	virtnet_recv(entry->dev, entry->data, entry->len);
 	spin_lock_irqsave(&lbdev->lock, flags);
-	list_del(&lbe->link);
-	kfree(lbe);
+	list_del(&entry->link);
+	kfree(entry);
 	atomic_dec(&lbdev->allocated);
 	spin_unlock_irqrestore(&lbdev->lock, flags);
 }
 
-static int virtnet_lb_xmit(struct net_device *dev, struct sk_buff *skb)
+static int virtnet_lb_xmit(struct net_device *dev, const char *buf, size_t len)
 {
 	struct virtnet_lb_dev *lbdev = netdev_priv(dev);
-	struct virtnet_lb_entry *lbe;
+	struct virtnet_lb_entry *entry;
 	unsigned long flags;
 
-	if (!atomic_read(&lbdev->active))
-		return -ENODEV;
-
-	lbe = kzalloc(sizeof(*lbe) + skb->len, GFP_ATOMIC);
-	if (!lbe) {
+	entry = kzalloc(sizeof(*entry) + len, GFP_ATOMIC);
+	if (!entry) {
 		printk(KERN_ERR "%s: <%s> failed to allocate entry\n", DRIVER_NAME, __func__);
 		return -ENOMEM;
 	}
 	atomic_inc(&lbdev->allocated);
 
-	lbe->dev = dev;
-	INIT_LIST_HEAD(&lbe->link);
+	entry->dev = dev;
+	INIT_LIST_HEAD(&entry->link);
 
-	lbe->data = (void *)(lbe + 1);
-	lbe->len = skb->len;
-	memcpy(lbe->data, skb->data, skb->len);
+	entry->data = (void *)(entry + 1);
+	entry->len = len;
+	memcpy(entry->data, buf, len);
 
-	setup_timer(&lbe->timer, virtnet_lb_timer_func, (unsigned long)lbe);
+	setup_timer(&entry->timer, virtnet_lb_timer_func, (unsigned long)entry);
 	spin_lock_irqsave(&lbdev->lock, flags);
-	list_add(&lbe->link, &lbdev->entries);
-	mod_timer(&lbe->timer, jiffies + VIRTNET_LB_DELAY_JIFFIES);
+	list_add(&entry->link, &lbdev->entries);
+	mod_timer(&entry->timer, jiffies + VIRTNET_LB_DELAY_JIFFIES);
 	spin_unlock_irqrestore(&lbdev->lock, flags);
 
 	return 0;
@@ -71,25 +67,23 @@ static int virtnet_lb_dev_init(void *priv, unsigned int minor)
 	spin_lock_init(&lbdev->lock);
 	INIT_LIST_HEAD(&lbdev->entries);
 	atomic_set(&lbdev->allocated, 0);
-	atomic_set(&lbdev->active, 1);
 	return 0;
 }
 
 static void virtnet_lb_dev_uninit(void *priv)
 {
 	struct virtnet_lb_dev *lbdev = priv;
-	struct virtnet_lb_entry *lbe, *tmp;
+	struct virtnet_lb_entry *entry, *tmp;
 	unsigned long flags;
-	atomic_set(&lbdev->active, 0);
 	spin_lock_irqsave(&lbdev->lock, flags);
-	list_for_each_entry_safe(lbe, tmp, &lbdev->entries, link) {
+	list_for_each_entry_safe(entry, tmp, &lbdev->entries, link) {
 		spin_unlock_irqrestore(&lbdev->lock, flags);
 		/*
 		 * if it's active, it's not running.
 		 * if it's running, let it kfree itself.
 		 */
-		if (del_timer_sync(&lbe->timer)) {
-			kfree(lbe);
+		if (del_timer_sync(&entry->timer)) {
+			kfree(entry);
 			atomic_dec(&lbdev->allocated);
 		}
 		spin_lock_irqsave(&lbdev->lock, flags);
