@@ -1,10 +1,3 @@
-/* TODO
- * create a class for chrdev pipes
- * add chrdev to virtnet_iface
- * make tx write to the chrdev's fifo (add the fifo to struct virtnet_iface)
- * figure out how to destroy class from last virtnet_free_netdev
- * write chrdev ops (based on cpipe)
- */
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/netdevice.h>
@@ -15,9 +8,6 @@
 #include "virtnet.h"
 
 static const char DRIVER_NAME[] = "virtnet";
-
-struct virtnet_iface {
-};
 
 struct pcpu_dstats {
 	u64 tx_packets;
