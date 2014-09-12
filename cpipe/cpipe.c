@@ -95,8 +95,7 @@ again:
 	ret = kfifo_to_user(fifo, buf, count, &copied);
 	if (ret)
 		goto out;
-	if (!copied) {
-		if ((filp->f_flags & O_NONBLOCK) == O_NONBLOCK) {
+	if (!copied) { ((filp->f_flags & O_NONBLOCK) == O_NONBLOCK) {
 			ret = -EAGAIN;
 			goto out;
 		} else {
@@ -105,7 +104,8 @@ again:
 			 * can't have condition !kfifo_is_empty(fifo)
 			 * since we don't hold the mutex
 			 */
-			wait_event_interruptible(dev->rq, true);
+			if(wait_event_interruptible(dev->rq, true))
+				return -ERESTARTSYS;
 			goto again;
 		}
 	}
@@ -143,7 +143,8 @@ again:
 			 * can't have condition !kfifo_is_full(fifo)
 			 * since we don't hold the mutex
 			 */
-			wait_event_interruptible(dev->wq, true);
+			if(wait_event_interruptible(dev->wq, true))
+				return -ERESTARTSYS;
 			goto again;
 		}
 	}
@@ -423,6 +424,6 @@ module_exit(cpipe_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
 
