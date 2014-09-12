@@ -47,7 +47,7 @@ static ssize_t virtnet_chr_read(struct file *filp, char __user *buf,
 		 * since we don't hold the lock
 		 */
 		else if(wait_event_interruptible(vcdev->waitq, true))
-				return -ERESTARTSYS;
+			return -ERESTARTSYS;
 		spin_lock_irqsave(&vcdev->lock, flags);
 	}
 	packet = list_first_entry(&vcdev->packets,
