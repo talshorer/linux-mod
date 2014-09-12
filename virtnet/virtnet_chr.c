@@ -46,7 +46,7 @@ static ssize_t virtnet_chr_read(struct file *filp, char __user *buf,
 		 * can't have condition !list_empty(&vcdev->packets)
 		 * since we don't hold the lock
 		 */
-		else if(wait_event_interruptible(vcdev->waitq, true))
+		else if (wait_event_interruptible(vcdev->waitq, true))
 			return -ERESTARTSYS;
 		spin_lock_irqsave(&vcdev->lock, flags);
 	}

@@ -95,7 +95,8 @@ again:
 	ret = kfifo_to_user(fifo, buf, count, &copied);
 	if (ret)
 		goto out;
-	if (!copied) { ((filp->f_flags & O_NONBLOCK) == O_NONBLOCK) {
+	if (!copied) {
+		if ((filp->f_flags & O_NONBLOCK) == O_NONBLOCK) {
 			ret = -EAGAIN;
 			goto out;
 		} else {
@@ -104,7 +105,7 @@ again:
 			 * can't have condition !kfifo_is_empty(fifo)
 			 * since we don't hold the mutex
 			 */
-			if(wait_event_interruptible(dev->rq, true))
+			if (wait_event_interruptible(dev->rq, true))
 				return -ERESTARTSYS;
 			goto again;
 		}
@@ -143,7 +144,7 @@ again:
 			 * can't have condition !kfifo_is_full(fifo)
 			 * since we don't hold the mutex
 			 */
-			if(wait_event_interruptible(dev->wq, true))
+			if (wait_event_interruptible(dev->wq, true))
 				return -ERESTARTSYS;
 			goto again;
 		}
