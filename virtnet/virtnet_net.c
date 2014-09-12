@@ -14,7 +14,7 @@
 
 #include "virtnet.h"
 
-const char DRIVER_NAME[] = "virtnet";
+static const char DRIVER_NAME[] = "virtnet";
 
 struct virtnet_iface {
 };
@@ -56,10 +56,10 @@ static int __init virtnet_check_module_params(void) {
 	return err;
 }
 
-static inline int virtnet_backend_init(void)
+static inline int virtnet_backend_init(unsigned int nifaces)
 {
 	if (virtnet_backend_ops->init)
-		return virtnet_backend_ops->init();
+		return virtnet_backend_ops->init(nifaces);
 	return 0;
 }
 
@@ -337,7 +337,7 @@ static int __init virtnet_init(void)
 	if (err)
 		return err;
 
-	err = virtnet_backend_init();
+	err = virtnet_backend_init(virtnet_nifaces);
 	if (err) {
 		printk(KERN_ERR "%s: virtnet_backend_init failed. err = %d\n",
 				DRIVER_NAME, err);
@@ -362,7 +362,8 @@ static int __init virtnet_init(void)
 	}
 	rtnl_unlock();
 
-	printk(KERN_INFO "%s: initializated successfully\n", DRIVER_NAME);
+	printk(KERN_INFO "%s: initializated successfully, backend = %s\n",
+			DRIVER_NAME, virtnet_backend);
 	return 0;
 
 fail_virtnet_init_device_loop:
@@ -385,5 +386,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.0.4");
+MODULE_VERSION("1.1.0");
 MODULE_LICENSE("GPL");

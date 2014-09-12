@@ -3,6 +3,8 @@
 /* one second */
 #define VIRTNET_LB_DELAY_JIFFIES (1 * HZ)
 
+static const char DRIVER_NAME[] = "virtnet_lb";
+
 struct virtnet_lb_dev {
 	struct list_head entries;
 	spinlock_t lock;
@@ -63,7 +65,7 @@ static int virtnet_lb_xmit(struct net_device *dev, struct sk_buff *skb)
 	return 0;
 }
 
-int virtnet_lb_dev_init(void *priv, unsigned int minor)
+static int virtnet_lb_dev_init(void *priv, unsigned int minor)
 {
 	struct virtnet_lb_dev *lbdev = priv;
 	spin_lock_init(&lbdev->lock);
@@ -73,7 +75,7 @@ int virtnet_lb_dev_init(void *priv, unsigned int minor)
 	return 0;
 }
 
-void virtnet_lb_dev_uninit(void *priv)
+static void virtnet_lb_dev_uninit(void *priv)
 {
 	struct virtnet_lb_dev *lbdev = priv;
 	struct virtnet_lb_entry *lbe, *tmp;
