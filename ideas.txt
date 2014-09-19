@@ -1,5 +1,3 @@
-platlogger (platform driver)
-	a platform driver that logs devices as they're probed/removed.
 knotifier (kthread, uevent)
 	spawn kthreads that work somewhat like userspace processes, using vfs_* ops
 	to track inotify events in directories.
@@ -13,4 +11,3 @@ virtusb kit
 	virthcd (usb host framework)
 		register a virtual usb host controller to which gadgets connected to
 		virtudc can connect, creating a complete virtual usb system.
-
