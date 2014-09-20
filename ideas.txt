@@ -1,8 +1,7 @@
-knotifier (kthread, uevent)
-	spawn kthreads that work somewhat like userspace processes, using vfs_* ops
-	to track inotify events in directories.
-	have them pop a uvenet for each inotify event, and make a udev rule to log
-	these events.
+ksignal (kthread, debugfs)
+	export a debugfs file to spawn kthreads. these will sleep in a loop, waking
+	up when they receive a signal. they will log the signal and in case it's
+	not SIGTERM go to sleep again.
 virtusb kit
 	virtudc (usb gadget framework)
 		register a virtual usb to which gadget drivers can connect.
