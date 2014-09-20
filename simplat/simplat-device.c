@@ -54,15 +54,15 @@ static int __init simplat_device_init(void)
 
 		err = platform_device_add(simplat_devices[i]);
 		if (err) {
-			printk(KERN_ERR "%s: platform_device_register failed, i = %d\n",
-					DRIVER_NAME, i);
-			goto fail_platform_device_loop_register;
+			printk(KERN_ERR "%s: platform_device_add failed, i = %d, "
+					"err = %d\n", DRIVER_NAME, i, err);
+			goto fail_platform_device_loop_add;
 		}
 	}
 
 	return 0;
 
-fail_platform_device_loop_register:
+fail_platform_device_loop_add:
 	platform_device_put(simplat_devices[i]);
 fail_platform_device_loop_alloc:
 	while (i--)
@@ -85,5 +85,5 @@ module_exit(simplat_device_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Spawns devices for the simplat platform driver");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
