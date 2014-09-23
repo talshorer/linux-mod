@@ -1,5 +1,6 @@
 #ifndef _CPIPE_IOCTL_H
 #define _CPIPE_IOCTL_H
+
 #include <linux/ioctl.h>
 
 #define CPIPE_IOC_MAGIC 'p'

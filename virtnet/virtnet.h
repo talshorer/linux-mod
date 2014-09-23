@@ -1,3 +1,6 @@
+#ifndef _VIRTNET_H
+#define _VIRTNET_H
+
 #include <linux/netdevice.h>
 
 struct virtnet_backend_ops {
@@ -27,3 +30,5 @@ extern struct virtnet_backend_ops virtnet_chr_backend_ops;
 		printk(KERN_ERR "%s: unknown backend %s\n", DRIVER_NAME, name); \
 	backend; \
 })
+
+#endif /* _VIRTNET_H */
