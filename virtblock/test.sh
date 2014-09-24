@@ -40,4 +40,3 @@ sleep 1
 umount $MOUNTP
 rmmod $DRIVER
 exit $err
-
