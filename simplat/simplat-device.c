@@ -24,8 +24,6 @@ static int simplat_device_check_module_params(void) {
 
 struct platform_device **simplat_devices;
 
-/* TODO global array of pointer to pdevs for freeing */
-
 static int __init simplat_device_init(void)
 {
 	int err;
