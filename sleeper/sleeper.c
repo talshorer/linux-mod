@@ -145,7 +145,8 @@ static int sleeper_thread_func(void *data)
 		printk("%s: %s was disturbed %d times\n", DRIVER_NAME,
 				st->task->comm, atomic_read(&st->disturbs));
 		prepare_to_wait(&st->wq, &wait, TASK_UNINTERRUPTIBLE);
-		freezable_schedule();
+		if (!kthread_should_stop())
+			freezable_schedule();
 		finish_wait(&st->wq, &wait);
 		atomic_inc(&st->disturbs);
 	} while (!kthread_should_stop());
@@ -240,5 +241,5 @@ module_exit(sleeper_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Kernel threads that sleep until woken up by user");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
