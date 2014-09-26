@@ -16,7 +16,24 @@ struct bddtree_bus {
 #define bddtree_bus_from_bus_type(bus) \
 	container_of((bus), struct bddtree_bus, bus_type)
 
-static struct bddtree_bus bddtree_bus;
+#define BDDTREE_DRIVER_NAME_LEN 32
+struct bddtree_driver {
+	char name[BDDTREE_DRIVER_NAME_LEN];
+	struct list_head link;
+	struct device_driver driver;
+	struct list_head devices;
+	spinlock_t devices_lock;
+};
+#define bddtree_driver_from_device_driver(drv) \
+	container_of((drv), struct bddtree_driver, driver)
+
+struct bddtree_device {
+	struct list_head link;
+	struct bddtree_driver *drv;
+	struct device device;
+};
+#define bddtree_device_from_device(dev) \
+	container_of((dev), struct bddtree_device, device)
 
 static char *bddtree_buf_to_name(const char *buf, size_t count)
 {
@@ -33,15 +50,6 @@ static char *bddtree_buf_to_name(const char *buf, size_t count)
 }
 
 /* TODO device layer */
-
-#define BDDTREE_DRIVER_NAME_LEN 32
-struct bddtree_driver {
-	char name[BDDTREE_DRIVER_NAME_LEN];
-	struct list_head link;
-	struct device_driver driver;
-};
-#define bddtree_driver_from_device_driver(drv) \
-	container_of((drv), struct bddtree_driver, driver)
 
 /* TODO driver sysfs control */
 
@@ -172,7 +180,8 @@ static struct bus_attribute bddtree_bus_attrs[] = {
 
 static int bddtree_match(struct device *dev, struct device_driver *drv)
 {
-	return !strncmp(dev_name(dev), drv->name, strlen(drv->name));
+	return bddtree_device_from_device(dev)->drv ==
+			bddtree_driver_from_device_driver(drv);
 }
 
 static struct bddtree_bus bddtree_bus = {
@@ -243,5 +252,5 @@ module_exit(bddtree_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A bus-driver-device tree");
-MODULE_VERSION("0.1.0");
+MODULE_VERSION("0.1.1");
 MODULE_LICENSE("GPL");
