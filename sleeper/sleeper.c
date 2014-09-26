@@ -30,7 +30,7 @@ struct sleeper_thread {
 	atomic_t disturbs;
 };
 
-struct sleeper_thread *sleeper_threads;
+static struct sleeper_thread *sleeper_threads;
 
 static struct dentry *sleeper_debugfs;
 
@@ -241,5 +241,5 @@ module_exit(sleeper_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Kernel threads that sleep until woken up by user");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
