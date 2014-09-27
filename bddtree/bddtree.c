@@ -36,6 +36,11 @@ struct bddtree_device {
 #define bddtree_device_from_device(_dev) \
 	container_of((_dev), struct bddtree_device, dev)
 
+struct bddtree_device_match {
+	unsigned long id;
+	struct bddtree_device *dev;
+};
+
 static char *bddtree_buf_to_name(const char *buf, size_t count)
 {
 	char *name;
@@ -49,12 +54,6 @@ static char *bddtree_buf_to_name(const char *buf, size_t count)
 		printk(KERN_ERR "%s: <%s> kmalloc failed\n", MODULE_NAME, __func__);
 	return name;
 }
-
-
-struct bddtree_device_match {
-	unsigned long id;
-	struct bddtree_device *dev;
-};
 
 static int bddtree_device_match(struct device *_dev, void *data)
 {
@@ -231,6 +230,7 @@ static struct bddtree_driver *bddtree_driver_create(struct bddtree_bus *bus,
 	INIT_LIST_HEAD(&drv->devices);
 	spin_lock_init(&drv->devices_lock);
 	drv->driver.bus = &bus->bus_type;
+	drv->driver.owner = THIS_MODULE;
 	drv->driver.name = drv->name;
 	drv->driver.probe = bddtree_probe;
 	drv->driver.remove = bddtree_remove;
@@ -334,12 +334,25 @@ static int bddtree_match(struct device *dev, struct device_driver *drv)
 			bddtree_driver_from_device_driver(drv);
 }
 
+static int bddtree_uevent(struct device *_dev, struct kobj_uevent_env *env)
+{
+	struct bddtree_device *dev = bddtree_device_from_device(_dev);
+	int err;
+
+	err = add_uevent_var(env, "BDDTREE_DRIVER=%s", dev->drv->driver.name);
+	if (err)
+		return err;
+
+	return 0;
+}
+
 static struct bddtree_bus bddtree_bus = {
 	.bus_type = {
 		.name = MODULE_NAME,
 		.bus_attrs = bddtree_bus_attrs,
 		.drv_attrs = bddtree_drv_attrs,
 		.match = bddtree_match,
+		.uevent = bddtree_uevent,
 	},
 };
 
@@ -402,5 +415,5 @@ module_exit(bddtree_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A bus-driver-device tree");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.1.0");
 MODULE_LICENSE("GPL");
