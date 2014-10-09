@@ -80,6 +80,46 @@ static int cpipe_mutex_lock(struct mutex *mutex, int f_flags)
 	return 0;
 }
 
+/*
+ * get avaliable read size
+ * called with the mutex locked
+ * kfifo_len is a macro and can't be addressed
+ */
+static int cpipe_fifo_len(cpipe_fifo_t *fifo)
+{
+	return kfifo_len(fifo);
+}
+
+/*
+ * get avaliable write write
+ * called with the mutex locked
+ * kfifo_avail is a macro and can't be addressed
+ */
+static int cpipe_fifo_avail(cpipe_fifo_t *fifo)
+{
+	return kfifo_avail(fifo);
+}
+
+/*
+ * it's assumed the mutex is needed for the condition.
+ * release it either way to simplify code.
+ */
+#define cpipe_wait(waitq, mutex, sleep_cond)             \
+({                                                       \
+	int __ret = 0;                                       \
+	wait_queue_head_t *__waitq = (waitq);                \
+	DEFINE_WAIT(wait);                                   \
+	prepare_to_wait(__waitq, &wait, TASK_INTERRUPTIBLE); \
+	if (sleep_cond) {                                    \
+		mutex_unlock(mutex);                             \
+		schedule();                                      \
+	} else mutex_unlock(mutex);                          \
+	finish_wait(__waitq, &wait);                         \
+	if (signal_pending(current))                         \
+		__ret = -ERESTARTSYS;                            \
+	__ret;                                               \
+})
+
 static ssize_t cpipe_read(struct file *filp, char __user *buf,
 		size_t count, loff_t *ppos)
 {
@@ -100,13 +140,10 @@ again:
 			ret = -EAGAIN;
 			goto out;
 		} else {
-			mutex_unlock(mutex);
-			/* NOTE
-			 * can't have condition !kfifo_is_empty(fifo)
-			 * since we don't hold the mutex
-			 */
-			if (wait_event_interruptible(dev->rq, true))
-				return -ERESTARTSYS;
+			ret = cpipe_wait(&dev->rq, mutex, kfifo_is_empty(fifo));
+			/* cpipe_wait unlocks the mutex */
+			if (ret)
+				return ret;
 			goto again;
 		}
 	}
@@ -139,13 +176,10 @@ again:
 			ret = -EAGAIN;
 			goto out;
 		} else {
-			mutex_unlock(mutex);
-			/* NOTE
-			 * can't have condition !kfifo_is_full(fifo)
-			 * since we don't hold the mutex
-			 */
-			if (wait_event_interruptible(dev->wq, true))
-				return -ERESTARTSYS;
+			ret = cpipe_wait(&dev->wq, mutex, kfifo_is_full(fifo));
+			/* cpipe_wait unlocks the mutex */
+			if (ret)
+				return ret;
 			goto again;
 		}
 	}
@@ -175,26 +209,6 @@ static unsigned int cpipe_poll(struct file *filp, poll_table *wait)
 	mutex_unlock(cpipe_dev_wmutex(dev));
 	poll_wait(filp, &dev->wq, wait);
 	return mask;
-}
-
-/*
- * get avaliable read size
- * called with the mutex locked
- * kfifo_len is a macro and can't be addressed
- */
-static int cpipe_fifo_len(cpipe_fifo_t *fifo)
-{
-	return kfifo_len(fifo);
-}
-
-/*
- * get avaliable write write
- * called with the mutex locked
- * kfifo_avail is a macro and can't be addressed
- */
-static int cpipe_fifo_avail(cpipe_fifo_t *fifo)
-{
-	return kfifo_avail(fifo);
 }
 
 static int cpipe_ioctl_IOCGAVAILXX(struct mutex *mutex, cpipe_fifo_t *fifo,
@@ -425,6 +439,6 @@ module_exit(cpipe_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
 

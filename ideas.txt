@@ -6,3 +6,5 @@ virtusb kit
 	virthcd (usb host framework)
 		register a virtual usb host controller to which gadgets connected to
 		virtudc can connect, creating a complete virtual usb system.
+naivefs
+	a simple filesystem
