@@ -1,0 +1,10 @@
+syntax: glob
+**.cmd
+**.mod
+**.symvers
+**.mod.**
+**/modules.order
+**~
+**.ko
+**.o
+**.rej
