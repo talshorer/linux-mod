@@ -27,3 +27,13 @@
 *.i*86
 *.x86_64
 *.hex
+
+# Compilation extras
+*.cmd
+*.mod
+*.symvers
+*.mod.*
+*/modules.order
+
+# Editor backupgs
+*~
