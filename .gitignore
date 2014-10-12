@@ -35,5 +35,6 @@
 *.mod.*
 */modules.order
 
-# Editor backupgs
+# Editor backups and generated files
 *~
+*.gen

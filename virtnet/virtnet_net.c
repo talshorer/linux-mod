@@ -222,7 +222,7 @@ static int virtnet_validate(struct nlattr *tb[], struct nlattr *data[])
 
 static struct rtnl_link_ops virtnet_link_ops = {
 	.kind = DRIVER_NAME,
-	.priv_size = sizeof(struct virtnet_iface),
+	.priv_size = 0,
 	.setup = virtnet_setup,
 	.validate = virtnet_validate,
 };
@@ -376,5 +376,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.1.1");
+MODULE_VERSION("1.2.0");
 MODULE_LICENSE("GPL");
