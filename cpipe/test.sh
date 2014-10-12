@@ -20,7 +20,7 @@ for pipe_num in $(seq 0 $(( NPIPES - 1 ))); do
 		pid=$!
 		sleep $SLEEP_INTERVAL
 		if [[ ! -e /proc/$pid ]] ; then
-			echo "$0: failedread  blocking test with sink $snk" 1>&2
+			echo "$0: failed read blocking test with sink $snk" 1>&2
 			err=1
 		fi
 		echo $DATA > $src
