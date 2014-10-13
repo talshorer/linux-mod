@@ -24,7 +24,7 @@ for (( i=0; i<$NDEVICES; i++ )); do
 	device=${MODULE}$i
 	attr_file=$CLASS_SYSFS/$device/attr
 	echo "$0: running test with device $device and $NVALUES values" 1>&2
-	readback_test $attr_file 0
+	readback_test $attr_file 0 || err=1
 	for v in $VALUES; do
 		eval "echo $v > $attr_file" || err=1
 		readback_test $attr_file $v || err=1
