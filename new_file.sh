@@ -1,6 +1,6 @@
 #! /bin/bash
 
-USAGE="$0 MODULE [-mch]"
+USAGE="$0 MODULE [-mcht]"
 TEMPLATE=template
 
 __replacements()
@@ -73,6 +73,14 @@ create_makefile()
 	cat $TEMPLATE/$TEMPLATE.mk >> $makefile
 }
 
+create_test()
+{
+	TEST=test.sh
+	testfile=$MODULE/$TEST
+	echo "$0: creating test $testfile"
+	__from_template $TEMPLATE/${TEMPLATE}_$TEST $testfile
+}
+
 create_source()
 {
 	fullpath=$1
@@ -111,6 +119,9 @@ while (( $# )); do
 	case $arg in
 		-m)
 			create_makefile
+			;;
+		-t)
+			create_test
 			;;
 		-c|-h)
 			suffix=${arg#-}
