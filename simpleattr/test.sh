@@ -10,10 +10,12 @@ function readback_test {
 	attr_file=$1
 	expected=$2
 	actual=$(cat $attr_file)
-		if [[ "$actual" != "$expected" ]]; then
-			echo -n "$0: failed readback test. " 1>&2
-			echo "expected $expected, actual $actual" 1>&2
-		fi
+	if [[ "$actual" != "$expected" ]]; then
+		echo -n "$0: failed readback test. " 1>&2
+		echo "expected $expected, actual $actual" 1>&2
+		return 1
+	fi
+	return 0
 }
 
 err=0
@@ -24,8 +26,8 @@ for (( i=0; i<$NDEVICES; i++ )); do
 	echo "$0: running test with device $device and $NVALUES values" 1>&2
 	readback_test $attr_file 0
 	for v in $VALUES; do
-		echo $v > $attr_file
-		readback_test $attr_file $v
+		eval "echo $v > $attr_file" || err=1
+		readback_test $attr_file $v || err=1
 	done
 done
 rmmod $MODULE
