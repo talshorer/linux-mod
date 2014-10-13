@@ -10,7 +10,7 @@
 
 static char DRIVER_NAME[] = "simpleattr";
 
-static int simpleattr_ndevices = -1;
+static int simpleattr_ndevices = 1;
 module_param_named(ndevices, simpleattr_ndevices, int, 0);
 MODULE_PARM_DESC(ndevices, "number of simpleattr devices to create");
 
@@ -27,30 +27,31 @@ static dev_t simpleattr_dev_base;
 static struct device **simpleattr_devices;
 
 static void simpleattr_print_sys_attr_access(struct device *dev,
-		struct device_attribute *attr, int val, const char *func)
+		struct device_attribute *attr, unsigned long val, const char *func)
 {
 	printk(KERN_INFO "%s: sysfs access: %s", DRIVER_NAME, func);
 	printk(KERN_INFO "%s: \tdevice %s\n", DRIVER_NAME, dev->kobj.name);
 	printk(KERN_INFO "%s: \tattribute %s\n", DRIVER_NAME, attr->attr.name);
 	printk(KERN_INFO "%s: \tprocess %d\n", DRIVER_NAME, current->pid);
-	printk(KERN_INFO "%s: \tvalue %d\n", DRIVER_NAME, val);
+	printk(KERN_INFO "%s: \tvalue %lu\n", DRIVER_NAME, val);
 }
 
 static ssize_t simpleattr_sys_attr_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	int val = 0;
+	unsigned long val = (unsigned long)dev_get_drvdata(dev);
 	simpleattr_print_sys_attr_access(dev, attr, val, __func__);
-	return snprintf(buf, PAGE_SIZE, "%d\n", val);
+	return snprintf(buf, PAGE_SIZE, "%lu\n", val);
 }
 
 static ssize_t simpleattr_sys_attr_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	int val;
-	if (sscanf(buf, "%d", &val) != 1)
+	unsigned long val;
+	if (sscanf(buf, "%lu", &val) != 1)
 		return -EINVAL;
 	simpleattr_print_sys_attr_access(dev, attr, val, __func__);
+	dev_set_drvdata(dev, (void *)val);	
 	return count;
 }
 
@@ -162,6 +163,6 @@ module_exit(simpleattr_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple dummy device with a sysfs attribute");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.1.0");
 MODULE_LICENSE("GPL");
 
