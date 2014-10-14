@@ -22,7 +22,7 @@ static int proccount_show(struct seq_file *m, void *v)
 
 static int proccount_open(struct inode *inode, struct file *filp)
 {
-	atomic_t *a = PDE(inode)->data;
+	atomic_t *a = PDE_DATA(inode);
 	int ret;
 	long count;
 	count = atomic_read(a);
@@ -70,6 +70,6 @@ module_exit(proccount_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A file in procfs that returns open count upon read");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
 

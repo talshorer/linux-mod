@@ -185,11 +185,15 @@ static ssize_t bddtree_drv_del_store(struct device_driver *drv,
 	return count;
 }
 
-static struct driver_attribute bddtree_drv_attrs[] = {
-	__ATTR(add, S_IWUSR, NULL, bddtree_drv_add_store),
-	__ATTR(del, S_IWUSR, NULL, bddtree_drv_del_store),
-	__ATTR_NULL,
+static DRIVER_ATTR(add, S_IWUSR, NULL, bddtree_drv_add_store);
+static DRIVER_ATTR(del, S_IWUSR, NULL, bddtree_drv_del_store);
+
+static struct attribute *bddtree_drv_attrs[] = {
+	&driver_attr_add.attr,
+	&driver_attr_del.attr,
+	NULL,
 };
+ATTRIBUTE_GROUPS(bddtree_drv);
 
 static int bddtree_probe(struct device *dev)
 {
@@ -322,11 +326,15 @@ out:
 	return ret;
 }
 
-static struct bus_attribute bddtree_bus_attrs[] = {
-	__ATTR(add, S_IWUSR, NULL, bddtree_bus_add_store),
-	__ATTR(del, S_IWUSR, NULL, bddtree_bus_del_store),
-	__ATTR_NULL,
+static BUS_ATTR(add, S_IWUSR, NULL, bddtree_bus_add_store);
+static BUS_ATTR(del, S_IWUSR, NULL, bddtree_bus_del_store);
+
+static struct attribute *bddtree_bus_attrs[] = {
+	&bus_attr_add.attr,
+	&bus_attr_del.attr,
+	NULL,
 };
+ATTRIBUTE_GROUPS(bddtree_bus);
 
 static int bddtree_match(struct device *dev, struct device_driver *drv)
 {
@@ -349,8 +357,8 @@ static int bddtree_uevent(struct device *_dev, struct kobj_uevent_env *env)
 static struct bddtree_bus bddtree_bus = {
 	.bus_type = {
 		.name = MODULE_NAME,
-		.bus_attrs = bddtree_bus_attrs,
-		.drv_attrs = bddtree_drv_attrs,
+		.bus_groups = bddtree_bus_groups,
+		.drv_groups = bddtree_drv_groups,
 		.match = bddtree_match,
 		.uevent = bddtree_uevent,
 	},
@@ -415,5 +423,5 @@ module_exit(bddtree_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A bus-driver-device tree");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.1.1");
 MODULE_LICENSE("GPL");

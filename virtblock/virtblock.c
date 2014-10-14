@@ -41,12 +41,11 @@ static int virtblock_open(struct block_device *bdev, fmode_t mode)
 	return 0;
 }
 
-static int virtblock_release(struct gendisk *disk, fmode_t mode)
+static void virtblock_release(struct gendisk *disk, fmode_t mode)
 {
 	/* struct virtblock_dev *dev = disk->private_data; */
 	printk(KERN_INFO "%s: in %s\n", DRIVER_NAME, __func__);
 	/* nothing to do here */
-	return 0;
 }
 
 static int virtblock_getgeo(struct block_device *bdev, struct hd_geometry *geo)
@@ -272,6 +271,6 @@ module_exit(virtblock_exit)
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple block device residing in ram");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
 

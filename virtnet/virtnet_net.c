@@ -133,14 +133,14 @@ static struct rtnl_link_stats64 *virtnet_get_stats64(struct net_device *dev,
 
 		dstats = per_cpu_ptr(dev->dstats, i);
 		do {
-			start = u64_stats_fetch_begin_bh(&dstats->syncp);
+			start = u64_stats_fetch_begin_irq(&dstats->syncp);
 			tbytes = dstats->tx_bytes;
 			tpackets = dstats->tx_packets;
 			tdropped = dstats->tx_dropped;
 			rbytes = dstats->rx_bytes;
 			rpackets = dstats->rx_packets;
 			rdropped = dstats->rx_dropped;
-		} while (u64_stats_fetch_retry_bh(&dstats->syncp, start));
+		} while (u64_stats_fetch_retry_irq(&dstats->syncp, start));
 		stats->tx_bytes += tbytes;
 		stats->tx_packets += tpackets;
 		stats->tx_dropped += tdropped;
@@ -376,5 +376,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.2.0");
+MODULE_VERSION("1.2.1");
 MODULE_LICENSE("GPL");

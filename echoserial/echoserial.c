@@ -2,6 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/serial_core.h>
 #include <linux/serial_reg.h>
+#include <linux/tty_flip.h>
 #include <linux/kfifo.h>
 
 #define ECHOSERIAL_PORT_NAME_LEN 8
@@ -344,7 +345,7 @@ static void echoserial_rx_timer_func(unsigned long data)
 			esp->msr |= UART_MSR_CTS;
 			uart_handle_cts_change(port, 1);
 		}
-		tty_flip_buffer_push(port->state->port.tty);
+		tty_flip_buffer_push(&port->state->port);
 	}
 out:
 	if (esp->rx_active)
@@ -503,6 +504,6 @@ module_exit(echoserial_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
 
