@@ -5,8 +5,9 @@
 
 #include "bufhub_ioctl.h"
 
-#define BUFHUB_MISCDEV "/dev/bufhub"
-#define BUFHUB_CLIPBOARD (BUFHUB_MISCDEV "_clipboard")
+#define MODULE_NAME "bufhub"
+#define BUFHUB_MISCDEV "/dev/" MODULE_NAME
+#define BUFHUB_CLIPBOARD BUFHUB_MISCDEV "_clipboard"
 
 static int _silent = 0;
 static inline int bufhub_test_perror(char *msg)
@@ -60,22 +61,38 @@ static int destroy_clipboard(int mfd, unsigned int cid)
 	return 0;
 }
 
+typedef char clipboard_name_t[sizeof(BUFHUB_CLIPBOARD) + 8];
+
+static inline void clipboard_name(clipboard_name_t *buf, int cid)
+{
+	sprintf(*buf, "%s%d", BUFHUB_CLIPBOARD, cid);
+}
+
 static int clipboard_exists(int cid)
 {
-	char clipboard_name[sizeof(BUFHUB_CLIPBOARD) + 8];
-	sprintf(clipboard_name, "%s%d", BUFHUB_CLIPBOARD, cid);
-	if (access(clipboard_name, F_OK) < 0)
+	clipboard_name_t buf;
+	clipboard_name(&buf, cid);
+	if (access(buf, F_OK) < 0)
 		return 0;
 	return 1;
 }
 
-/*
- * write then readback
- * write then open for writing and read nothing
- * close miscdev with an open clipboard and see all slaves are destroyed
- * close miscdev with an open clipboard and see slave persists. close clipboard and see slave destroyed
- * create clipboard and try to destroy it with a different master
- */
+static unsigned int get_max_clipboards(void)
+{
+	char buf[8];
+	int pfd;
+	unsigned int max_clipboards;
+	pfd = open("/sys/module/" MODULE_NAME "/parameters/max_clipboards",
+			O_RDONLY);
+	if (pfd < 0)
+		return 0;
+	buf[read(pfd, buf, sizeof(buf) - 1)] = 0;
+	close(pfd);
+	sscanf(buf, "%u", &max_clipboards);
+	return max_clipboards;
+}
+
+/* actual tests */
 
 static int test_readback(void)
 {
@@ -129,6 +146,12 @@ out_none:
 	return ret;
 }
 
+static int test_closing_miscdev_does_not_destroy_open_clipbaord(void)
+{
+	/* TODO */
+	return 1;
+}
+
 static int test_clipboard_destruction_fails_with_wrong_master(void)
 {
 	int mfd0, mfd1;
@@ -154,6 +177,27 @@ out_none:
 	return ret;
 }
 
+static int test_creation_fails_with_too_many_clipboards(void)
+{
+	int mfd;
+	unsigned int cid;
+	unsigned int max;
+	int ret = 1;
+	max = get_max_clipboards();
+	if (open_miscdev(&mfd))
+		goto out_none;
+	while (max--)
+		if (create_clipboard(mfd, &cid))
+			goto out_close_miscdev;
+	if (silent(!create_clipboard(mfd, &cid)))
+		goto out_close_miscdev;
+	ret = 0;
+out_close_miscdev:
+	close_miscdev(mfd);
+out_none:
+	return ret;
+}
+
 struct single_test {
 	int (*test_fn)(void);
 	char *name;
@@ -166,11 +210,13 @@ struct single_test {
 }
 
 static struct single_test all_tests[] = {
-/*	 test_entry(test_readback), */
+/*	test_entry(test_readback),*/
 /*	test_entry(test_open_WRONLY_deletes_clipboard_buffer),*/
 	test_entry(test_create_destroy_clipboard),
 	test_entry(test_closing_miscdev_destroys_clipboards),
+/*	test_entry(test_closing_miscdev_does_not_destroy_open_clipbaord),*/
 	test_entry(test_clipboard_destruction_fails_with_wrong_master),
+	test_entry(test_creation_fails_with_too_many_clipboards),
 };
 
 int main(int argc, char *argv[])
