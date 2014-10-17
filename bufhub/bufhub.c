@@ -52,10 +52,14 @@ struct bufhub_clipboard_dev {
 	struct kref kref;
 	struct cdev cdev;
 	char *buf;
-	size_t len;
-	struct mutex buf_mutex; /* protects buf, len */
+	size_t buf_len;
+	struct mutex buf_mutex; /* protects buf, buf_len */
 };
+
 #define bufhub_clipboard_dev_devt(bcdev) ((bcdev)->dev->devt)
+
+static void bufhub_clipboard_get(struct bufhub_clipboard_dev *dev);
+static void bufhub_clipboard_put(struct bufhub_clipboard_dev *dev);
 
 static struct class *bufhub_clipboard_class;
 static dev_t bufhub_clipboard_dev_base;
@@ -63,9 +67,88 @@ static char bufhub_clipboard_devname[] = (MODULE_NAME "_clipboard");
 static bool *bufhub_clipboard_occupied;
 static DEFINE_SPINLOCK(bufhub_clipboard_occupied_lock);
 
+static int bufhub_clipboard_mutex_lock(struct mutex *mutex, int f_flags)
+{
+	if ((f_flags & O_NONBLOCK) == O_NONBLOCK) {
+		if (!mutex_trylock(mutex))
+			return -EAGAIN;
+	} else if (mutex_lock_interruptible(mutex))
+			return -ERESTARTSYS;
+	return 0;
+}
+
+static ssize_t bufhub_clipboard_read(struct file *filp,
+		char __user *buf, size_t count, loff_t *ppos)
+{
+	struct bufhub_clipboard_dev *dev = filp->private_data;
+	ssize_t ret;
+	ret = bufhub_clipboard_mutex_lock(&dev->buf_mutex, filp->f_flags);
+	if (ret)
+		return ret;
+	count = min(count, (size_t)(dev->buf_len - *ppos));
+	ret = copy_to_user(buf, (dev->buf + *ppos), count);
+	if (ret)
+		goto out;
+	*ppos += count;
+	ret = count;
+out:
+	mutex_unlock(&dev->buf_mutex);
+	return ret;
+}
+
+static ssize_t bufhub_clipboard_write(struct file *filp,
+		const char __user *buf, size_t count, loff_t *ppos)
+{
+	struct bufhub_clipboard_dev *dev = filp->private_data;
+	ssize_t ret;
+	if (*ppos >= bufhub_clipboard_bcap)
+		return -ENOSPC;
+	ret = bufhub_clipboard_mutex_lock(&dev->buf_mutex, filp->f_flags);
+	if (ret)
+		return ret;
+	count = min(count, (size_t)(bufhub_clipboard_bcap - *ppos));
+	ret = copy_from_user((dev->buf + *ppos), buf, count);
+	if (ret)
+		goto out;
+	ret = count;
+	*ppos += count;
+	dev->buf_len = max(dev->buf_len, (size_t)*ppos);
+out:
+	mutex_unlock(&dev->buf_mutex);
+	return ret;
+}
+
+static int bufhub_clipboard_open(struct inode *inode, struct file *filp)
+{
+	struct bufhub_clipboard_dev *dev = container_of(inode->i_cdev,
+			struct bufhub_clipboard_dev, cdev);
+	bufhub_clipboard_get(dev);
+	filp->private_data = dev;
+	if ((filp->f_flags & O_WRONLY) == O_WRONLY) {
+		int err = bufhub_clipboard_mutex_lock(&dev->buf_mutex, filp->f_flags);
+		if (err)
+			return err;
+		dev->buf_len = 0;
+		mutex_unlock(&dev->buf_mutex);
+	}
+	return 0;
+}
+
+static int bufhub_clipboard_release(struct inode *inode, struct file *filp)
+{
+	struct bufhub_clipboard_dev *dev = filp->private_data;
+	filp->private_data = NULL;
+	bufhub_clipboard_put(dev);
+	return 0;
+}
+
 static struct file_operations bufhub_clipboard_fops = {
 	.owner = THIS_MODULE,
-	/* TODO open, release, read, write, poll */
+	.llseek = default_llseek,
+	.read = bufhub_clipboard_read,
+	.write = bufhub_clipboard_write,
+	.open = bufhub_clipboard_open,
+	.release = bufhub_clipboard_release,
 };
 
 static struct bufhub_clipboard_dev *bufhub_clipboard_create(
@@ -408,5 +491,5 @@ module_exit(bufhub_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A misc device that allows the creation of clipboards");
-MODULE_VERSION("0.1.0");
+MODULE_VERSION("1.0.0");
 MODULE_LICENSE("GPL");

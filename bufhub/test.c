@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <string.h>
 #include <linux/fcntl.h>
 
 #include "bufhub_ioctl.h"
@@ -36,7 +37,7 @@ static int open_miscdev(int *mfd)
 
 static int close_miscdev(int mfd)
 {
-	if(close(mfd) < 0) {
+	if(close(mfd)) {
 		bufhub_test_perror("Failed to close miscdev");
 		return 1;
 	}
@@ -68,6 +69,73 @@ static inline void clipboard_name(clipboard_name_t *buf, int cid)
 	sprintf(*buf, "%s%d", BUFHUB_CLIPBOARD, cid);
 }
 
+static int open_clipboard(unsigned int cid, int *cfd, int flags)
+{
+	clipboard_name_t buf;
+	clipboard_name(&buf, cid);
+	*cfd = open(buf, flags);
+	if (*cfd < 0) {
+		bufhub_test_perror("Failed to open clipboard");
+		return 1;
+	}
+	return 0;
+}
+
+static int full_open_clibpoard(int *mfd, int *cfd, unsigned int *cid,
+		int flags)
+{
+	if (open_miscdev(mfd))
+		goto out_none;
+	if (create_clipboard(*mfd, cid))
+		goto out_close_miscdev;
+	if (open_clipboard(*cid, cfd, flags))
+		goto out_close_miscdev;
+	return 0;
+out_close_miscdev:
+	close_miscdev(*mfd);
+out_none:
+	return 1;
+}
+
+static int close_clipboard(int cfd)
+{
+	if(close(cfd)) {
+		bufhub_test_perror("Failed to close clipboard");
+		return 1;
+	}
+	return 0;
+}
+
+static int write_clipboard(int cfd, const char *buf, size_t count)
+{
+	off_t start;
+	start = lseek(cfd, 0, SEEK_CUR);
+	if (write(cfd, buf, count) != count) {
+		bufhub_test_perror("Failed to write to clipboard");
+		return 1;
+	}
+	if (lseek(cfd, 0, SEEK_CUR) != (start + count)) {
+		bufhub_test_perror("Unexpected file offset in clipboard");
+		return 1;
+	}
+	return 0;
+}
+
+static int read_clipboard(int cfd, char *buf, size_t count)
+{
+	off_t start;
+	start = lseek(cfd, 0, SEEK_CUR);
+	if (read(cfd, buf, count) != count) {
+		bufhub_test_perror("Failed to read from clipboard");
+		return 1;
+	}
+	if (lseek(cfd, 0, SEEK_CUR) != (start + count)) {
+		bufhub_test_perror("Unexpected file offset in clipboard");
+		return 1;
+	}
+	return 0;
+}
+
 static int clipboard_exists(int cid)
 {
 	clipboard_name_t buf;
@@ -96,14 +164,62 @@ static unsigned int get_max_clipboards(void)
 
 static int test_readback(void)
 {
-	/* TODO */
-	return 1;
+	int mfd, cfd;
+	unsigned int cid;
+	size_t count;
+	char data[] = "hello, world!\n";
+	char readback[sizeof(data)];
+	int ret = 1;
+	if (full_open_clibpoard(&mfd, &cfd, &cid, O_WRONLY))
+		goto out_none;
+	count = strlen(data);
+	if (write_clipboard(cfd, data, count))
+		goto out_close_clipboard;
+	if (close_clipboard(cfd))
+		goto out_close_miscdev;
+	if (open_clipboard(cid, &cfd, O_RDWR))
+		goto out_close_miscdev;
+	if (read_clipboard(cfd, readback, count))
+		goto out_close_clipboard;
+	if (strcmp(data, readback))
+		goto out_close_clipboard;
+	ret = 0;
+out_close_clipboard:
+	close_clipboard(cfd);
+out_close_miscdev:
+	close_miscdev(mfd);
+out_none:
+	return ret;
 }
 
 static int test_open_WRONLY_deletes_clipboard_buffer(void)
 {
-	/* TODO */
-	return 1;
+	int mfd, cfd;
+	unsigned int cid;
+	char data[] = "hello, world!\n";
+	int ret = 1;
+	char dummy;
+	if (full_open_clibpoard(&mfd, &cfd, &cid, O_WRONLY))
+		goto out_none;
+	if (write_clipboard(cfd, data, strlen(data)))
+		goto out_close_clipboard;
+	if (close_clipboard(cfd))
+		goto out_close_miscdev;
+	if (open_clipboard(cid, &cfd, O_WRONLY))
+		goto out_close_miscdev;
+	if (close_clipboard(cfd))
+		goto out_close_miscdev;
+	if (open_clipboard(cid, &cfd, O_RDONLY))
+		goto out_none;
+	if (read(cfd, &dummy, sizeof(dummy)))
+		goto out_close_clipboard;
+	ret = 0;
+out_close_clipboard:
+	close_clipboard(cfd);
+out_close_miscdev:
+	close_miscdev(mfd);
+out_none:
+	return ret;
 }
 
 static int test_create_destroy_clipboard(void)
@@ -148,7 +264,23 @@ out_none:
 
 static int test_closing_miscdev_does_not_destroy_open_clipbaord(void)
 {
-	/* TODO */
+	int mfd, cfd = -1;
+	unsigned int cid;
+	if (full_open_clibpoard(&mfd, &cfd, &cid, O_RDONLY))
+		goto out_none;
+	if (close_miscdev(mfd))
+		goto out_close_clipboard;
+	if (!clipboard_exists(cid))
+		goto out_close_clipboard;
+	if (close_clipboard(cfd))
+		goto out_none;
+	if (clipboard_exists(cid))
+		goto out_none;
+	return 0;
+out_close_clipboard:
+	if (cfd >= 0)
+		close_clipboard(cid);
+out_none:
 	return 1;
 }
 
@@ -210,11 +342,11 @@ struct single_test {
 }
 
 static struct single_test all_tests[] = {
-/*	test_entry(test_readback),*/
-/*	test_entry(test_open_WRONLY_deletes_clipboard_buffer),*/
+	test_entry(test_readback),
+	test_entry(test_open_WRONLY_deletes_clipboard_buffer),
 	test_entry(test_create_destroy_clipboard),
 	test_entry(test_closing_miscdev_destroys_clipboards),
-/*	test_entry(test_closing_miscdev_does_not_destroy_open_clipbaord),*/
+	test_entry(test_closing_miscdev_does_not_destroy_open_clipbaord),
 	test_entry(test_clipboard_destruction_fails_with_wrong_master),
 	test_entry(test_creation_fails_with_too_many_clipboards),
 };
