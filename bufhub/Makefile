@@ -2,7 +2,9 @@ obj-m := bufhub.o
 
 TEST=test
 
-include $(PWD)/../env.mk
+THIS_MAKEFILE_DIR=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+
+include $(THIS_MAKEFILE_DIR)/../env.mk
 
 all: $(TEST).out
 	make -C $(KERNEL) M=$(PWD) modules
