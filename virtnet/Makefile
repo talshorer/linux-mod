@@ -7,12 +7,10 @@ THIS_MAKEFILE_DIR:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
 include $(THIS_MAKEFILE_DIR)/../env.mk
 
-all: $(BACKEND_GLUE_HEADER)
-	make -C $(KERNEL) M=$(THIS_MAKEFILE_DIR) modules
+all: $(BACKEND_GLUE_HEADER) modules
 
 $(BACKEND_GLUE_HEADER): gen_backend_glue_header.sh
 	bash $< $(VIRTNET_BACKENDS) > $@
 
-clean:
-	make -C $(KERNEL) M=$(THIS_MAKEFILE_DIR) clean
+clean: modules-clean
 	rm -f $(BACKEND_GLUE_HEADER)

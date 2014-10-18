@@ -6,9 +6,7 @@ THIS_MAKEFILE_DIR:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
 include $(THIS_MAKEFILE_DIR)/../env.mk
 
-all: $(TEST)
-	make -C $(KERNEL) M=$(THIS_MAKEFILE_DIR) modules
+all: $(TEST) modules
 
-clean:
-	make -C $(KERNEL) M=$(THIS_MAKEFILE_DIR) clean
+clean: modules-clean
 	rm -f $(TEST)
