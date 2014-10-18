@@ -165,4 +165,3 @@ MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple dummy device with a sysfs attribute");
 MODULE_VERSION("1.1.0");
 MODULE_LICENSE("GPL");
-

@@ -273,4 +273,3 @@ MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple block device residing in ram");
 MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
-

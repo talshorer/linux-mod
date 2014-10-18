@@ -9,4 +9,3 @@
 #define CPIPE_IOC_MAXNR 1
 
 #endif /* _CPIPE_IOCTL_H */
-

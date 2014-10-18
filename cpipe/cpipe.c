@@ -441,4 +441,3 @@ MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
 MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
-
