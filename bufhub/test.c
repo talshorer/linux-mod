@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 #include <linux/fcntl.h>
 
 #include "bufhub_ioctl.h"
@@ -25,6 +26,11 @@ static inline int bufhub_test_perror(char *msg)
 	__ret;              \
 })
 
+static inline void bufhub_delay(void)
+{
+	usleep(10000);
+}
+
 static int open_miscdev(int *mfd)
 {
 	*mfd = open(BUFHUB_MISCDEV, O_RDONLY);
@@ -41,6 +47,7 @@ static int close_miscdev(int mfd)
 		bufhub_test_perror("Failed to close miscdev");
 		return 1;
 	}
+	bufhub_delay();
 	return 0;
 }
 
@@ -59,6 +66,7 @@ static int destroy_clipboard(int mfd, unsigned int cid)
 		bufhub_test_perror("Failed to destroy clipboard");
 		return 1;
 	}
+	bufhub_delay();
 	return 0;
 }
 
