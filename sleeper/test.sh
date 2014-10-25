@@ -19,6 +19,7 @@ wake_thread()
 }
 
 err=0
+cd $(dirname $0)
 insmod $DRIVER.ko nthreads=$NTHREADS
 for i in $(seq 0 $(( $NWAKES - 1 ))); do
 	for j in $(seq 0 $(( $NTHREADS - 1 ))); do

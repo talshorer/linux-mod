@@ -5,6 +5,7 @@ PROCFILE=/proc/opencounter
 NITERS=0x100
 
 err=0
+cd $(dirname $0)
 insmod $MODULE.ko
 for i in $(seq 0 $(( $NITERS - 1 ))); do
 	value=$(cat $PROCFILE)

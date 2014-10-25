@@ -8,13 +8,14 @@ BSIZE=$(echo $DATA | wc -c)
 SLEEP_INTERVAL=0.1
 
 err=0
+cd $(dirname $0)
 insmod $MODULE.ko npipes=$NPIPES bsize=$BSIZE
 for pipe_num in $(seq 0 $(( NPIPES - 1 ))); do
 	pipe=/dev/${MODULE}$pipe_num
 	for end in 0 1; do
 		src=$pipe.$end
 		snk=$pipe.$(( 1 - $end ))
-		echo "$0: runnind test with source $src and sink $snk" 1>&2
+		echo "$0: running test with source $src and sink $snk" 1>&2
 		tmp=$(tempfile)
 		head -n 1 $snk > $tmp &
 		pid=$!

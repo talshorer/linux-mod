@@ -36,6 +36,7 @@ negative_test()
 }
 
 err=0
+cd $(dirname $0)
 negative_test "$IMPORTER can't be loaded without $EXPORTER" \
 		"insmod $IMPORTER.ko" || err=1
 positive_test "$IMPORTER can be loaded with $EXPORTER" \

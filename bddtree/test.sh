@@ -16,6 +16,7 @@ function device_sysfs {
 }
 
 err=0
+cd $(dirname $0)
 insmod $MODULE.ko
 for driver in $DRIVERS; do
 	echo "$0: running test with driver $driver and $NDEVICES devices" 1>&2

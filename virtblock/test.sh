@@ -9,6 +9,7 @@ DATA="hello world!"
 FILE="hi.txt"
 
 err=0
+cd $(dirname $0)
 insmod $DRIVER.ko ndevices=2 nsectors=1024 hardsect_size=1024
 mkfs -t $MOUNTT $DEV
 mkdir -p $MOUNTP
@@ -35,7 +36,7 @@ if [[ -e ${DEVTEMPLATE}c ]]; then
 else
 	echo "$0: device c properly not created" 1>&2
 fi
-echo "$0: sleeping to allow all IO operations on $MOUNTP complete"
+echo "$0: sleeping to allow all IO operations on $MOUNTP to complete"
 sleep 1
 umount $MOUNTP
 rmmod $DRIVER

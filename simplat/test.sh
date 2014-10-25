@@ -6,6 +6,7 @@ NDEVICES=4
 PLATFORM_SYSFS=/sys/bus/platform
 
 err=0
+cd $(dirname $0)
 insmod $MODULE.ko
 insmod $DEVICE_MODULE.ko ndevices=$NDEVICES
 driver=$MODULE

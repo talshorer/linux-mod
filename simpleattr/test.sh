@@ -19,6 +19,7 @@ function readback_test {
 }
 
 err=0
+cd $(dirname $0)
 insmod $MODULE.ko ndevices=$NDEVICES
 for (( i=0; i<$NDEVICES; i++ )); do
 	device=${MODULE}$i

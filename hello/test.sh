@@ -3,6 +3,7 @@
 MODULE=hello
 
 err=0
+cd $(dirname $0)
 insmod $MODULE.ko
 if [[ $? != 0 ]]; then
 	echo "$0: failed to load module $MODULE"
