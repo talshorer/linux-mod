@@ -3,7 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
-#include <linux/fcntl.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
 
 #include "bufhub_ioctl.h"
 
@@ -12,7 +13,7 @@
 #define BUFHUB_CLIPBOARD BUFHUB_MISCDEV "_clipboard"
 
 static int _silent = 0;
-static inline int bufhub_test_perror(char *msg)
+static inline void bufhub_test_perror(char *msg)
 {
 	if (!_silent)
 		perror(msg);

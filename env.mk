@@ -3,7 +3,7 @@ KERNEL=/lib/modules/$(shell uname -r)/build
 default: all
 
 %.out: %.c
-	$(CC) $< -o $@
+	$(CC) $< -o $@ -Wall
 
 kern_make:
 	make -C $(KERNEL) M=$(THIS_MAKEFILE_DIR) $(KERN_RULE)
