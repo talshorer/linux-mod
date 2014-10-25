@@ -6,7 +6,6 @@
 #include <linux/kfifo.h>
 
 #define ECHOSERIAL_PORT_NAME_LEN 8
-#define ECHOSERIAL_DEFAULT_BAUD 9600
 /* one more than the last type @ include/uapi/linux/serial_core.h */
 #define PORT_ECHOSERIAL 109
 
@@ -48,6 +47,10 @@ static int echoserial_interval = 80;
 module_param_named(interval, echoserial_interval, int, 0444);
 MODULE_PARM_DESC(interval, "interval (in msecs) for rx/tx timers");
 
+static int echoserial_defbaud = 9600;
+module_param_named(defbaud, echoserial_defbaud, int, 0444);
+MODULE_PARM_DESC(defbaud, "default baudrate for ports");
+
 static int __init echoserial_check_module_params(void) {
 	int err = 0;
 	if (echoserial_nports < 0) {
@@ -75,6 +78,12 @@ static int __init echoserial_check_module_params(void) {
 	if (echoserial_interval % 20) {
 		printk(KERN_ERR "%s: echoserial_interval is not a multiple of 20. "
 				"value = %d\n", DRIVER_NAME, echoserial_interval);
+		err = -EINVAL;
+	}
+	/* echoserial_defbaud must be a multiple of 9600 */
+	if (echoserial_defbaud % 9600) {
+		printk(KERN_ERR "%s: echoserial_defbaud is not a multiple of 9600. "
+				"value = %d\n", DRIVER_NAME, echoserial_defbaud);
 		err = -EINVAL;
 	}
 	return err;
@@ -203,7 +212,7 @@ static int echoserial_startup(struct uart_port *port)
 	unsigned long flags;
 	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	spin_lock_irqsave(&port->lock, flags);
-	esp->baud = ECHOSERIAL_DEFAULT_BAUD;
+	esp->baud = echoserial_defbaud;
 	esp->msr |= UART_MSR_CTS;
 	esp->rx_active = true;
 	mod_timer(&esp->rx_timer,
@@ -504,5 +513,5 @@ module_exit(echoserial_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
