@@ -7,7 +7,7 @@ default: all
 	$(CC) $< -o $@ $(LMOD_CFLAGS) $($@_CFLAGS)
 
 lib%.so: %.c
-	$(CC) $< -o $@ -shared $(LMOD_CFLAGS)
+	$(CC) $< -o $@ -shared $(LMOD_CFLAGS) $($@_CFLAGS)
 
 kern_make:
 	make -C $(KERNEL) M=$(THIS_MAKEFILE_DIR) $(KERN_RULE)
