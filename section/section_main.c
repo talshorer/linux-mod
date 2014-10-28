@@ -5,8 +5,12 @@
 
 typedef char *(*section_dummy)(void);
 
-asm (".section .dummies, \"aw\""); \
-extern section_dummy __start_dummies; \
+/*
+ * special thanks to Ilya Matveychikov on his answer @stackoverflow to
+ * http://stackoverflow.com/questions/18673149/using-elf-section-in-lkm
+ */
+asm (".section .dummies, \"aw\"");
+extern section_dummy __start_dummies;
 extern section_dummy __stop_dummies;
 
 #define section_define_dummy_func(name) \
