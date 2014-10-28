@@ -2,6 +2,7 @@
 
 USAGE="$0 MODULE [-mcht]"
 TEMPLATE=template
+TEMPLATE_DIR=utils/templates
 
 __replacements()
 {
@@ -15,7 +16,7 @@ __replacements()
 
 __from_template()
 {
-	template=$1
+	template=$TEMPLATE_DIR/$1
 	filepath=$2
 	cp $template $filepath
 	__replacements $filepath
@@ -70,7 +71,7 @@ create_makefile()
 		echo >> $makefile
 	fi
 	echo >> $makefile
-	cat $TEMPLATE/$TEMPLATE.mk >> $makefile
+	cat $TEMPLATE_DIR/$TEMPLATE.mk >> $makefile
 }
 
 create_test()
@@ -78,7 +79,7 @@ create_test()
 	TEST=test.sh
 	testfile=$MODULE/$TEST
 	echo "$0: creating test $testfile"
-	__from_template $TEMPLATE/${TEMPLATE}_$TEST $testfile
+	__from_template ${TEMPLATE}_$TEST $testfile
 }
 
 create_source()
@@ -86,7 +87,7 @@ create_source()
 	fullpath=$1
 	echo "$0: creating source $fullpath"
 	if [[ $(__list_sources | wc -l) == 0 ]]; then
-		__from_template $TEMPLATE/$TEMPLATE.c $fullpath
+		__from_template $TEMPLATE.c $fullpath
 	else
 		echo "/* code */" > $fullpath
 	fi
@@ -96,7 +97,7 @@ create_header()
 {
 	fullpath=$1
 	echo "$0: creating header $fullpath"
-	__from_template $TEMPLATE/$TEMPLATE.h $fullpath
+	__from_template $TEMPLATE.h $fullpath
 }
 
 print_usage()
