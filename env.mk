@@ -1,5 +1,6 @@
 KERNEL=/lib/modules/$(shell uname -r)/build
 LMOD_CFLAGS:=-Wall
+ccflags-y+=$(LMOD_CFLAGS)
 
 default: all
 
