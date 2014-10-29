@@ -5,11 +5,6 @@
 
 typedef char *(*elfsect_dummy)(void);
 
-/*
- * special thanks to Ilya Matveychikov on his answer @stackoverflow to
- * http://stackoverflow.com/questions/18673149/using-elf-section-in-lkm
- */
-asm (".section .dummies, \"aw\"");
 extern elfsect_dummy __start_dummies;
 extern elfsect_dummy __stop_dummies;
 
@@ -39,5 +34,5 @@ module_exit(elfsect_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A module with a section of dummy function pointers");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
