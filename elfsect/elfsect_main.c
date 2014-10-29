@@ -1,43 +1,43 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 
-#define MODULE_NAME "section"
+#define MODULE_NAME "elfsect"
 
-typedef char *(*section_dummy)(void);
+typedef char *(*elfsect_dummy)(void);
 
 /*
  * special thanks to Ilya Matveychikov on his answer @stackoverflow to
  * http://stackoverflow.com/questions/18673149/using-elf-section-in-lkm
  */
 asm (".section .dummies, \"aw\"");
-extern section_dummy __start_dummies;
-extern section_dummy __stop_dummies;
+extern elfsect_dummy __start_dummies;
+extern elfsect_dummy __stop_dummies;
 
-#define section_define_dummy_func(name) \
+#define elfsect_define_dummy_func(name) \
 	static char *name(void) { return #name; } \
 	static __attribute__((__used__)) __attribute__((__section__(".dummies"))) \
-			section_dummy __dummies__##name = &name;
+			elfsect_dummy __dummies__##name = &name;
 
-section_define_dummy_func(foo);
-section_define_dummy_func(bar);
+elfsect_define_dummy_func(foo);
+elfsect_define_dummy_func(bar);
 
-static int __init section_init(void)
+static int __init elfsect_init(void)
 {
-	section_dummy *fp;
+	elfsect_dummy *fp;
 	for (fp = &__start_dummies; fp < &__stop_dummies; fp++)
 		pr_info("%s: %p %s\n", MODULE_NAME, fp, (*fp)());
 	return 0;
 }
-module_init(section_init);
+module_init(elfsect_init);
 
-static void __exit section_exit(void)
+static void __exit elfsect_exit(void)
 {
 	pr_info("%s: exitting\n", MODULE_NAME);
 }
-module_exit(section_exit);
+module_exit(elfsect_exit);
 
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A module with a section of dummy function pointers");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");

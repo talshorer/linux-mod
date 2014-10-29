@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=section
+MODULE=elfsect
 SECTION_NAME=.dummies
 
 err=0
