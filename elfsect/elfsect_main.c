@@ -8,6 +8,8 @@
 extern elfsect_dummy __start_dummies;
 extern elfsect_dummy __stop_dummies;
 
+static __elfsect_dummy_symbol struct { } __elfsect_dummies_empty;
+
 static int __init elfsect_init(void)
 {
 	elfsect_dummy *fp;
@@ -27,5 +29,5 @@ module_exit(elfsect_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A module with a section of dummy function pointers");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.1.1");
 MODULE_LICENSE("GPL");
