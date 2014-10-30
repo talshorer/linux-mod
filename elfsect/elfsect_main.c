@@ -29,5 +29,5 @@ module_exit(elfsect_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A module with a section of dummy function pointers");
-MODULE_VERSION("1.1.1");
+MODULE_VERSION("1.1.2");
 MODULE_LICENSE("GPL");

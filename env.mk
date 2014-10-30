@@ -18,3 +18,6 @@ modules:
 
 modules-clean:
 	make kern_make KERN_RULE=clean
+
+gen-clean:
+	rm *.gen.*
