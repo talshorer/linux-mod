@@ -37,4 +37,4 @@
 
 # Editor backups and generated files
 *~
-*.gen
+*.gen.*

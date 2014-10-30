@@ -1,4 +1,4 @@
-#include "virtnet_backend_glue.h.gen"
+#include "virtnet_backend_glue.gen.h"
 
 #define MODULE_NAME "virtnet_backend"
 
@@ -8,7 +8,7 @@ struct virtnet_backend_entry {
 };
 
 /*
- * this is where the magic happens. virtnet_backend_glue.h.gen is a generated
+ * this is where the magic happens. virtnet_backend_glue.gen.h is a generated
  * file that declares an extern struct virtnet_backend_ops for each backend in
  * the Makefile. it also declares a macro called VIRTNET_BACKEND_GLUE, which
  * expands to call VIRTNET_BACKEND_ENTRY for each backend, seperated by commas.

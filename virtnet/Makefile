@@ -1,7 +1,7 @@
 VIRTNET_BACKENDS := virtnet_lb.o virtnet_chr.o
 obj-m := virtnet.o
 virtnet-y := virtnet_net.o virtnet_backend_glue.o $(VIRTNET_BACKENDS)
-BACKEND_GLUE_HEADER := virtnet_backend_glue.h.gen
+BACKEND_GLUE_HEADER := virtnet_backend_glue.gen.h
 
 THIS_MAKEFILE_DIR:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
