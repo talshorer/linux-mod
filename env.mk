@@ -20,4 +20,4 @@ modules-clean:
 	make kern_make KERN_RULE=clean
 
 gen-clean:
-	rm *.gen.*
+	rm -f *.gen.*
