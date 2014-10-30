@@ -115,7 +115,7 @@ static int __init sleeper_create_debugfs(void)
 			sleeper_debugfs, sleeper_threads, &sleeper_debugfs_wake_fops);
 	if (!file) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: debugfs_create_file for %s\n",
+		printk(KERN_ERR "%s: debugfs_create_file failed for %s\n",
 				DRIVER_NAME, sleeper_debugfs_wake_fname);
 		goto fail_debugfs_create_file;
 	}
@@ -124,7 +124,7 @@ static int __init sleeper_create_debugfs(void)
 			sleeper_debugfs, sleeper_threads, &sleeper_debugfs_stat_fops);
 	if (!file) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: debugfs_create_file for %s\n",
+		printk(KERN_ERR "%s: debugfs_create_file failed for %s\n",
 				DRIVER_NAME, sleeper_debugfs_stat_fname);
 		goto fail_debugfs_create_file;
 	}
@@ -241,5 +241,5 @@ module_exit(sleeper_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Kernel threads that sleep until woken up by user");
-MODULE_VERSION("1.0.2");
+MODULE_VERSION("1.0.3");
 MODULE_LICENSE("GPL");
