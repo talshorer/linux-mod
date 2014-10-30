@@ -12,5 +12,4 @@ all: $(BACKEND_GLUE_HEADER) modules
 $(BACKEND_GLUE_HEADER): gen_backend_glue_header.sh
 	bash $< $(VIRTNET_BACKENDS) > $@
 
-clean: modules-clean
-	rm -f $(BACKEND_GLUE_HEADER)
+clean: modules-clean gen-clean
