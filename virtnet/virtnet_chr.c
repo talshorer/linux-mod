@@ -28,6 +28,36 @@ static dev_t virtnet_chr_dev_base;
 static unsigned int virtnet_chr_ndev;
 static struct class *virtnet_chr_class;
 
+static struct virtnet_chr_packet *virtnet_chr_get_next_packet(
+		struct virtnet_chr_dev *vcdev, int block)
+{
+	struct virtnet_chr_packet *packet = NULL;
+	unsigned long flags;
+	DEFINE_WAIT(wait);
+
+	while (!packet) {
+		if (block)
+			prepare_to_wait(&vcdev->waitq, &wait, TASK_INTERRUPTIBLE);
+		spin_lock_irqsave(&vcdev->lock, flags);
+		if (list_empty(&vcdev->packets)) {
+			if (block) {
+				spin_unlock_irqrestore(&vcdev->lock, flags);
+				schedule();
+				if (signal_pending(current))
+					packet = ERR_PTR(-ERESTARTSYS);
+				spin_lock_irqsave(&vcdev->lock, flags);
+			} else packet = ERR_PTR(-EAGAIN);
+		} else {
+			packet = list_first_entry(&vcdev->packets,
+					struct virtnet_chr_packet, link);
+			list_del(&packet->link);
+		}
+		spin_unlock_irqrestore(&vcdev->lock, flags);
+		if (block)
+			finish_wait(&vcdev->waitq, &wait);
+	}
+	return packet;
+}
 
 static ssize_t virtnet_chr_read(struct file *filp, char __user *buf,
 		size_t count, loff_t *ppos)
@@ -35,25 +65,10 @@ static ssize_t virtnet_chr_read(struct file *filp, char __user *buf,
 	struct virtnet_chr_dev *vcdev = filp->private_data;
 	struct virtnet_chr_packet *packet;
 	ssize_t ret;
-	unsigned long flags;
 
-	spin_lock_irqsave(&vcdev->lock, flags);
-	while (list_empty(&vcdev->packets)) {
-		spin_unlock_irqrestore(&vcdev->lock, flags);
-		if ((filp->f_flags & O_NONBLOCK) == O_NONBLOCK)
-			return -EAGAIN;
-		/* NOTE
-		 * can't have condition !list_empty(&vcdev->packets)
-		 * since we don't hold the lock
-		 */
-		else if (wait_event_interruptible(vcdev->waitq, true))
-			return -ERESTARTSYS;
-		spin_lock_irqsave(&vcdev->lock, flags);
-	}
-	packet = list_first_entry(&vcdev->packets,
-			struct virtnet_chr_packet, link);
-	list_del(&packet->link);
-	spin_unlock_irqrestore(&vcdev->lock, flags);
+	packet = virtnet_chr_get_next_packet(vcdev, !(filp->f_flags & O_NONBLOCK));
+	if (IS_ERR(packet))
+		return PTR_ERR(packet);
 
 	count = min(count, packet->len);
 

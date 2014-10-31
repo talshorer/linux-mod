@@ -380,5 +380,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.2.2");
+MODULE_VERSION("1.2.3");
 MODULE_LICENSE("GPL");
