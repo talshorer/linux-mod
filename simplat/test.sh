@@ -16,13 +16,13 @@ for ((i=0; i<$NDEVICES; i++)); do
 	echo "$0: running test with device $device" 1>&2
 	device_sysfs=$PLATFORM_SYSFS/devices/$device
 	if [[ ! -e $device_sysfs ]]; then
-		echo "$0: device $device doesn't exist" 2>&1
+		echo "$0: device $device doesn't exist" 1>&2
 		err=1
 		continue
 	fi
 	link_target=$(realpath $device_sysfs/driver)
 	if [[ "$link_target" != "$driver_sysfs" ]]; then
-		echo "$0: device $device not bound to driver $driver" 2>&1
+		echo "$0: device $device not bound to driver $driver" 1>&2
 		err=1
 	fi
 done

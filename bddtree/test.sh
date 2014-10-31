@@ -23,7 +23,7 @@ for driver in $DRIVERS; do
 	echo $driver > $BUS_SYSFS/$ADD
 	DRIVER_SYSFS=$(driver_sysfs $driver)
 	if [[ ! -e $DRIVER_SYSFS ]]; then
-		echo "$0: failed to create driver $driver" 2>&1
+		echo "$0: failed to create driver $driver" 1>&2
 		err=1
 	fi
 	for devid in $(seq 0 $(( $NDEVICES - 1 ))); do
@@ -31,12 +31,12 @@ for driver in $DRIVERS; do
 		device=$driver.$devid
 		DEVICE_SYSFS=$(device_sysfs $device)
 		if [[ ! -e $DEVICE_SYSFS ]]; then
-			echo "$0: failed to create device $device" 2>&1
+			echo "$0: failed to create device $device" 1>&2
 			err=1
 		fi
 		echo $devid > $DRIVER_SYSFS/$DEL
 		if [[ -e $DEVICE_SYSFS ]]; then
-			echo "$0: failed to remove device $device" 2>&1
+			echo "$0: failed to remove device $device" 1>&2
 			err=1
 		fi
 	done
@@ -44,7 +44,7 @@ for driver in $DRIVERS; do
 	echo $devid > $DRIVER_SYSFS/$ADD
 	echo $driver > $BUS_SYSFS/$DEL
 	if [[ -e $DRIVER_SYSFS ]]; then
-		echo "$0: failed to remove driver $driver" 2>&1
+		echo "$0: failed to remove driver $driver" 1>&2
 		err=1
 	fi
 	device=$driver.$devid
