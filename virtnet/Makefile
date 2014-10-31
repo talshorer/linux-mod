@@ -3,9 +3,9 @@ obj-m := virtnet.o
 virtnet-y := virtnet_net.o virtnet_backend_glue.o $(VIRTNET_BACKENDS)
 BACKEND_GLUE_HEADER := virtnet_backend_glue.gen.h
 
-THIS_MAKEFILE_DIR:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+M:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 
-include $(THIS_MAKEFILE_DIR)/../env.mk
+include $(M)/../env.mk
 
 all: $(BACKEND_GLUE_HEADER) modules
 

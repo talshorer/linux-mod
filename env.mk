@@ -11,7 +11,7 @@ lib%.so: %.c
 	$(CC) $< -o $@ -shared $(LMOD_CFLAGS) $($@_CFLAGS)
 
 kern_make:
-	make -C $(KERNEL) M=$(THIS_MAKEFILE_DIR) $(KERN_RULE)
+	make -C $(KERNEL) M=$(M) $(KERN_RULE)
 
 modules:
 	make kern_make KERN_RULE=modules

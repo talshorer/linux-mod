@@ -2,15 +2,15 @@ obj-m := elfsect.o
 
 DUMMIES_GENERATOR := gen_dummies_source.sh
 
+M:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+
+include $(M)/../env.mk
+
 # important note from elfsect 1.0.* (irrelevant since 1.1.0):
 #	when elfsect_main.c is called elfsect.c, the extra symbols from
 #	layout.lds fail to import
 elfsect-y := elfsect_main.o $(shell $(M)/$(DUMMIES_GENERATOR) -l)
 ldflags-y += -T$(M)/layout.lds
-
-THIS_MAKEFILE_DIR:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
-
-include $(THIS_MAKEFILE_DIR)/../env.mk
 
 dummies: $(DUMMIES_GENERATOR)
 	bash $< -c
