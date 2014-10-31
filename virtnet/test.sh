@@ -6,6 +6,7 @@ BACKENDS="lb chr"
 IFACE_BASE_NAME=virt
 
 err=0
+cd $(dirname $0)
 for backend in $BACKENDS; do
 	insmod $MODULE.ko nifaces=$NIFACES backend=$backend
 	for ((i=0; i<$NIFACES; i++)); do

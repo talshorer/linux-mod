@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <arpa/inet.h>
@@ -35,16 +36,16 @@ static void populate_packet(char *packet)
 
 static int test_lb(int sfd, unsigned int iface_id)
 {
-	char packet[TOTAL_PACKET_SIZE] = { 0 };
-	char readback[sizeof(packet)];
+	char packet[TOTAL_PACKET_SIZE];
+	char readback[TOTAL_PACKET_SIZE];
 	struct timeval t_start, t_end;
 	unsigned long actual_time;
 	populate_packet(packet);
 	gettimeofday(&t_start, NULL);
-	write(sfd, packet, sizeof(packet));
-	read(sfd, readback, sizeof(packet));
+	write(sfd, packet, TOTAL_PACKET_SIZE);
+	read(sfd, readback, TOTAL_PACKET_SIZE);
 	gettimeofday(&t_end, NULL);
-	if(memcmp(packet, readback, sizeof(packet))) {
+	if(memcmp(packet, readback, TOTAL_PACKET_SIZE)) {
 		dprintf(2, "%s: failed loopback test\n", prog);
 		return 1;
 	}
@@ -58,10 +59,38 @@ static int test_lb(int sfd, unsigned int iface_id)
 	return 0;
 }
 
+#define CHRDEV_BASE "/dev/virtnet_chr"
+#define CHRDEV_NAME_LEN (sizeof(CHRDEV_BASE) + 4)
+
 static int test_chr(int sfd, unsigned int iface_id)
 {
-	/* TODO */
-	return 0;
+	int cfd;
+	int ret;
+	char chrdev_name[CHRDEV_NAME_LEN];
+	char packet[TOTAL_PACKET_SIZE];
+	char readback[TOTAL_PACKET_SIZE];
+	populate_packet(packet);
+	sprintf(chrdev_name, CHRDEV_BASE "%u", iface_id);
+	cfd = open(chrdev_name, O_RDWR | O_NONBLOCK);
+	if (cfd < 0) {
+		perror("Failed to open chrdev");
+		return 1;
+	}
+	write(sfd, packet, TOTAL_PACKET_SIZE);
+	/* drain all packets. buffer should have last packet (the one we sent) */
+	while (read(cfd, readback, TOTAL_PACKET_SIZE) >= 0);
+	write(cfd, readback, TOTAL_PACKET_SIZE);
+	memset(readback, 0, TOTAL_PACKET_SIZE);
+	read(sfd, readback, TOTAL_PACKET_SIZE);
+	if(memcmp(packet, readback, TOTAL_PACKET_SIZE)) {
+		dprintf(2, "%s: failed readback test\n", prog);
+		ret = 1;
+		goto close_chrdev;
+	}
+	ret = 0;
+close_chrdev:
+	close(cfd);
+	return ret;
 }
 
 typedef int (*virtnet_test_fn)(int, unsigned int);
