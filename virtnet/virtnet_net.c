@@ -87,6 +87,7 @@ static const char virtnet_iface_fmt[] = "virt%d";
 static int virtnet_dev_init(struct net_device *dev)
 {
 	unsigned int minor;
+	int err;
 
 	printk(KERN_INFO "%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
 			dev->name, __func__);
@@ -95,9 +96,12 @@ static int virtnet_dev_init(struct net_device *dev)
 	if (!dev->dstats)
 		return -ENOMEM;
 
-	sscanf(virtnet_iface_fmt, dev->name, &minor);
-	if (virtnet_backend_dev_init(netdev_priv(dev), minor))
+	sscanf(dev->name, virtnet_iface_fmt, &minor);
+	err = virtnet_backend_dev_init(netdev_priv(dev), minor);
+	if (err) {
 		free_percpu(dev->dstats);
+		return err;
+	}
 
 	return 0;
 }
@@ -188,7 +192,7 @@ static const struct net_device_ops virtnet_netdev_ops = {
 	.ndo_uninit		= virtnet_dev_uninit,
 	.ndo_start_xmit		= virtnet_xmit,
 	.ndo_validate_addr	= eth_validate_addr,
-	.ndo_set_rx_mode	= virtnet_set_multicast_list,
+	//.ndo_set_rx_mode	= virtnet_set_multicast_list,
 	.ndo_set_mac_address	= eth_mac_addr,
 	.ndo_get_stats64	= virtnet_get_stats64,
 };
@@ -376,5 +380,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.2.1");
+MODULE_VERSION("1.2.2");
 MODULE_LICENSE("GPL");
