@@ -8,5 +8,4 @@ include $(M)/../env.mk
 
 all: $(TEST) modules
 
-clean: modules-clean
-	rm -f $(TEST)
+clean: modules-clean bin-clean

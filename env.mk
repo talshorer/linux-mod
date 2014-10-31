@@ -21,3 +21,6 @@ modules-clean:
 
 gen-clean:
 	rm -f *.gen.*
+
+bin-clean:
+	rm -f *.out
