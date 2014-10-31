@@ -192,7 +192,7 @@ static const struct net_device_ops virtnet_netdev_ops = {
 	.ndo_uninit		= virtnet_dev_uninit,
 	.ndo_start_xmit		= virtnet_xmit,
 	.ndo_validate_addr	= eth_validate_addr,
-	//.ndo_set_rx_mode	= virtnet_set_multicast_list,
+	.ndo_set_rx_mode	= virtnet_set_multicast_list,
 	.ndo_set_mac_address	= eth_mac_addr,
 	.ndo_get_stats64	= virtnet_get_stats64,
 };
