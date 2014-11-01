@@ -13,7 +13,7 @@ elfsect-y := elfsect_main.o $(shell $(M)/$(DUMMIES_GENERATOR) -l)
 ldflags-y += -T$(M)/layout.lds
 
 dummies: $(DUMMIES_GENERATOR)
-	bash $< -c
+	./$< -c
 
 all: dummies modules
 

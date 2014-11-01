@@ -12,6 +12,6 @@ include $(M)/../env.mk
 all: $(TEST) $(BACKEND_GLUE_HEADER) modules
 
 $(BACKEND_GLUE_HEADER): gen_backend_glue_header.sh
-	bash $< $(VIRTNET_BACKENDS) > $@
+	./$< $(VIRTNET_BACKENDS) > $@
 
 clean: modules-clean gen-clean bin-clean
