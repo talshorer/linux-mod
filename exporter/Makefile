@@ -1,6 +1,6 @@
 obj-m := exporter.o importer.o
 
-M:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+M:=$(shell pwd)
 
 include $(M)/../env.mk
 

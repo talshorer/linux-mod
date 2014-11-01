@@ -2,7 +2,7 @@ obj-m := elfsect.o
 
 DUMMIES_GENERATOR := gen_dummies_source.sh
 
-M:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+M:=$(shell pwd)
 
 include $(M)/../env.mk
 

@@ -1,6 +1,6 @@
-THIS_MAKEFILE_DIR:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+M:=$(shell pwd)
 
-include $(THIS_MAKEFILE_DIR)/../env.mk
+include $(M)/../env.mk
 
 all: modules
 

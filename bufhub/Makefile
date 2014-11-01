@@ -2,7 +2,7 @@ obj-m := bufhub.o
 
 TEST=test.out
 
-M:=$(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
+M:=$(shell pwd)
 
 include $(M)/../env.mk
 
