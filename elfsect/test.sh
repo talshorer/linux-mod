@@ -16,7 +16,7 @@ else
 	err=1
 fi
 echo "$0: section $SECTION_NAME $exists in module $MODULE" 1>&2
-if cmp -s $LOCAL_DUMMIES $DEBUGFS_DUMMIES; then
+if (diff $LOCAL_DUMMIES $DEBUGFS_DUMMIES &> /dev/null); then
 	match=""
 else
 	match="don't "
