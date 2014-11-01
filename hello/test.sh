@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=hello
+MODULE=$(basename $(dirname $(realpath $0)))
 
 err=0
 cd $(dirname $0)

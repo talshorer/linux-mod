@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=simpleattr
+MODULE=$(basename $(dirname $(realpath $0)))
 NDEVICES=4
 CLASS_SYSFS=classlink
 VALUES=$(seq 0 0x80 $(( 0x10000 - 1 )))

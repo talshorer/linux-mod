@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=proccount
+MODULE=$(basename $(dirname $(realpath $0)))
 PROCFILE=/proc/opencounter
 NITERS=0x100
 

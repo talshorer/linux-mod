@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=elfsect
+MODULE=$(basename $(dirname $(realpath $0)))
 SECTION_NAME=.dummies
 DUMMIES_FILENAME=dummies
 LOCAL_DUMMIES="$DUMMIES_FILENAME.txt"

@@ -1,7 +1,7 @@
 #! /bin/bash
 
 DUMMIES_FILE="dummies.txt"
-MODULE=elfsect
+MODULE=$(basename $(dirname $(realpath $0)))
 
 cd $(dirname $0)
 dummies=$(cat $DUMMIES_FILE)

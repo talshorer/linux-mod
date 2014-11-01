@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=echoserial
+MODULE=$(basename $(dirname $(realpath $0)))
 NPORTS=4
 BSIZE=$(( 0x1000 ))
 

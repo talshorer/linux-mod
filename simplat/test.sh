@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=simplat
+MODULE=$(basename $(dirname $(realpath $0)))
 DEVICE_MODULE=$MODULE-device
 NDEVICES=4
 PLATFORM_SYSFS=/sys/bus/platform

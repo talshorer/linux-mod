@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=cpipe
+MODULE=$(basename $(dirname $(realpath $0)))
 NPIPES=2
 DATA="abcdefg"
 # BSIZE must be a power of 2

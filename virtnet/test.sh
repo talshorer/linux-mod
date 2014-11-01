@@ -1,6 +1,6 @@
 #! /bin/bash
 
-MODULE=virtnet
+MODULE=$(basename $(dirname $(realpath $0)))
 NIFACES=4
 BACKENDS="lb chr"
 IFACE_BASE_NAME=virt
