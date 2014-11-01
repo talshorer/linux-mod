@@ -27,4 +27,3 @@ for backend in $backends; do
 	echo -e "\tVIRTNET_BACKEND_ENTRY($name), \\"
 done
 echo
-echo
