@@ -20,7 +20,7 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 	int err = 0;
 	int i;
 	struct new_utsname *uname;
-	char sysmap_filename[__NEW_UTS_LEN + \
+	char sysmap_filename[sizeof(uname->release) + \
 			sizeof(INTERCEPTOR_SYSMAP_FILE_PREFIX) - 1];
 	char buf[128]; /* should be able to contain any line in the sysmap file */
 	char symbol[128]; /* should be able to conatin the name of any symbol */
@@ -121,5 +121,5 @@ module_exit(interceptor_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("0.1.0");
+MODULE_VERSION("0.1.1");
 MODULE_LICENSE("GPL");
