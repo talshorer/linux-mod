@@ -1,6 +1,6 @@
 #! /bin/bash
 
-DRIVER=sleeper
+DRIVER=$(basename $(dirname $(realpath $0)))
 DEBUGFS=debugfs
 NTHREADS=4
 NWAKES=4

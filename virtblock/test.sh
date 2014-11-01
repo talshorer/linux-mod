@@ -1,6 +1,6 @@
 #! /bin/bash
 
-DRIVER=virtblock
+DRIVER=$(basename $(dirname $(realpath $0)))
 DEVTEMPLATE=/dev/$DRIVER
 DEV=${DEVTEMPLATE}a
 MOUNTT=vfat
