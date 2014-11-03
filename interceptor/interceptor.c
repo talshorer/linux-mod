@@ -13,7 +13,7 @@ static sys_call_ptr_t *interceptor_sys_call_table;
 
 /*
  * all this trouble for
- * grep " sys_call_table" /boot/System.map-$(uname -r) | awk '{print $1}'
+ * grep "\bsys_call_table\b" /boot/System.map-$(uname -r) | awk '{print $1}'
  */
 static sys_call_ptr_t *interceptor_get_syscall_table(void)
 {

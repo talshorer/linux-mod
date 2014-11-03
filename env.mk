@@ -11,13 +11,13 @@ lib%.so: %.c
 	$(CC) $< -o $@ -shared $(LMOD_CFLAGS) $($@_CFLAGS)
 
 kern_make:
-	make -C $(KERNEL) M=$(M) $(KERN_RULE)
+	make -C $(KERNEL) M=$(M) $(KTARGET)
 
 modules:
-	make kern_make KERN_RULE=modules
+	make kern_make KTARGET=modules
 
 modules-clean:
-	make kern_make KERN_RULE=clean
+	make kern_make KTARGET=clean
 
 gen-clean:
 	rm -f *.gen.*
