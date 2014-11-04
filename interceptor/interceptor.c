@@ -118,11 +118,7 @@ out_none:
 	return (sys_call_ptr_t *)addr;
 }
 
-#ifdef STRICT_MM_TYPECHECKS
-#define ptep_val(ptep) ((*ptep).pte)
-#else
 #define ptep_val_dref(ptep) (*(unsigned long *)ptep)
-#endif
 
 static sys_call_ptr_t interceptor_swap_syscalls(
 		sys_call_ptr_t *table, unsigned int nr, sys_call_ptr_t value)
@@ -177,5 +173,5 @@ module_exit(interceptor_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
