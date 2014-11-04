@@ -139,8 +139,8 @@ static int test_one_port(unsigned int id)
 	char portname[PORTNAME_LEN];
 	struct termios tty;
 	sprintf(portname, "%s%u", ECHOSERIAL_PORTNAME, id);
-	dprintf(2, "%s: running test on port %s with %lu speeds\n",
-			prog, portname, nspeeds);
+	dprintf(2, "%s: running test on port %s with %u speeds\n",
+			prog, portname, (unsigned int)nspeeds);
 	fd = open(portname, O_RDWR | O_NOCTTY);
 	if (fd < 0) {
 		perror("Failed to open port");

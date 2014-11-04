@@ -337,13 +337,13 @@ static void echoserial_rx_timer_func(unsigned long data)
 	if (!(esp->mcr & UART_MCR_RTS) && esp->rtscts)
 		goto out;
 	count = min3(
-		uart_circ_chars_free(xmit),
+		(size_t)uart_circ_chars_free(xmit),
 		(size_t)kfifo_len(fifo),
 		echoserial_baud_to_bufsize(esp->baud)
 	);
 	if (count)
-		printk(KERN_INFO "%s %s: %s, count=%lu\n", DRIVER_NAME, esp->name,
-				__func__, count);
+		printk(KERN_INFO "%s %s: %s, count=%u\n", DRIVER_NAME, esp->name,
+				__func__, (unsigned int)count);
 	lsr = esp->lsr;
 	while (count--) {
 		kfifo_out(fifo, &ch, 1);
@@ -373,13 +373,13 @@ static void echoserial_tx_timer_func(unsigned long data)
 	unsigned long flags;
 	spin_lock_irqsave(&port->lock, flags);
 	count = min3(
-		uart_circ_chars_pending(xmit),
+		(size_t)uart_circ_chars_pending(xmit),
 		(size_t)kfifo_avail(fifo),
 		echoserial_baud_to_bufsize(esp->baud)
 	);
 	if (count)
-		printk(KERN_INFO "%s %s: %s, count=%lu\n", DRIVER_NAME, esp->name,
-				__func__, count);
+		printk(KERN_INFO "%s %s: %s, count=%u\n", DRIVER_NAME, esp->name,
+				__func__, (unsigned int)count);
 	while (count--) {
 		kfifo_in(fifo, &xmit->buf[xmit->tail], 1);
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
@@ -513,5 +513,5 @@ module_exit(echoserial_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("1.0.2");
+MODULE_VERSION("1.0.3");
 MODULE_LICENSE("GPL");
