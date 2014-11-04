@@ -100,7 +100,8 @@ static void virtblock_request(struct request_queue *q) {
 	struct bio_vec *bv;
 	struct req_iterator iter;
 	struct virtblock_dev *dev;
-	unsigned int write, sector, nsect, offset;
+	unsigned int write, nsect, offset;
+	sector_t sector;
 	size_t count;
 	void *blkbuf; /* buffer received from the block layer */
 	void *devbuf; /* buffer received from our own device */
@@ -113,12 +114,14 @@ static void virtblock_request(struct request_queue *q) {
 			continue;
 		}
 		write = rq_data_dir(req) == WRITE;
-		sector = blk_rq_pos(req) / VIRTBLOCK_TO_BLK_LAYER;
+		sector = blk_rq_pos(req);
+		do_div(sector, VIRTBLOCK_TO_BLK_LAYER);
 		nsect = blk_rq_sectors(req) / VIRTBLOCK_TO_BLK_LAYER;
 		printk(KERN_INFO "%s: processing request %p\n", DRIVER_NAME, req);
 		printk(KERN_INFO "%s: \tdevice %s\n", DRIVER_NAME, dev->gd->disk_name);
 		printk(KERN_INFO "%s: \twrite %u\n", DRIVER_NAME, write);
-		printk(KERN_INFO "%s: \tsector %u\n", DRIVER_NAME, sector);
+		printk(KERN_INFO "%s: \tsector %lu\n", DRIVER_NAME,
+				(unsigned long)sector);
 		printk(KERN_INFO "%s: \tnsect %u\n", DRIVER_NAME, nsect);
 		offset = sector * virtblock_hardsect_size;
 		count = nsect * virtblock_hardsect_size;
@@ -271,5 +274,5 @@ module_exit(virtblock_exit)
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple block device residing in ram");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
