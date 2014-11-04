@@ -58,7 +58,7 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 		goto out_none;
 	}
 
-	while (1) {
+	do {
 		memset(buf, 0, sizeof(buf));
 		err = vfs_read(filp, (char __user *)buf, sizeof(buf), &filp->f_pos);
 		if (err < 0) {
@@ -73,7 +73,6 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 					MODULE_NAME, __func__);
 			goto out_close;
 		}
-		err = 0; /* clear return value from vfs_read */
 		for (i = 0; i < sizeof(buf); i++)
 			if (buf[i] == '\n') {
 				buf[i] = 0;
@@ -94,12 +93,11 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 			err = -EINVAL;
 			goto out_close;
 		}
-		if (!strcmp(symbol, INTERCEPTOR_SYSCALL_TABLE_SYMBOL)) {
-			pr_info("%s: <%s> found %s 0x%lx\n", MODULE_NAME, __func__,
-					INTERCEPTOR_SYSCALL_TABLE_SYMBOL, addr);
-			break;
-		}
-	}
+	} while (strcmp(symbol, INTERCEPTOR_SYSCALL_TABLE_SYMBOL));
+
+	err = 0; /* clear return value from vfs_read */
+	pr_info("%s: <%s> found %s 0x%lx\n", MODULE_NAME, __func__,
+			INTERCEPTOR_SYSCALL_TABLE_SYMBOL, addr);
 
 out_close:
 	filp_close(filp, NULL);
@@ -169,5 +167,5 @@ module_exit(interceptor_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("0.2.0");
+MODULE_VERSION("0.2.1");
 MODULE_LICENSE("GPL");
