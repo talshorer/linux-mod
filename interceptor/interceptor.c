@@ -4,6 +4,8 @@
 #include <linux/utsname.h>
 #include <asm/syscall.h>
 
+#include "interceptor_uapi.h"
+
 #define MODULE_NAME "interceptor"
 
 #define INTERCEPTOR_SYSMAP_FILE_PREFIX "/boot/System.map-"
@@ -19,10 +21,18 @@ static sys_call_ptr_t interceptor_orig_syscall_ptr;
 #define INTERCEPTOR_SYSCALL_NR __NR_open
 asmlinkage int interceptor_syscall(const char *pathname, int flags, int mode)
 {
-	int ret = ((typeof(interceptor_syscall) *)interceptor_orig_syscall_ptr)(
-			pathname, flags, mode);
-	pr_info("%s: <%s> pid %d, args %s 0x%x 0x%x, ret %d\n", MODULE_NAME,
-			__func__, current->pid, pathname, flags, mode, ret);
+	int ret;
+	if (flags & INTERCEPTOR_O_STRLEN) {
+		ret = strlen(pathname);
+		pr_info("%s: intercepted open() call! returning strlen(\"%s\")\n", 
+				MODULE_NAME, pathname);
+	}
+	else {
+		ret = ((typeof(interceptor_syscall) *)interceptor_orig_syscall_ptr)(
+				pathname, flags, mode);
+		pr_info("%s: <%s> pid %d, args %s 0x%x 0x%x, ret %d\n", MODULE_NAME,
+				__func__, current->pid, pathname, flags, mode, ret);
+	}
 	return ret;
 }
 
@@ -167,5 +177,5 @@ module_exit(interceptor_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("0.2.1");
+MODULE_VERSION("1.0.0");
 MODULE_LICENSE("GPL");
