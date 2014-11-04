@@ -10,6 +10,21 @@
 #define INTERCEPTOR_SYSCALL_TABLE_SYMBOL "sys_call_table"
 
 static sys_call_ptr_t *interceptor_sys_call_table;
+static sys_call_ptr_t interceptor_orig_syscall_ptr;
+
+/*
+ * keep the parameters for this function compatible with the system call
+ * being intercepted
+ */
+#define INTERCEPTOR_SYSCALL_NR __NR_open
+asmlinkage int interceptor_syscall(const char *pathname, int flags, int mode)
+{
+	int ret = ((typeof(interceptor_syscall) *)interceptor_orig_syscall_ptr)(
+			pathname, flags, mode);
+	pr_info("%s: <%s> pid %d, args %s 0x%x 0x%x, ret %d\n", MODULE_NAME,
+			__func__, current->pid, pathname, flags, mode, ret);
+	return ret;
+}
 
 /*
  * all this trouble for
@@ -18,7 +33,7 @@ static sys_call_ptr_t *interceptor_sys_call_table;
 static sys_call_ptr_t *interceptor_get_syscall_table(void)
 {
 	int err = 0;
-	int i;
+	loff_t i;
 	struct new_utsname *uname;
 	char sysmap_filename[sizeof(uname->release) + \
 			sizeof(INTERCEPTOR_SYSMAP_FILE_PREFIX) - 1];
@@ -58,6 +73,7 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 					MODULE_NAME, __func__);
 			goto out_close;
 		}
+		err = 0; /* clear return value from vfs_read */
 		for (i = 0; i < sizeof(buf); i++)
 			if (buf[i] == '\n') {
 				buf[i] = 0;
@@ -94,6 +110,32 @@ out_none:
 	return (sys_call_ptr_t *)addr;
 }
 
+#ifdef STRICT_MM_TYPECHECKS
+#define ptep_val(ptep) ((*ptep).pte)
+#else
+#define ptep_val_dref(ptep) (*(unsigned long *)ptep)
+#endif
+
+static sys_call_ptr_t interceptor_swap_syscalls(
+		sys_call_ptr_t *table, unsigned int nr, sys_call_ptr_t value)
+{
+	/* TODO memory permissions */
+	unsigned long addr = (unsigned long)&table[nr];
+	unsigned int level;
+	int ro;
+	pte_t *ptep;
+
+	ptep = lookup_address(addr, &level);
+	ro = !(ptep_val_dref(ptep) & _PAGE_RW);
+	if (ro)
+		ptep_val_dref(ptep) |= _PAGE_RW;
+	value = xchg((sys_call_ptr_t *)addr, value);
+	if (ro)
+		ptep_val_dref(ptep) &= ~_PAGE_RW;
+
+	return value;
+}
+
 static int __init interceptor_init(void)
 {
 	int err;
@@ -103,6 +145,10 @@ static int __init interceptor_init(void)
 		err = PTR_ERR(interceptor_sys_call_table);
 		goto fail_get_syscall_table;
 	}
+
+	interceptor_orig_syscall_ptr = interceptor_swap_syscalls(
+			interceptor_sys_call_table, INTERCEPTOR_SYSCALL_NR,
+			(sys_call_ptr_t)interceptor_syscall);
 
 	pr_info("%s: initialized successfully\n", MODULE_NAME);
 	return 0;
@@ -114,6 +160,8 @@ module_init(interceptor_init);
 
 static void __exit interceptor_exit(void)
 {
+	interceptor_swap_syscalls(interceptor_sys_call_table,
+			INTERCEPTOR_SYSCALL_NR, interceptor_orig_syscall_ptr);
 	pr_info("%s: exited successfully\n", MODULE_NAME);
 }
 module_exit(interceptor_exit);
@@ -121,5 +169,5 @@ module_exit(interceptor_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("0.1.1");
+MODULE_VERSION("0.2.0");
 MODULE_LICENSE("GPL");
