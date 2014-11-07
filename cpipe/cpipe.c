@@ -3,7 +3,6 @@
 #include <linux/fs.h>
 #include <linux/mutex.h>
 #include <linux/kfifo.h>
-#include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/sched.h>
 #include <linux/poll.h>
@@ -20,12 +19,11 @@ struct cpipe_dev {
 	cpipe_fifo_t rfifo;
 	struct mutex rmutex; /* protects rbuf */
 	wait_queue_head_t rq, wq;
-	struct cdev cdev;
 	struct device *dev;
 	struct cpipe_dev *twin;
 };
 
-#define cpipe_dev_devt(cpdev) ((cpdev)->cdev.dev)
+#define cpipe_dev_devt(cpdev) ((cpdev)->dev->devt)
 #define cpipe_dev_kobj(cpdev) (&(cpdev)->dev->kobj)
 #define cpipe_dev_name(cpdev) (cpipe_dev_kobj(cpdev)->name)
 #define cpipe_dev_twin(cpdev) ((cpdev)->twin)
@@ -66,7 +64,7 @@ static int __init cpipe_check_module_params(void) {
 }
 
 static struct cpipe_pair *cpipe_pairs;
-static dev_t cpipe_dev_base;
+static int cpipe_major;
 static struct class *cpipe_class;
 static const char cpipe_twin_link_name[] = "twin";
 
@@ -249,8 +247,8 @@ static long cpipe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 static int cpipe_open(struct inode *inode, struct file *filp)
 {
-	struct cpipe_dev *dev = container_of(inode->i_cdev,
-			struct cpipe_dev, cdev);
+	unsigned int minor = iminor(inode);
+	struct cpipe_dev *dev = &cpipe_pairs[minor >> 1].devices[minor & 1];
 	filp->private_data = dev;
 	return 0;
 }
@@ -275,7 +273,7 @@ static struct file_operations cpipe_fops = {
 static int __init cpipe_dev_init(struct cpipe_dev *dev, int i, int j)
 {
 	int err;
-	dev_t devno = MKDEV(MAJOR(cpipe_dev_base), i * 2 + j);
+	dev_t devno = MKDEV(cpipe_major, i * 2 + j);
 	err = kfifo_alloc(&dev->rfifo, cpipe_bsize, GFP_KERNEL);
 	if (err) {
 		printk(KERN_ERR "%s: kfifo_alloc failed i=%d j=%d err=%d\n",
@@ -285,14 +283,6 @@ static int __init cpipe_dev_init(struct cpipe_dev *dev, int i, int j)
 	mutex_init(&dev->rmutex);
 	init_waitqueue_head(&dev->rq);
 	init_waitqueue_head(&dev->wq);
-	cdev_init(&dev->cdev, &cpipe_fops);
-	dev->cdev.owner = THIS_MODULE;
-	err = cdev_add(&dev->cdev, devno, 1);
-	if (err) {
-		printk(KERN_ERR "%s: cdev_add failed i=%d j=%d err=%d\n",
-				DRIVER_NAME, i, j, err);
-		goto fail_cdev_add;
-	}
 	dev->dev = device_create(cpipe_class, NULL, devno, dev,
 			"%s%d.%d", DRIVER_NAME, i, j);
 	if (IS_ERR(dev->dev)) {
@@ -305,8 +295,6 @@ static int __init cpipe_dev_init(struct cpipe_dev *dev, int i, int j)
 			DRIVER_NAME, cpipe_dev_name(dev));
 	return 0;
 fail_device_create:
-	cdev_del(&dev->cdev);
-fail_cdev_add:
 	kfifo_free(&dev->rfifo);
 fail_kfifo_alloc:
 	return err;
@@ -316,7 +304,6 @@ static void cpipe_dev_destroy(struct cpipe_dev *dev)
 {
 	printk(KERN_INFO "%s: destroying device %s\n", DRIVER_NAME, cpipe_dev_name(dev));
 	device_destroy(cpipe_class, cpipe_dev_devt(dev));
-	cdev_del(&dev->cdev);
 	kfifo_free(&dev->rfifo);
 }
 
@@ -387,12 +374,13 @@ static int __init cpipe_init(void)
 		goto fail_vmalloc_cpipe_pairs;
 	}
 	memset(cpipe_pairs, 0, sizeof(cpipe_pairs[0]) * cpipe_npipes);
-	err = alloc_chrdev_region(&cpipe_dev_base, CPIPE_MAGIC_FIRST_MINOR,
-			cpipe_npipes * 2, DRIVER_NAME);
-	if (err) {
-		printk(KERN_ERR "%s: alloc_chrdev_region failed. err = %d\n",
+	cpipe_major = __register_chrdev(0, 0, cpipe_npipes * 2,
+			DRIVER_NAME, &cpipe_fops);
+	if (cpipe_major < 0) {
+		err = cpipe_major;
+		printk(KERN_ERR "%s: __register_chrdev failed. err = %d\n",
 				DRIVER_NAME, err);
-		goto fail_alloc_chrdev_region;
+		goto fail_register_chrdev;
 	}
 	cpipe_class = class_create(THIS_MODULE, DRIVER_NAME);
 	if (IS_ERR(cpipe_class)) {
@@ -416,8 +404,8 @@ fail_cpipe_pair_init_loop:
 		cpipe_pair_destroy(&cpipe_pairs[i]);
 	class_destroy(cpipe_class);
 fail_class_create:
-	unregister_chrdev_region(cpipe_dev_base, cpipe_npipes * 2);
-fail_alloc_chrdev_region:
+	__unregister_chrdev(0, 0, cpipe_npipes * 2, DRIVER_NAME);
+fail_register_chrdev:
 	vfree(cpipe_pairs);
 fail_vmalloc_cpipe_pairs:
 	return err;
@@ -430,7 +418,7 @@ static void __exit cpipe_exit(void)
 	for (i = 0; i < cpipe_npipes; i++)
 		cpipe_pair_destroy(&cpipe_pairs[i]);
 	class_destroy(cpipe_class);
-	unregister_chrdev_region(cpipe_dev_base, cpipe_npipes * 2);
+	__unregister_chrdev(0, 0, cpipe_npipes * 2, DRIVER_NAME);
 	vfree(cpipe_pairs);
 	printk(KERN_INFO "%s: exited successfully\n", DRIVER_NAME);
 }
@@ -439,5 +427,5 @@ module_exit(cpipe_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("1.0.2");
+MODULE_VERSION("1.1.0");
 MODULE_LICENSE("GPL");
