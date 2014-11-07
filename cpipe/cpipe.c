@@ -9,8 +9,6 @@
 
 #include "cpipe_ioctl.h"
 
-#define CPIPE_MAGIC_FIRST_MINOR 0
-
 static const char DRIVER_NAME[] = "cpipe";
 
 typedef STRUCT_KFIFO_PTR(char) cpipe_fifo_t;
