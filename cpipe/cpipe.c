@@ -404,7 +404,7 @@ fail_cpipe_pair_init_loop:
 		cpipe_pair_destroy(&cpipe_pairs[i]);
 	class_destroy(cpipe_class);
 fail_class_create:
-	__unregister_chrdev(0, 0, cpipe_npipes * 2, DRIVER_NAME);
+	__unregister_chrdev(cpipe_major, 0, cpipe_npipes * 2, DRIVER_NAME);
 fail_register_chrdev:
 	vfree(cpipe_pairs);
 fail_vmalloc_cpipe_pairs:
@@ -418,7 +418,7 @@ static void __exit cpipe_exit(void)
 	for (i = 0; i < cpipe_npipes; i++)
 		cpipe_pair_destroy(&cpipe_pairs[i]);
 	class_destroy(cpipe_class);
-	__unregister_chrdev(0, 0, cpipe_npipes * 2, DRIVER_NAME);
+	__unregister_chrdev(cpipe_major, 0, cpipe_npipes * 2, DRIVER_NAME);
 	vfree(cpipe_pairs);
 	printk(KERN_INFO "%s: exited successfully\n", DRIVER_NAME);
 }
@@ -427,5 +427,5 @@ module_exit(cpipe_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.1.1");
 MODULE_LICENSE("GPL");
