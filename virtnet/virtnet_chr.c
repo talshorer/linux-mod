@@ -1,20 +1,16 @@
-#include <linux/cdev.h>
 #include <linux/poll.h>
 
 #include "virtnet.h"
 
-#define VIRTNET_CHR_MAGIC_FIRST_MINOR 0
-
 static const char DRIVER_NAME[] = "virtnet_chr";
 
 struct virtnet_chr_dev {
-	struct cdev cdev;
 	struct list_head packets;
 	spinlock_t lock;
 	wait_queue_head_t waitq;
 	struct device *dev;
 };
-#define virtnet_chr_dev_devt(vcdev) ((vcdev)->cdev.dev)
+#define virtnet_chr_dev_devt(vcdev) ((vcdev)->dev->devt)
 #define virtnet_chr_dev_to_netdev(vcdev) \
 		(((void *)vcdev) - ALIGN(sizeof(struct net_device), NETDEV_ALIGN))
 
@@ -24,7 +20,7 @@ struct virtnet_chr_packet {
 	struct list_head link;
 };
 
-static dev_t virtnet_chr_dev_base;
+static int virtnet_chr_major;
 static unsigned int virtnet_chr_ndev;
 static struct class *virtnet_chr_class;
 
@@ -135,10 +131,19 @@ static unsigned int virtnet_chr_poll(struct file *filp, poll_table *wait)
 	return mask;
 }
 
+/* unexported. taken from drivers/base/core.c */
+static int __match_devt(struct device *dev, const void *data)
+{
+	const dev_t *devt = data;
+
+	return dev->devt == *devt;
+}
+
 static int virtnet_chr_open(struct inode *inode, struct file *filp)
 {
-	struct virtnet_chr_dev *vcdev = container_of(inode->i_cdev,
-			struct virtnet_chr_dev, cdev);
+	dev_t devt = MKDEV(virtnet_chr_major, iminor(inode));
+	struct virtnet_chr_dev *vcdev = dev_get_drvdata(
+			class_find_device(virtnet_chr_class, NULL, &devt, __match_devt));
 	filp->private_data = vcdev;
 	return 0;
 }
@@ -190,20 +195,11 @@ static int virtnet_chr_dev_init(void *priv, unsigned int minor)
 {
 	struct virtnet_chr_dev *vcdev = (struct virtnet_chr_dev *)priv;
 	int err;
-	dev_t devno = MKDEV(MAJOR(virtnet_chr_dev_base), minor);
+	dev_t devno = MKDEV(virtnet_chr_major, minor);
 
 	spin_lock_init(&vcdev->lock);
 	init_waitqueue_head(&vcdev->waitq);
 	INIT_LIST_HEAD(&vcdev->packets);
-
-	cdev_init(&vcdev->cdev, &virtnet_chr_fops);
-	vcdev->cdev.owner = THIS_MODULE;
-	err = cdev_add(&vcdev->cdev, devno, 1);
-	if (err) {
-		printk(KERN_ERR "%s: cdev_add failed minor=%d err=%d\n",
-				DRIVER_NAME, minor, err);
-		goto fail_cdev_add;
-	}
 
 	vcdev->dev = device_create(virtnet_chr_class, NULL, devno, vcdev,
 			"%s%d", DRIVER_NAME, minor);
@@ -217,8 +213,6 @@ static int virtnet_chr_dev_init(void *priv, unsigned int minor)
 	return 0;
 
 fail_device_create:
-	cdev_del(&vcdev->cdev);
-fail_cdev_add:
 	return err;
 }
 
@@ -232,7 +226,6 @@ static void virtnet_chr_dev_uninit(void *priv)
 		kfree(packet);
 	spin_unlock_irqrestore(&vcdev->lock, flags);
 	device_destroy(virtnet_chr_class, virtnet_chr_dev_devt(vcdev));
-	cdev_del(&vcdev->cdev);
 }
 
 static int virtnet_chr_init(unsigned int nifaces)
@@ -241,12 +234,13 @@ static int virtnet_chr_init(unsigned int nifaces)
 
 	virtnet_chr_ndev = nifaces;
 
-	err = alloc_chrdev_region(&virtnet_chr_dev_base,
-			VIRTNET_CHR_MAGIC_FIRST_MINOR, virtnet_chr_ndev, DRIVER_NAME);
-	if (err) {
-		printk(KERN_ERR "%s: alloc_chrdev_region failed. err = %d\n",
+	virtnet_chr_major = __register_chrdev(0, 0, virtnet_chr_ndev,
+			DRIVER_NAME, &virtnet_chr_fops);
+	if (virtnet_chr_major < 0) {
+		err = virtnet_chr_major;
+		printk(KERN_ERR "%s: __register_chrdev failed. err = %d\n",
 				DRIVER_NAME, err);
-		goto fail_alloc_chrdev_region;
+		goto fail_register_chrdev;
 	}
 
 	virtnet_chr_class = class_create(THIS_MODULE, DRIVER_NAME);
@@ -260,15 +254,15 @@ static int virtnet_chr_init(unsigned int nifaces)
 	return 0;
 
 fail_class_create:
-	unregister_chrdev_region(virtnet_chr_dev_base, virtnet_chr_ndev);
-fail_alloc_chrdev_region:
+	__unregister_chrdev(virtnet_chr_major, 0, virtnet_chr_ndev, DRIVER_NAME);
+fail_register_chrdev:
 	return err;
 }
 
 static void virtnet_chr_exit(void)
 {
 	class_destroy(virtnet_chr_class);
-	unregister_chrdev_region(virtnet_chr_dev_base, virtnet_chr_ndev);
+	__unregister_chrdev(virtnet_chr_major, 0, virtnet_chr_ndev, DRIVER_NAME);
 }
 
 struct virtnet_backend_ops virtnet_chr_backend_ops = {
