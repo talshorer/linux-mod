@@ -55,11 +55,13 @@ static ssize_t simpleattr_sys_attr_store(struct device *dev,
 	return count;
 }
 
+#define simpleattr_MKDEV(i) \
+	(MKDEV(MAJOR(simpleattr_dev_base), SIMPLEATTR_MAGIC_FIRST_MINOR + i))
+
 static struct device __init *simpleattr_device_create(int i) {
 	struct device *dev;
 	int err;
-	dev = device_create(simpleattr_class, NULL,
-			MKDEV(MAJOR(simpleattr_dev_base), i), NULL,
+	dev = device_create(simpleattr_class, NULL, simpleattr_MKDEV(i), NULL,
 			"%s%d", DRIVER_NAME, i);
 	if (IS_ERR(dev)) {
 		err = PTR_ERR(dev);
@@ -77,7 +79,7 @@ static struct device __init *simpleattr_device_create(int i) {
 			DRIVER_NAME, dev->kobj.name);
 	return dev;
 fail_device_create_file:
-	device_destroy(simpleattr_class, i);
+	device_destroy(simpleattr_class, simpleattr_MKDEV(i));
 fail_device_create:
 	return ERR_PTR(err);
 }
@@ -87,7 +89,7 @@ static void simpleattr_device_destroy(int i) {
 	printk(KERN_INFO "%s: destroying device %s\n",
 			DRIVER_NAME, dev->kobj.name);
 	device_remove_file(dev, &dev_attr_attr);
-	device_destroy(simpleattr_class, MKDEV(MAJOR(simpleattr_dev_base), i));
+	device_destroy(simpleattr_class, simpleattr_MKDEV(i));
 }
 
 static int __init simpleattr_init(void)
@@ -163,5 +165,5 @@ module_exit(simpleattr_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple dummy device with a sysfs attribute");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.1.1");
 MODULE_LICENSE("GPL");
