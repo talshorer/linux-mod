@@ -52,7 +52,7 @@ static int __init proccount_init(void)
 			&proccount_fops, &proccount_counter);
 	if (!pde) {
 		printk(KERN_ERR "%s: proc_create_data failed\n", DRIVER_NAME);
-		return -1;
+		return -ENOMEM;
 	}
 	printk(KERN_INFO "%s: initialized successfully\n", DRIVER_NAME);
 	return 0;
@@ -70,5 +70,5 @@ module_exit(proccount_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A file in procfs that returns open count upon read");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
