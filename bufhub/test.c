@@ -194,7 +194,6 @@ static int test_readback(void)
 		goto out_close_clipboard;
 	ret = 0;
 out_close_clipboard:
-	printf(readback);
 	close_clipboard(cfd);
 out_close_miscdev:
 	close_miscdev(mfd);

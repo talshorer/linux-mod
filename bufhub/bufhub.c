@@ -54,8 +54,9 @@ struct bufhub_clipboard_dev {
 
 #define bufhub_clipboard_dev_devt(bcdev) ((bcdev)->dev->devt)
 
-static void bufhub_clipboard_get(struct bufhub_clipboard_dev *dev);
-static void bufhub_clipboard_put(struct bufhub_clipboard_dev *dev);
+static inline int __must_check bufhub_clipboard_get(
+		struct bufhub_clipboard_dev *);
+static inline void bufhub_clipboard_put(struct bufhub_clipboard_dev *);
 
 static struct class *bufhub_clipboard_class;
 static int bufhub_clipboard_major;
@@ -118,12 +119,17 @@ static int bufhub_clipboard_open(struct inode *inode, struct file *filp)
 {
 	unsigned int minor = iminor(inode);
 	struct bufhub_clipboard_dev *dev = bufhub_clipboard_ptrs[minor];
-	bufhub_clipboard_get(dev);
+	if (!bufhub_clipboard_get(dev)) {
+		printk("%s: <%s> bufhub_clipboard_get failed\n", MODULE_NAME, __func__);
+		return -ENODEV;
+	}
 	filp->private_data = dev;
-	if ((filp->f_flags & O_WRONLY) == O_WRONLY) {
+	if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
 		int err = bufhub_clipboard_mutex_lock(&dev->buf_mutex, filp->f_flags);
-		if (err)
+		if (err) {
+			bufhub_clipboard_put(dev);
 			return err;
+		}
 		dev->buf_len = 0;
 		mutex_unlock(&dev->buf_mutex);
 	}
@@ -216,9 +222,10 @@ fail_kzalloc_dev:
 	return ERR_PTR(err);
 }
 
-static inline void bufhub_clipboard_get(struct bufhub_clipboard_dev *dev)
+static inline int __must_check bufhub_clipboard_get(
+		struct bufhub_clipboard_dev *dev)
 {
-	kref_get(&dev->kref);
+	return kref_get_unless_zero(&dev->kref);
 }
 
 static void bufhub_clipboard_destroy(struct bufhub_clipboard_dev *dev)
@@ -477,5 +484,5 @@ module_exit(bufhub_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A misc device that allows the creation of clipboards");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
