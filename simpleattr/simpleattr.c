@@ -51,7 +51,7 @@ static ssize_t simpleattr_sys_attr_store(struct device *dev,
 	if (sscanf(buf, "%lu", &val) != 1)
 		return -EINVAL;
 	simpleattr_print_sys_attr_access(dev, attr, val, __func__);
-	dev_set_drvdata(dev, (void *)val);	
+	dev_set_drvdata(dev, (void *)val);
 	return count;
 }
 

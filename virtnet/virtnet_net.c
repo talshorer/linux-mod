@@ -302,7 +302,7 @@ static int virtnet_init_iface(void)
 		err = -ENOMEM;
 		printk(KERN_ERR "%s: alloc_netdev failed\n", DRIVER_NAME);
 		goto fail_alloc_netdev;
-		
+
 	}
 
 	dev->rtnl_link_ops = &virtnet_link_ops;

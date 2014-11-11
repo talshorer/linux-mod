@@ -7,4 +7,3 @@ for m in $(ls); do
 	fi
 	echo $m
 done
-

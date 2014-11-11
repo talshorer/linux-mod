@@ -1,4 +1,4 @@
-/*  
+/*
  *  hello.c - The simplest kernel module.
  */
 #include <linux/module.h>	/* Needed by all modules */
@@ -8,8 +8,8 @@ int init_module(void)
 {
 	printk(KERN_INFO "Hello, World!\n");
 
-	/* 
-	 * A non 0 return means init_module failed; module can't be loaded. 
+	/*
+	 * A non 0 return means init_module failed; module can't be loaded.
 	 */
 	return 0;
 }

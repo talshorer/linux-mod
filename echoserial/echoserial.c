@@ -310,7 +310,7 @@ static struct uart_ops echoserial_uart_ops = {
 
 static inline size_t echoserial_baud_to_bufsize(unsigned int baud)
 {
-	/* 
+	/*
 	 * assume all bits are data bits. ignore parity, start/stop, etc.
 	 * calculation goes as follows:
 	 * bitrate = bits per millisecond
