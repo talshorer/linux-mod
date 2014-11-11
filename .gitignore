@@ -33,7 +33,7 @@
 *.mod
 *.symvers
 *.mod.*
-*/modules.order
+modules.order
 
 # Editor backups and generated files
 *~
