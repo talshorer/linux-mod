@@ -7,7 +7,8 @@
 
 static int __init importer_init(void)
 {
-	printk(KERN_INFO "%s: invoking exported symbol %pf\n", MODULE_NAME, exporter_fn);
+	printk(KERN_INFO "%s: invoking exported symbol %pf\n", MODULE_NAME,
+			exporter_fn);
 	exporter_fn();
 	return 0;
 }

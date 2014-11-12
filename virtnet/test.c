@@ -77,7 +77,7 @@ static int test_chr(int sfd, unsigned int iface_id)
 		return 1;
 	}
 	write(sfd, packet, TOTAL_PACKET_SIZE);
-	/* drain all packets. buffer should have last packet (the one we sent) */
+	/* drain all packets. buffer should have last packet (one we sent) */
 	while (read(cfd, readback, TOTAL_PACKET_SIZE) >= 0);
 	write(cfd, readback, TOTAL_PACKET_SIZE);
 	memset(readback, 0, TOTAL_PACKET_SIZE);

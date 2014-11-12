@@ -15,7 +15,8 @@
 static int bufhub_max_clipboards = 16;
 module_param_named(max_clipboards, bufhub_max_clipboards, int, 0444);
 MODULE_PARM_DESC(max_clipboards,
-		"maximum number of clipboards that can exist at the same time");
+		"maximum number of clipboards that can exist at the same "
+		"time");
 
 static int bufhub_clipboard_bcap = PAGE_SIZE;
 module_param_named(bcap, bufhub_clipboard_bcap, int, 0444);
@@ -120,12 +121,14 @@ static int bufhub_clipboard_open(struct inode *inode, struct file *filp)
 	unsigned int minor = iminor(inode);
 	struct bufhub_clipboard_dev *dev = bufhub_clipboard_ptrs[minor];
 	if (!bufhub_clipboard_get(dev)) {
-		printk("%s: <%s> bufhub_clipboard_get failed\n", MODULE_NAME, __func__);
+		printk("%s: <%s> bufhub_clipboard_get failed\n",
+				MODULE_NAME, __func__);
 		return -ENODEV;
 	}
 	filp->private_data = dev;
 	if ((filp->f_flags & O_ACCMODE) == O_WRONLY) {
-		int err = bufhub_clipboard_mutex_lock(&dev->buf_mutex, filp->f_flags);
+		int err = bufhub_clipboard_mutex_lock(&dev->buf_mutex,
+				filp->f_flags);
 		if (err) {
 			bufhub_clipboard_put(dev);
 			return err;
@@ -172,7 +175,8 @@ static struct bufhub_clipboard_dev *bufhub_clipboard_create(
 	}
 
 	spin_lock_irqsave(&bufhub_clipboard_ptrs_lock, flags);
-	for (i = 0; i < bufhub_max_clipboards && bufhub_clipboard_ptrs[i]; i++);
+	for (i = 0; i < bufhub_max_clipboards && bufhub_clipboard_ptrs[i]; i++)
+		;
 	if (i == bufhub_max_clipboards) {
 		err = -ENODEV;
 		printk(KERN_ERR "%s: <%s> all clipboards are occupied\n",
@@ -193,8 +197,8 @@ static struct bufhub_clipboard_dev *bufhub_clipboard_create(
 	/* block io operations until everything is in place */
 	mutex_lock(&dev->buf_mutex);
 
-	dev->dev = device_create(bufhub_clipboard_class, NULL, devno, dev, "%s%d",
-			bufhub_clipboard_devname, i);
+	dev->dev = device_create(bufhub_clipboard_class, NULL, devno, dev,
+			"%s%d", bufhub_clipboard_devname, i);
 	if (IS_ERR(dev->dev)) {
 		err = PTR_ERR(dev->dev);
 		printk(KERN_ERR "%s: <%s> device_create failed err=%d\n",
@@ -355,9 +359,9 @@ static int bufhub_miscdev_ioctl_destroy(
 			bufhub_clipboard_match);
 	if (!match.dev) {
 		err = -EINVAL;
-		printk(KERN_ERR "%s: <%s> cannot destroy nonexisting clipboard "
-				"%s%d\n", MODULE_NAME, __func__, bufhub_clipboard_devname,
-				match.minor);
+		printk(KERN_ERR "%s: <%s> cannot destroy nonexisting "
+				"clipboard %s%d\n", MODULE_NAME, __func__,
+				bufhub_clipboard_devname, match.minor);
 		return err;
 	}
 	spin_lock_irqsave(&match.dev->master_lock, flags);
@@ -365,8 +369,9 @@ static int bufhub_miscdev_ioctl_destroy(
 		err = -EPERM;
 	spin_unlock_irqrestore(&match.dev->master_lock, flags);
 	if (err) {
-		printk(KERN_ERR "%s: <%s> invalid master to destroy clipboard %s\n",
-				MODULE_NAME, __func__, dev_name(match.dev->dev));
+		printk(KERN_ERR "%s: <%s> invalid master to destroy "
+				"clipboard %s\n", MODULE_NAME, __func__,
+				dev_name(match.dev->dev));
 		return err;
 	}
 	bufhub_clipboard_put(match.dev);
@@ -384,7 +389,8 @@ static long bufhub_miscdev_ioctl(struct file *filp,
 		return -ENOTTY;
 	switch (cmd) {
 	case BUFHUB_IOCCREATE:
-		dev = bufhub_miscdev_ioctl_create(master, (unsigned int __user *)arg);
+		dev = bufhub_miscdev_ioctl_create(master,
+				(unsigned int __user *)arg);
 		if (IS_ERR(dev))
 			ret = PTR_ERR(dev);
 		break;
@@ -420,14 +426,16 @@ static int __init bufhub_init(void)
 		return err;
 
 	bufhub_clipboard_ptrs = vmalloc(
-			sizeof(bufhub_clipboard_ptrs[0]) * bufhub_max_clipboards);
+			sizeof(bufhub_clipboard_ptrs[0]) *
+					bufhub_max_clipboards);
 	if (!bufhub_clipboard_ptrs) {
-		printk(KERN_ERR "%s: failed to allocate bufhub_clipboard_ptrs\n",
-				MODULE_NAME);
+		printk(KERN_ERR "%s: failed to allocate "
+				"bufhub_clipboard_ptrs\n", MODULE_NAME);
 		goto fail_vmalloc_bufhub_clipboard_ptrs;
 	}
 	memset(bufhub_clipboard_ptrs, 0,
-			sizeof(bufhub_clipboard_ptrs[0]) * bufhub_max_clipboards);
+			sizeof(bufhub_clipboard_ptrs[0]) *
+					bufhub_max_clipboards);
 
 	bufhub_clipboard_major = __register_chrdev(0, 0, bufhub_max_clipboards,
 			MODULE_NAME, &bufhub_clipboard_fops);

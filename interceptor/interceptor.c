@@ -24,14 +24,17 @@ asmlinkage int interceptor_syscall(const char *pathname, int flags, int mode)
 	int ret;
 	if (flags & INTERCEPTOR_O_STRLEN) {
 		ret = strlen(pathname);
-		pr_info("%s: intercepted open() call! returning strlen(\"%s\")\n",
+		pr_info("%s: intercepted open() call! "
+				"returning strlen(\"%s\")\n",
 				MODULE_NAME, pathname);
 	}
 	else {
-		ret = ((typeof(interceptor_syscall) *)interceptor_orig_syscall_ptr)(
-				pathname, flags, mode);
-		pr_info("%s: <%s> pid %d, args %s 0x%x 0x%x, ret %d\n", MODULE_NAME,
-				__func__, current->pid, pathname, flags, mode, ret);
+		ret = ((typeof(interceptor_syscall) *)
+				interceptor_orig_syscall_ptr)(
+						pathname, flags, mode);
+		pr_info("%s: <%s> pid %d, args %s 0x%x 0x%x, ret %d\n",
+				MODULE_NAME, __func__, current->pid, pathname,
+				flags, mode, ret);
 	}
 	return ret;
 }
@@ -47,8 +50,10 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 	struct new_utsname *uname;
 	char sysmap_filename[sizeof(uname->release) + \
 			sizeof(INTERCEPTOR_SYSMAP_FILE_PREFIX) - 1];
-	char buf[128]; /* should be able to contain any line in the sysmap file */
-	char symbol[128]; /* should be able to conatin the name of any symbol */
+	/* should be able to contain any line in the sysmap file */
+	char buf[128];
+	/* should be able to conatin the name of any symbol */
+	char symbol[128];
 	unsigned long addr;
 	char dummy;
 	struct file *filp;
@@ -70,7 +75,8 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 
 	do {
 		memset(buf, 0, sizeof(buf));
-		err = vfs_read(filp, (char __user *)buf, sizeof(buf), &filp->f_pos);
+		err = vfs_read(filp, (char __user *)buf, sizeof(buf),
+				&filp->f_pos);
 		if (err < 0) {
 			pr_err("%s: <%s> vfs_read failed, err = %d\n",
 					MODULE_NAME, __func__, err);
@@ -79,7 +85,8 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 		/* vfs_read returned 0, reached EOF */
 		if (!err) {
 			err = -EINVAL;
-			pr_err("%s: <%s> reached end of file. should never happen!\n",
+			pr_err("%s: <%s> reached end of file. "
+					"should never happen!\n",
 					MODULE_NAME, __func__);
 			goto out_close;
 		}
@@ -99,7 +106,8 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 		if (sscanf(buf, "%lx %c %s", &addr, &dummy, symbol) != 3) {
 			pr_err("%s: <%s> sscanf returned unexpected value\n",
 					MODULE_NAME, __func__);
-			pr_err("%s: <%s> line was \"%s\"\n", MODULE_NAME, __func__, buf);
+			pr_err("%s: <%s> line was \"%s\"\n",
+					MODULE_NAME, __func__, buf);
 			err = -EINVAL;
 			goto out_close;
 		}

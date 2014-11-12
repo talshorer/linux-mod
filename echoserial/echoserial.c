@@ -65,8 +65,8 @@ static int __init echoserial_check_module_params(void) {
 	}
 	/* echoserial_bsize must be a power of two */
 	if (echoserial_bsize & (echoserial_bsize -1)) {
-		printk(KERN_ERR "%s: echoserial_bsize is not a power of two. value = %d\n",
-				DRIVER_NAME, echoserial_bsize);
+		printk(KERN_ERR "%s: echoserial_bsize is not a power of two. "
+				"value = %d\n", DRIVER_NAME, echoserial_bsize);
 		err = -EINVAL;
 	}
 	if (echoserial_interval <= 0) {
@@ -76,14 +76,16 @@ static int __init echoserial_check_module_params(void) {
 	}
 	/* echoserial_interval must be a multiple of 20 */
 	if (echoserial_interval % 20) {
-		printk(KERN_ERR "%s: echoserial_interval is not a multiple of 20. "
-				"value = %d\n", DRIVER_NAME, echoserial_interval);
+		printk(KERN_ERR "%s: echoserial_interval is not a multiple of "
+				"20. value = %d\n", DRIVER_NAME,
+				echoserial_interval);
 		err = -EINVAL;
 	}
 	/* echoserial_defbaud must be a multiple of 9600 */
 	if (echoserial_defbaud % 9600) {
-		printk(KERN_ERR "%s: echoserial_defbaud is not a multiple of 9600. "
-				"value = %d\n", DRIVER_NAME, echoserial_defbaud);
+		printk(KERN_ERR "%s: echoserial_defbaud is not a multiple of "
+				"9600. value = %d\n",
+				DRIVER_NAME, echoserial_defbaud);
 		err = -EINVAL;
 	}
 	return err;
@@ -262,8 +264,9 @@ static void echoserial_set_termios(struct uart_port *port,
 	} else parity = 'n';
 	flow = (cflag & CRTSCTS) ? "r" : "";
 	baud = uart_get_baud_rate(port, termios, old, 0, UINT_MAX);
+	/* example: 115200n8r */
 	printk(KERN_INFO "%s %s: %s, %d%c%d%s\n", DRIVER_NAME, esp->name,
-			__func__, baud, parity, bits, flow); /* example: 115200n8r */
+			__func__, baud, parity, bits, flow);
 	spin_lock_irqsave(&port->lock, flags);
 	esp->baud = baud;
 	esp->rtscts = !!flow[0]; /* nonempty flow string makes rtscts = 1 */
@@ -342,8 +345,8 @@ static void echoserial_rx_timer_func(unsigned long data)
 		echoserial_baud_to_bufsize(esp->baud)
 	);
 	if (count)
-		printk(KERN_INFO "%s %s: %s, count=%u\n", DRIVER_NAME, esp->name,
-				__func__, (unsigned int)count);
+		printk(KERN_INFO "%s %s: %s, count=%u\n", DRIVER_NAME,
+				esp->name, __func__, (unsigned int)count);
 	lsr = esp->lsr;
 	while (count--) {
 		kfifo_out(fifo, &ch, 1);
@@ -378,8 +381,8 @@ static void echoserial_tx_timer_func(unsigned long data)
 		echoserial_baud_to_bufsize(esp->baud)
 	);
 	if (count)
-		printk(KERN_INFO "%s %s: %s, count=%u\n", DRIVER_NAME, esp->name,
-				__func__, (unsigned int)count);
+		printk(KERN_INFO "%s %s: %s, count=%u\n", DRIVER_NAME,
+				esp->name, __func__, (unsigned int)count);
 	while (count--) {
 		kfifo_in(fifo, &xmit->buf[xmit->tail], 1);
 		xmit->tail = (xmit->tail + 1) & (UART_XMIT_SIZE - 1);
@@ -479,8 +482,9 @@ static int __init echoserial_init(void)
 	for (i = 0; i < echoserial_nports; i++) {
 		err = echoserial_port_setup(&echoserial_ports[i], i);
 		if (err) {
-			printk(KERN_ERR "%s: echoserial_port_setup failed. i = %d, "
-					"err = %d\n", DRIVER_NAME, i, err);
+			printk(KERN_ERR "%s: echoserial_port_setup failed. "
+					"i = %d, err = %d\n",
+					DRIVER_NAME, i, err);
 			goto fail_echoserial_port_setup_loop;
 		}
 	}

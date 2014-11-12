@@ -40,7 +40,8 @@ static int virtnet_lb_xmit(struct net_device *dev, const char *buf, size_t len)
 
 	entry = kzalloc(sizeof(*entry) + len, GFP_ATOMIC);
 	if (!entry) {
-		printk(KERN_ERR "%s: <%s> failed to allocate entry\n", DRIVER_NAME, __func__);
+		printk(KERN_ERR "%s: <%s> failed to allocate entry\n",
+				DRIVER_NAME, __func__);
 		return -ENOMEM;
 	}
 	atomic_inc(&lbdev->allocated);
@@ -52,7 +53,8 @@ static int virtnet_lb_xmit(struct net_device *dev, const char *buf, size_t len)
 	entry->len = len;
 	memcpy(entry->data, buf, len);
 
-	setup_timer(&entry->timer, virtnet_lb_timer_func, (unsigned long)entry);
+	setup_timer(&entry->timer, virtnet_lb_timer_func,
+			(unsigned long)entry);
 	spin_lock_irqsave(&lbdev->lock, flags);
 	list_add(&entry->link, &lbdev->entries);
 	mod_timer(&entry->timer, jiffies + VIRTNET_LB_DELAY_JIFFIES);
@@ -91,7 +93,8 @@ static void virtnet_lb_dev_uninit(void *priv)
 	spin_unlock_irqrestore(&lbdev->lock, flags);
 	/*
 	 * if not smp, all timers were deleted by the loop.
-	 * else, wait for any that are still running to finish on other processors.
+	 * else, wait for any that are still running to finish on other
+	 * processors.
 	 */
 	while (atomic_read(&lbdev->allocated)) /* do nothing */;
 }

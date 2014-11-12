@@ -12,7 +12,7 @@ struct virtnet_chr_dev {
 };
 #define virtnet_chr_dev_devt(vcdev) ((vcdev)->dev->devt)
 #define virtnet_chr_dev_to_netdev(vcdev) \
-		(((void *)vcdev) - ALIGN(sizeof(struct net_device), NETDEV_ALIGN))
+	(((void *)vcdev) - ALIGN(sizeof(struct net_device), NETDEV_ALIGN))
 
 struct virtnet_chr_packet {
 	char *data;
@@ -33,7 +33,8 @@ static struct virtnet_chr_packet *virtnet_chr_get_next_packet(
 
 	while (!packet) {
 		if (block)
-			prepare_to_wait(&vcdev->waitq, &wait, TASK_INTERRUPTIBLE);
+			prepare_to_wait(&vcdev->waitq, &wait,
+					TASK_INTERRUPTIBLE);
 		spin_lock_irqsave(&vcdev->lock, flags);
 		if (list_empty(&vcdev->packets)) {
 			if (block) {
@@ -62,7 +63,8 @@ static ssize_t virtnet_chr_read(struct file *filp, char __user *buf,
 	struct virtnet_chr_packet *packet;
 	ssize_t ret;
 
-	packet = virtnet_chr_get_next_packet(vcdev, !(filp->f_flags & O_NONBLOCK));
+	packet = virtnet_chr_get_next_packet(vcdev,
+			!(filp->f_flags & O_NONBLOCK));
 	if (IS_ERR(packet))
 		return PTR_ERR(packet);
 
@@ -143,7 +145,8 @@ static int virtnet_chr_open(struct inode *inode, struct file *filp)
 {
 	dev_t devt = MKDEV(virtnet_chr_major, iminor(inode));
 	struct virtnet_chr_dev *vcdev = dev_get_drvdata(
-			class_find_device(virtnet_chr_class, NULL, &devt, __match_devt));
+			class_find_device(virtnet_chr_class, NULL, &devt,
+			__match_devt));
 	filp->private_data = vcdev;
 	return 0;
 }
@@ -173,7 +176,8 @@ static int virtnet_chr_xmit(struct net_device *dev,
 
 	packet = kzalloc(sizeof(*packet) + len, GFP_ATOMIC);
 	if (!packet) {
-		printk(KERN_ERR "%s: <%s> failed to allocate packet\n", DRIVER_NAME, __func__);
+		printk(KERN_ERR "%s: <%s> failed to allocate packet\n",
+				DRIVER_NAME, __func__);
 		return -ENOMEM;
 	}
 
@@ -254,7 +258,8 @@ static int virtnet_chr_init(unsigned int nifaces)
 	return 0;
 
 fail_class_create:
-	__unregister_chrdev(virtnet_chr_major, 0, virtnet_chr_ndev, DRIVER_NAME);
+	__unregister_chrdev(virtnet_chr_major, 0, virtnet_chr_ndev,
+			DRIVER_NAME);
 fail_register_chrdev:
 	return err;
 }
@@ -262,7 +267,8 @@ fail_register_chrdev:
 static void virtnet_chr_exit(void)
 {
 	class_destroy(virtnet_chr_class);
-	__unregister_chrdev(virtnet_chr_major, 0, virtnet_chr_ndev, DRIVER_NAME);
+	__unregister_chrdev(virtnet_chr_major, 0, virtnet_chr_ndev,
+			DRIVER_NAME);
 }
 
 struct virtnet_backend_ops virtnet_chr_backend_ops = {

@@ -21,17 +21,20 @@ for pipe_num in $(seq 0 $(( NPIPES - 1 ))); do
 		pid=$!
 		sleep $SLEEP_INTERVAL
 		if [[ ! -e /proc/$pid ]] ; then
-			echo "$0: failed read blocking test with sink $snk" 1>&2
+			echo -n "$0: failed read blocking test with sink " 1>&2
+			echo "$snk" 1>&2
 			err=1
 		fi
 		echo $DATA > $src
 		sleep $SLEEP_INTERVAL
 		if [[ -e /proc/$pid ]] ; then
-			echo "$0: process $pid still running after write to $src" 1>&2
+			echo -n "$0: process $pid still running after " 1>&2
+			echo "write to $src" 1>&2
 			err=1
 		fi
 		if [[ "$(cat $tmp)" != "$DATA" ]]; then
-			echo "$0: failed readback test with source $src and sink $snk" 1>&2
+			echo -n "$0: failed readback test with source " 1>&2
+			echo "$src and sink $snk" 1>&2
 			err=1
 		fi
 		rm $tmp
@@ -40,13 +43,15 @@ for pipe_num in $(seq 0 $(( NPIPES - 1 ))); do
 		pid=$!
 		sleep $SLEEP_INTERVAL
 		if [[ ! -e /proc/$pid ]] ; then
-			echo "$0: failed write blocking test with source $src" 1>&2
+			echo -n "$0: failed write blocking test with " 1>&2
+			echo "source $src" 1>&2
 			err=1
 		fi
 		head -n 1 $snk > /dev/null
 		sleep $SLEEP_INTERVAL
 		if [[ -e /proc/$pid ]] ; then
-			echo "$0: process $pid still running after read from $snk" 1>&2
+			echo -n "$0: process $pid still running after " 1>&2
+			echo "read from $snk" 1>&2
 			err=1
 		fi
 		head -n 1 $snk > /dev/null

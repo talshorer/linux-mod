@@ -51,7 +51,8 @@ static char *bddtree_buf_to_name(const char *buf, size_t count)
 		memcpy(name, buf, count);
 		name[count] = 0;
 	} else
-		printk(KERN_ERR "%s: <%s> kmalloc failed\n", MODULE_NAME, __func__);
+		printk(KERN_ERR "%s: <%s> kmalloc failed\n", MODULE_NAME,
+				__func__);
 	return name;
 }
 
@@ -82,7 +83,8 @@ static struct bddtree_device *bddtree_device_create(
 
 	match.id = id;
 	match.dev = NULL;
-	driver_for_each_device(&drv->driver, NULL, &match, bddtree_device_match);
+	driver_for_each_device(&drv->driver, NULL, &match,
+			bddtree_device_match);
 	if (match.dev) {
 		err = -EINVAL;
 		printk(KERN_ERR "%s: <%s> device with id %lu already bound " \
@@ -155,7 +157,8 @@ static ssize_t bddtree_drv_add_store(struct device_driver *drv,
 	if (ret)
 		return ret;
 
-	dev = bddtree_device_create(bddtree_driver_from_device_driver(drv), id);
+	dev = bddtree_device_create(bddtree_driver_from_device_driver(drv),
+			id);
 	if (IS_ERR(dev))
 		return PTR_ERR(dev);
 
@@ -176,7 +179,8 @@ static ssize_t bddtree_drv_del_store(struct device_driver *drv,
 	if (!match.dev) {
 		printk(KERN_ERR "%s: <%s> device %s.%lu not found\n",
 				MODULE_NAME, __func__,
-				bddtree_driver_from_device_driver(drv)->name, match.id);
+				bddtree_driver_from_device_driver(drv)->name,
+						match.id);
 		return -EINVAL;
 	}
 
@@ -217,7 +221,8 @@ static struct bddtree_driver *bddtree_driver_create(struct bddtree_bus *bus,
 	if (strlen(name) >= BDDTREE_DRIVER_NAME_LEN) {
 		err = -EINVAL;
 		printk(KERN_ERR "%s: <%s> name too long. max length is %d\n",
-				MODULE_NAME, __func__, BDDTREE_DRIVER_NAME_LEN);
+				MODULE_NAME, __func__,
+				BDDTREE_DRIVER_NAME_LEN);
 		goto fail_name_len_check;
 	}
 

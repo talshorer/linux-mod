@@ -369,7 +369,8 @@ int main(int argc, char *argv[])
 		dprintf(2, "%s: running test %s\n", argv[0], active->name);
 		err = active->test_fn();
 		if (err)
-			dprintf(2, "%s: test %s failed\n", argv[0], active->name);
+			dprintf(2, "%s: test %s failed\n", argv[0],
+					active->name);
 		ret |= err;
 	}
 	return ret;

@@ -27,7 +27,8 @@ static dev_t simpleattr_dev_base;
 static struct device **simpleattr_devices;
 
 static void simpleattr_print_sys_attr_access(struct device *dev,
-		struct device_attribute *attr, unsigned long val, const char *func)
+		struct device_attribute *attr, unsigned long val,
+		const char *func)
 {
 	printk(KERN_INFO "%s: sysfs access: %s", DRIVER_NAME, func);
 	printk(KERN_INFO "%s: \tdevice %s\n", DRIVER_NAME, dev->kobj.name);
@@ -103,7 +104,8 @@ static int __init simpleattr_init(void)
 				DRIVER_NAME, simpleattr_ndevices);
 		return -EINVAL;
 	}
-	simpleattr_devices = kmalloc(sizeof(simpleattr_devices[0]) * simpleattr_ndevices,
+	simpleattr_devices = kmalloc(
+			sizeof(simpleattr_devices[0]) * simpleattr_ndevices,
 			GFP_KERNEL);
 	if (!simpleattr_devices) {
 		printk(KERN_ERR "%s: failed to allocate simpleattr_devices\n",
@@ -111,8 +113,9 @@ static int __init simpleattr_init(void)
 		err = -ENOMEM;
 		goto fail_kmalloc_simpleattr_devices;
 	}
-	err = alloc_chrdev_region(&simpleattr_dev_base, SIMPLEATTR_MAGIC_FIRST_MINOR,
-			simpleattr_ndevices, DRIVER_NAME);
+	err = alloc_chrdev_region(&simpleattr_dev_base,
+			SIMPLEATTR_MAGIC_FIRST_MINOR, simpleattr_ndevices,
+			DRIVER_NAME);
 	if (err) {
 		printk(KERN_ERR "%s: alloc_chrdev_region failed. err = %d\n",
 				DRIVER_NAME, err);

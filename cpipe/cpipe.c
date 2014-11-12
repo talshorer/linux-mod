@@ -54,8 +54,8 @@ static int __init cpipe_check_module_params(void) {
 	}
 	/* cpipe_bsize must be a power of two */
 	if (cpipe_bsize & (cpipe_bsize -1)) {
-		printk(KERN_ERR "%s: cpipe_bsize is not a power of two. value = %d\n",
-				DRIVER_NAME, cpipe_bsize);
+		printk(KERN_ERR "%s: cpipe_bsize is not a power of two. "
+				"value = %d\n", DRIVER_NAME, cpipe_bsize);
 		err = -EINVAL;
 	}
 	return err;
@@ -136,7 +136,8 @@ again:
 			ret = -EAGAIN;
 			goto out;
 		} else {
-			ret = cpipe_wait(&dev->rq, mutex, kfifo_is_empty(fifo));
+			ret = cpipe_wait(&dev->rq, mutex,
+					kfifo_is_empty(fifo));
 			/* cpipe_wait unlocks the mutex */
 			if (ret)
 				return ret;
@@ -215,7 +216,7 @@ static int cpipe_ioctl_IOCGAVAILXX(struct mutex *mutex, cpipe_fifo_t *fifo,
 	if (err)
 		return err;
 	err = put_user(get_availxx(fifo), ret);
-	/* not checking err since there's nothing else to do before returning it */
+	/* not checking err since there's nothing to do before returning it */
 	mutex_unlock(mutex);
 	return err;
 }
@@ -229,8 +230,9 @@ static long cpipe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return -ENOTTY;
 	switch (cmd) {
 	case CPIPE_IOCGAVAILRD:
-		ret = cpipe_ioctl_IOCGAVAILXX(&dev->rmutex, &dev->rfifo,
-				cpipe_fifo_len, filp->f_flags, (int __user *)arg);
+		ret = cpipe_ioctl_IOCGAVAILXX(&dev->rmutex,
+				&dev->rfifo, cpipe_fifo_len,
+				filp->f_flags, (int __user *)arg);
 		break;
 	case CPIPE_IOCGAVAILWR:
 		ret = cpipe_ioctl_IOCGAVAILXX(cpipe_dev_wmutex(dev),
@@ -300,7 +302,8 @@ fail_kfifo_alloc:
 
 static void cpipe_dev_destroy(struct cpipe_dev *dev)
 {
-	printk(KERN_INFO "%s: destroying device %s\n", DRIVER_NAME, cpipe_dev_name(dev));
+	printk(KERN_INFO "%s: destroying device %s\n", DRIVER_NAME,
+			cpipe_dev_name(dev));
 	device_destroy(cpipe_class, cpipe_dev_devt(dev));
 	kfifo_free(&dev->rfifo);
 }
@@ -312,7 +315,8 @@ static int __init cpipe_pair_init(struct cpipe_pair *pair, int i)
 	for (j = 0; j < ARRAY_SIZE(pair->devices); j++) {
 		err = cpipe_dev_init(&pair->devices[j], i, j);
 		if (err) {
-			printk(KERN_ERR "%s: cpipe_dev_init failed i=%d j=%d err=%d\n",
+			printk(KERN_ERR "%s: cpipe_dev_init failed "
+					"i=%d j=%d err=%d\n",
 					DRIVER_NAME, i, j, err);
 			goto fail_cpipe_dev_init;
 		}
@@ -368,7 +372,8 @@ static int __init cpipe_init(void)
 	cpipe_pairs = vmalloc(sizeof(cpipe_pairs[0]) * cpipe_npipes);
 	if (!cpipe_pairs) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: failed to allocate cpipe_pairs\n", DRIVER_NAME);
+		printk(KERN_ERR "%s: failed to allocate cpipe_pairs\n",
+				DRIVER_NAME);
 		goto fail_vmalloc_cpipe_pairs;
 	}
 	memset(cpipe_pairs, 0, sizeof(cpipe_pairs[0]) * cpipe_npipes);

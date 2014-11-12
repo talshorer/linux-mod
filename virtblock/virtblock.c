@@ -81,14 +81,15 @@ static int virtblock_check_module_params(void) {
 		err = -EINVAL;
 	}
 	if (virtblock_hardsect_size < 512) {
-		printk(KERN_ERR "%s: virtblock_hardsect_size < 512. value = %d\n",
+		printk(KERN_ERR "%s: virtblock_hardsect_size < 512. "
+				"value = %d\n",
 				DRIVER_NAME, virtblock_hardsect_size);
 		err = -EINVAL;
 	}
 	/* virtblock_hardsect_size must be a power of two */
 	if (virtblock_hardsect_size & (virtblock_hardsect_size -1)) {
-		printk(KERN_ERR "%s: virtblock_hardsect_size is not a power of two. "
-				"value = %d\n",
+		printk(KERN_ERR "%s: virtblock_hardsect_size is not a power "
+				"of two. value = %d\n",
 				DRIVER_NAME, virtblock_hardsect_size);
 		err = -EINVAL;
 	}
@@ -117,8 +118,10 @@ static void virtblock_request(struct request_queue *q) {
 		sector = blk_rq_pos(req);
 		do_div(sector, VIRTBLOCK_TO_BLK_LAYER);
 		nsect = blk_rq_sectors(req) / VIRTBLOCK_TO_BLK_LAYER;
-		printk(KERN_INFO "%s: processing request %p\n", DRIVER_NAME, req);
-		printk(KERN_INFO "%s: \tdevice %s\n", DRIVER_NAME, dev->gd->disk_name);
+		printk(KERN_INFO "%s: processing request %p\n",
+				DRIVER_NAME, req);
+		printk(KERN_INFO "%s: \tdevice %s\n",
+				DRIVER_NAME, dev->gd->disk_name);
 		printk(KERN_INFO "%s: \twrite %u\n", DRIVER_NAME, write);
 		printk(KERN_INFO "%s: \tsector %lu\n", DRIVER_NAME,
 				(unsigned long)sector);
@@ -131,8 +134,10 @@ static void virtblock_request(struct request_queue *q) {
 			__blk_end_request_all(req, -EIO);
 		}
 		rq_for_each_segment(bv, req, iter) {
-			printk(KERN_INFO "%s: \tprocessing segment %p\n", DRIVER_NAME, bv);
-			printk(KERN_INFO "%s: \t\tlen %u\n", DRIVER_NAME, bv->bv_len);
+			printk(KERN_INFO "%s: \tprocessing segment %p\n",
+					DRIVER_NAME, bv);
+			printk(KERN_INFO "%s: \t\tlen %u\n",
+					DRIVER_NAME, bv->bv_len);
 			blkbuf = page_address(bv->bv_page) + bv->bv_offset;
 			devbuf = dev->data + offset;
 			if (write) /* write to device */
@@ -234,8 +239,9 @@ static int __init virtblock_init(void)
 	for (i = 0; i < virtblock_ndevices; i++) {
 		err = virtblock_dev_setup(&virtblock_devices[i], i);
 		if (err) {
-			printk(KERN_ERR "%s: virtblock_dev_setup failed. i = %d, "
-			"err = %d\n", DRIVER_NAME, i, err);
+			printk(KERN_ERR "%s: virtblock_dev_setup failed. "
+					"i = %d, err = %d\n",
+					DRIVER_NAME, i, err);
 			goto fail_virtblock_dev_setup_loop;
 		}
 	}

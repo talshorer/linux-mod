@@ -168,8 +168,8 @@ static netdev_tx_t virtnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	if (virtnet_packetdump) {
 		printk(KERN_INFO "%s: interface %s tx packet of length %d\n",
 				DRIVER_NAME, dev->name, skb->len);
-		print_hex_dump(KERN_INFO, "tx data: ", DUMP_PREFIX_OFFSET, 16, 1,
-				skb->data, skb->len, false);
+		print_hex_dump(KERN_INFO, "tx data: ", DUMP_PREFIX_OFFSET, 16,
+				1, skb->data, skb->len, false);
 	}
 
 	err = virtnet_backend_xmit(dev, skb->data, skb->len);
@@ -199,7 +199,8 @@ static const struct net_device_ops virtnet_netdev_ops = {
 
 static void virtnet_free_netdev(struct net_device *dev)
 {
-	printk(KERN_INFO "%s: destroying interface %s\n", DRIVER_NAME, dev->name);
+	printk(KERN_INFO "%s: destroying interface %s\n",
+			DRIVER_NAME, dev->name);
 	free_netdev(dev);
 }
 
@@ -258,16 +259,20 @@ int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
 				DRIVER_NAME, __func__);
 		break;
 	case NET_RX_SUCCESS:
-		/* HACK: eth_type_trans() pulled ETH_HLEN bytes from skb's head, so
-		 * when we print the buffer, we subtract ETH_HLEN from the pointer
-		 * and add ETH_HLEN to the length. This has no effect on upper layer
-		 * since all it changes is the log messages.
+		/* HACK: eth_type_trans() pulled ETH_HLEN bytes from skb's
+		 * head, so when we print the buffer, we subtract ETH_HLEN from
+		 * the pointer and add ETH_HLEN to the length. This has no
+		 * effect on upper layer since all it changes is the log
+		 * messages.
 		 */
 		if (virtnet_packetdump) {
-			printk(KERN_INFO "%s: interface %s rx packet of length %d\n",
-					DRIVER_NAME, dev->name, skb->len + ETH_HLEN);
-			print_hex_dump(KERN_INFO, "rx data: ", DUMP_PREFIX_OFFSET, 16, 1,
-					skb->data - ETH_HLEN, skb->len + ETH_HLEN, false);
+			printk(KERN_INFO "%s: interface %s rx packet "
+					"of length %d\n", DRIVER_NAME,
+					dev->name, skb->len + ETH_HLEN);
+			print_hex_dump(KERN_INFO, "rx data: ",
+					DUMP_PREFIX_OFFSET, 16, 1,
+					skb->data - ETH_HLEN,
+					skb->len + ETH_HLEN, false);
 		}
 		break;
 	}
@@ -308,7 +313,8 @@ static int virtnet_init_iface(void)
 	dev->rtnl_link_ops = &virtnet_link_ops;
 	err = register_netdevice(dev);
 	if (err) {
-		printk(KERN_ERR "%s: register_netdevice failed\n", DRIVER_NAME);
+		printk(KERN_ERR "%s: register_netdevice failed\n",
+				DRIVER_NAME);
 		goto fail_register_netdevice;
 	}
 
@@ -349,8 +355,9 @@ static int __init virtnet_init(void)
 	for (i = 0; i < virtnet_nifaces; i++) {
 		err = virtnet_init_iface();
 		if (err) {
-			printk(KERN_ERR "%s: virtnet_init_device failed. i = %d, "
-					"err = %d\n", DRIVER_NAME, i, err);
+			printk(KERN_ERR "%s: virtnet_init_device failed. "
+					"i = %d, err = %d\n",
+					DRIVER_NAME, i, err);
 			goto fail_virtnet_init_device_loop;
 		}
 	}

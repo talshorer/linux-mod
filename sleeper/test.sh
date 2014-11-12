@@ -32,8 +32,9 @@ for i in $(seq 0 $(( $NWAKES - 1 ))); do
 			fi
 			actual_stat=$(get_thread_stat $k)
 			if [[ $actual_stat != $expected_stat ]]; then
-				echo -n "$0: stat on thread $DRIVER$k was unexpected. " 1>&2
-				echo "expected $expected_stat, actual $actual_stat" 1>&2
+				echo -n "$0: stat on thread $DRIVER$k " 1>&2
+				echo -n "was unexpected. expected " 1>&2
+				echo "$expected_stat, actual $actual_stat" 1>&2
 			err=1
 			fi
 		done

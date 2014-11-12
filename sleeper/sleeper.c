@@ -56,8 +56,9 @@ static ssize_t sleeper_debugfs_wake_write(struct file *filp,
 		return -EINVAL;
 	}
 	if (id >= sleeper_nthreads) {
-		printk(KERN_ERR "%s: <%s> id >= nthreads. id = %d, nthreads = %d\n",
-				DRIVER_NAME, __func__, id, sleeper_nthreads);
+		printk(KERN_ERR "%s: <%s> id >= nthreads. id = %d, "
+				"nthreads = %d\n", DRIVER_NAME, __func__, id,
+				sleeper_nthreads);
 		return -EINVAL;
 	}
 
@@ -80,7 +81,8 @@ static int sleeper_debugfs_stat_show(struct seq_file *m, void *v)
 
 	for (i = 0; i < sleeper_nthreads; i++) {
 		st = &sleeper_threads[i];
-		seq_printf(m, "%s: %d\n", st->task->comm, atomic_read(&st->disturbs));
+		seq_printf(m, "%s: %d\n", st->task->comm,
+				atomic_read(&st->disturbs));
 	}
 
 	return 0;
@@ -107,12 +109,14 @@ static int __init sleeper_create_debugfs(void)
 	sleeper_debugfs = debugfs_create_dir(DRIVER_NAME, NULL);
 	if (!sleeper_debugfs) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: debugfs_create_dir failed\n", DRIVER_NAME);
+		printk(KERN_ERR "%s: debugfs_create_dir failed\n",
+				DRIVER_NAME);
 		goto fail_debugfs_create_dir;
 	}
 
 	file = debugfs_create_file(sleeper_debugfs_wake_fname, S_IWUSR,
-			sleeper_debugfs, sleeper_threads, &sleeper_debugfs_wake_fops);
+			sleeper_debugfs, sleeper_threads,
+			&sleeper_debugfs_wake_fops);
 	if (!file) {
 		err = -ENOMEM;
 		printk(KERN_ERR "%s: debugfs_create_file failed for %s\n",
@@ -121,7 +125,8 @@ static int __init sleeper_create_debugfs(void)
 	}
 
 	file = debugfs_create_file(sleeper_debugfs_stat_fname, 0444,
-			sleeper_debugfs, sleeper_threads, &sleeper_debugfs_stat_fops);
+			sleeper_debugfs, sleeper_threads,
+			&sleeper_debugfs_stat_fops);
 	if (!file) {
 		err = -ENOMEM;
 		printk(KERN_ERR "%s: debugfs_create_file failed for %s\n",
@@ -163,7 +168,8 @@ static int __init sleeper_thread_setup(struct sleeper_thread *st,
 	init_waitqueue_head(&st->wq);
 	atomic_set(&st->disturbs, 0);
 
-	st->task = kthread_run(sleeper_thread_func, st, "%s%d", DRIVER_NAME, i);
+	st->task = kthread_run(sleeper_thread_func, st, "%s%d",
+			DRIVER_NAME, i);
 	if (IS_ERR(st->task)) {
 		err = PTR_ERR(st->task);
 		printk(KERN_ERR "%s: kthread_run failed, i = %d, err = %d\n",
@@ -191,10 +197,12 @@ static int __init sleeper_init(void)
 	if (err)
 		return err;
 
-	sleeper_threads = vmalloc(sizeof(sleeper_threads[0]) * sleeper_nthreads);
+	sleeper_threads = vmalloc(
+			sizeof(sleeper_threads[0]) * sleeper_nthreads);
 	if (!sleeper_threads){
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: failed to allocate sleeper_threads\n", DRIVER_NAME);
+		printk(KERN_ERR "%s: failed to allocate sleeper_threads\n",
+				DRIVER_NAME);
 		goto fail_vmalloc_sleeper_threads;
 	}
 
@@ -205,8 +213,9 @@ static int __init sleeper_init(void)
 	for (i = 0; i < sleeper_nthreads; i++) {
 		err = sleeper_thread_setup(&sleeper_threads[i], i);
 		if (err) {
-			printk(KERN_ERR "%s: sleeper_thread_setup failed. i = %d, "
-					"err = %d\n", DRIVER_NAME, i, err);
+			printk(KERN_ERR "%s: sleeper_thread_setup failed. "
+					"i = %d, err = %d\n",
+					DRIVER_NAME, i, err);
 			goto fail_sleeper_thread_setup_loop;
 		}
 	}

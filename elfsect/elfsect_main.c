@@ -21,7 +21,8 @@ static int elfsect_debugfs_dummies_show(struct seq_file *m, void *v)
 
 static int elfsect_debugfs_dummies_open(struct inode *inode, struct file *filp)
 {
-	return single_open(filp, elfsect_debugfs_dummies_show, inode->i_private);
+	return single_open(filp, elfsect_debugfs_dummies_show,
+			inode->i_private);
 }
 
 #define elfsect_debugfs_dummies_fname "dummies"
@@ -42,7 +43,8 @@ static int __init elfsect_create_debugfs(void)
 	elfsect_debugfs = debugfs_create_dir(MODULE_NAME, NULL);
 	if (!elfsect_debugfs) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: debugfs_create_dir failed\n", MODULE_NAME);
+		printk(KERN_ERR "%s: debugfs_create_dir failed\n",
+				MODULE_NAME);
 		goto fail_debugfs_create_dir;
 	}
 

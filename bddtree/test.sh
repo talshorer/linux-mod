@@ -49,7 +49,8 @@ for driver in $DRIVERS; do
 	fi
 	device=$driver.$devid
 	if [[ -e $(device_sysfs $device) ]]; then
-		echo "$0: device $device exists after removal of driver $driver" 1>&2
+		echo -n "$0: device $device exists after " 1>&2
+		echo "removal of driver $driver" 1>&2
 		err=1
 	fi
 done
@@ -58,7 +59,8 @@ echo "$0: checking driver $driver is deleted upon removal of the module" 1>&2
 echo $driver > $BUS_SYSFS/$ADD
 rmmod $MODULE
 if [[ -e $(driver_sysfs $driver) ]]; then
-		echo "$0: driver $driver exists after removal of the module" 1>&2
+		echo -n "$0: driver $driver exists after " 1>&2
+		echo "removal of the module" 1>&2
 		err=1
 	fi
 exit $err
