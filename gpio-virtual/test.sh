@@ -2,7 +2,7 @@
 
 MODULE=$(basename $(dirname $(realpath $0)))
 NCHIPS=4
-CHIP_NPINS=16
+CHIP_NPINS=32
 MODULE_SYSFS=/sys/class/$MODULE
 GPIO_SYSFS=/sys/class/gpio
 IN=in
@@ -41,6 +41,7 @@ for ((i=0; i<$NCHIPS; i++)); do
 	if [[ $ngpio != $CHIP_NPINS ]]; then
 		echo -n "$0: unexpected $ngpio for $chip ($gpiochip). " 1>&2
 		echo "expected $CHIP_NPINS, actual $ngpio" 1>&2
+		err=1
 	fi
 	for ((j=0; j<$ngpio; j++)); do
 		gpio=$(( $base + $j ))
