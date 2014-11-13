@@ -5,7 +5,6 @@
 #include <linux/sched.h> /* to extract pid */
 #include <linux/device.h>
 
-#define SIMPLEATTR_MAGIC_FIRST_MINOR 0
 #define SIMPLEATTR_SYSFS_PERM (0666)
 
 static char DRIVER_NAME[] = "simpleattr";
@@ -23,7 +22,6 @@ static DEVICE_ATTR(attr, SIMPLEATTR_SYSFS_PERM,
 		simpleattr_sys_attr_show, simpleattr_sys_attr_store);
 
 static struct class *simpleattr_class = NULL;
-static dev_t simpleattr_dev_base;
 static struct device **simpleattr_devices;
 
 static void simpleattr_print_sys_attr_access(struct device *dev,
@@ -56,8 +54,7 @@ static ssize_t simpleattr_sys_attr_store(struct device *dev,
 	return count;
 }
 
-#define simpleattr_MKDEV(i) \
-	(MKDEV(MAJOR(simpleattr_dev_base), SIMPLEATTR_MAGIC_FIRST_MINOR + i))
+#define simpleattr_MKDEV(i) MKDEV(0, i)
 
 static struct device __init *simpleattr_device_create(int i) {
 	struct device *dev;
@@ -113,14 +110,6 @@ static int __init simpleattr_init(void)
 		err = -ENOMEM;
 		goto fail_kmalloc_simpleattr_devices;
 	}
-	err = alloc_chrdev_region(&simpleattr_dev_base,
-			SIMPLEATTR_MAGIC_FIRST_MINOR, simpleattr_ndevices,
-			DRIVER_NAME);
-	if (err) {
-		printk(KERN_ERR "%s: alloc_chrdev_region failed. err = %d\n",
-				DRIVER_NAME, err);
-		goto fail_alloc_chrdev_region;
-	}
 	simpleattr_class = class_create(THIS_MODULE, DRIVER_NAME);
 	if (IS_ERR(simpleattr_class)) {
 		err = PTR_ERR(simpleattr_class);
@@ -145,8 +134,6 @@ fail_simpleattr_device_create_loop:
 		simpleattr_device_destroy(i);
 	class_destroy(simpleattr_class);
 fail_class_create:
-	unregister_chrdev_region(simpleattr_dev_base, simpleattr_ndevices);
-fail_alloc_chrdev_region:
 	kfree(simpleattr_devices);
 fail_kmalloc_simpleattr_devices:
 	return err;
@@ -160,7 +147,6 @@ static void __exit simpleattr_exit(void)
 	for (i = 0; i < simpleattr_ndevices; i++)
 		simpleattr_device_destroy(i);
 	class_destroy(simpleattr_class);
-	unregister_chrdev_region(simpleattr_dev_base, simpleattr_ndevices);
 	kfree(simpleattr_devices);
 	printk(KERN_INFO "%s: exited successfully\n", DRIVER_NAME);
 }
@@ -168,5 +154,5 @@ module_exit(simpleattr_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple dummy device with a sysfs attribute");
-MODULE_VERSION("1.1.1");
+MODULE_VERSION("1.2.0");
 MODULE_LICENSE("GPL");
