@@ -4,6 +4,7 @@
 #include <linux/fs.h>
 #include <linux/gpio.h>
 #include <linux/slab.h>
+#include <linux/pm_runtime.h>
 
 #define MODULE_NAME "gpio-virtual"
 
@@ -52,10 +53,6 @@ struct vgpio_chip {
 };
 #define to_vgpio_chip(_chip) (container_of(_chip, struct vgpio_chip, chip))
 
-static struct class vgpio_class = {
-	.name = MODULE_NAME,
-	.owner = THIS_MODULE,
-};
 static struct vgpio_chip *vgpio_chips;
 
 #define VGPIO_MKDEV(i) MKDEV(0, i)
@@ -74,10 +71,10 @@ static inline int vgpio_get_bit(struct vgpio_chip *vchip,
 	return ret;
 }
 
-#define __vgpio_set_bit_op(vchip, regtype, _bit, op) \
+#define __vgpio_set_bit_op(vchip, regtype, bit, op) \
 do { \
-	unsigned bit = (_bit); \
-	(vchip)->regs[regtype][bit >> 3] op (1 << (bit & 0x7)); \
+	unsigned __bit = (bit); \
+	(vchip)->regs[regtype][__bit >> 3] op (1 << (__bit & 0x7)); \
 } while (0)
 
 static void __vgpio_set_bit_hi(struct vgpio_chip *vchip,
@@ -110,9 +107,11 @@ static inline void vgpio_set_bit_lo(struct vgpio_chip *vchip,
 	spin_unlock_irqrestore(&vchip->lock, flags);
 }
 
-#define __vgpio_set_bit(vchip, regtype, bit, value) \
-	((value) ? __vgpio_set_bit_hi : __vgpio_set_bit_lo)\
-			(vchip, regtype, bit);
+static inline void __vgpio_set_bit(struct vgpio_chip *vchip,
+		enum vgpio_reg_type regtype, unsigned bit, int value)
+{
+	(value ? __vgpio_set_bit_hi : __vgpio_set_bit_lo)(vchip, regtype, bit);
+}
 
 static inline void vgpio_set_bit(struct vgpio_chip *vchip,
 		enum vgpio_reg_type regtype, unsigned bit, int value)
@@ -128,12 +127,14 @@ static inline void vgpio_set_bit(struct vgpio_chip *vchip,
 static int vgpio_request(struct gpio_chip *chip, unsigned offset)
 {
 	dev_info(chip->dev, "<%s> offset = %u\n", __func__, offset);
+	pm_runtime_get_sync(chip->dev);
 	return 0;
 }
 
 static void vgpio_free(struct gpio_chip *chip, unsigned offset)
 {
 	dev_info(chip->dev, "<%s> offset = %u\n", __func__, offset);
+	pm_runtime_put(chip->dev);
 }
 
 static int vgpio_get_direction(struct gpio_chip *chip, unsigned offset)
@@ -188,6 +189,32 @@ static void vgpio_set(struct gpio_chip *chip, unsigned offset, int value)
 	vgpio_set_bit(vchip, VGPIO_REG_VALUES, offset, value);
 }
 
+#ifdef CONFIG_PM_RUNTIME
+static int vgpio_runtime_suspend(struct device *dev)
+{
+	dev_info(dev, "<%s>\n", __func__);
+	return 0;
+}
+
+static int vgpio_runtime_resume(struct device *dev)
+{
+	dev_info(dev, "<%s>\n", __func__);
+	return 0;
+}
+
+static const struct dev_pm_ops vgpio_pm_ops = {
+	SET_RUNTIME_PM_OPS(vgpio_runtime_suspend, vgpio_runtime_resume, NULL)
+};
+#else /* CONFIG_PM_RUNTIME */
+#define vgpio_pm_ops NULL
+#endif /* CONFIG_PM_RUNTIME */
+
+static struct class vgpio_class = {
+	.name = MODULE_NAME,
+	.owner = THIS_MODULE,
+	.pm = &vgpio_pm_ops,
+};
+
 static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 {
 	int err;
@@ -232,6 +259,8 @@ static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 				MODULE_NAME, __func__, i, err);
 		goto fail_gipochip_add;
 	}
+
+	pm_runtime_enable(vchip->chip.dev);
 
 	pr_info("%s: created chip %s successfully\n",
 			MODULE_NAME, dev_name(vchip->chip.dev));
@@ -314,5 +343,5 @@ module_exit(vgpio_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual gpio controller chips");
-MODULE_VERSION("1.0.2");
+MODULE_VERSION("1.1.0");
 MODULE_LICENSE("GPL");
