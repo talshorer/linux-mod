@@ -76,6 +76,7 @@ static inline int vgpio_get_bit(struct vgpio_chip *vchip,
 
 #define __vgpio_set_bit_op(vchip, regtype, _bit, op) \
 do { \
+	unsigned bit = (_bit); \
 	(vchip)->regs[regtype][bit >> 3] op (1 << (bit & 0x7)); \
 } while (0)
 
@@ -313,5 +314,5 @@ module_exit(vgpio_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual gpio controller chips");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
