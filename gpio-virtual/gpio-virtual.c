@@ -202,9 +202,10 @@ static int vgpio_runtime_resume(struct device *dev)
 	return 0;
 }
 
-static const struct dev_pm_ops vgpio_pm_ops = {
+static const struct dev_pm_ops __vgpio_pm_ops = {
 	SET_RUNTIME_PM_OPS(vgpio_runtime_suspend, vgpio_runtime_resume, NULL)
 };
+#define vgpio_pm_ops &__vgpio_pm_ops
 #else /* CONFIG_PM_RUNTIME */
 #define vgpio_pm_ops NULL
 #endif /* CONFIG_PM_RUNTIME */
@@ -212,7 +213,7 @@ static const struct dev_pm_ops vgpio_pm_ops = {
 static struct class vgpio_class = {
 	.name = MODULE_NAME,
 	.owner = THIS_MODULE,
-	.pm = &vgpio_pm_ops,
+	.pm = vgpio_pm_ops,
 };
 
 static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
@@ -343,5 +344,5 @@ module_exit(vgpio_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual gpio controller chips");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.1.1");
 MODULE_LICENSE("GPL");
