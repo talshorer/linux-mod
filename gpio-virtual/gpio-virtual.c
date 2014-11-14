@@ -52,7 +52,10 @@ struct vgpio_chip {
 };
 #define to_vgpio_chip(_chip) (container_of(_chip, struct vgpio_chip, chip))
 
-static struct class *vgpio_class;
+static struct class vgpio_class = {
+	.name = MODULE_NAME,
+	.owner = THIS_MODULE,
+};
 static struct vgpio_chip *vgpio_chips;
 
 #define VGPIO_MKDEV(i) MKDEV(0, i)
@@ -213,7 +216,7 @@ static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 	/* set all pins input */
 	memset(vchip->regs[VGPIO_REG_DIRECTIONS], 0xff, vgpio_reg_type_len);
 
-	vchip->chip.dev = device_create(vgpio_class, NULL, VGPIO_MKDEV(i),
+	vchip->chip.dev = device_create(&vgpio_class, NULL, VGPIO_MKDEV(i),
 			vchip, "%s%d", MODULE_NAME, i);
 	if (IS_ERR(vchip->chip.dev)) {
 		err = PTR_ERR(vchip->chip.dev);
@@ -234,7 +237,7 @@ static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 	return 0;
 
 fail_gipochip_add:
-	device_destroy(vgpio_class, VGPIO_MKDEV(i));
+	device_destroy(&vgpio_class, VGPIO_MKDEV(i));
 fail_device_create:
 	kfree(vchip->mem);
 fail_kzalloc_vchip_mem:
@@ -245,7 +248,7 @@ static void vgpio_chip_cleanup(struct vgpio_chip *vchip)
 {
 	dev_t devt = vchip->chip.dev->devt;
 	gpiochip_remove(&vchip->chip);
-	device_destroy(vgpio_class, devt);
+	device_destroy(&vgpio_class, devt);
 	kfree(vchip->mem);
 }
 
@@ -266,10 +269,9 @@ static int __init vgpio_init(void)
 	}
 	memset(vgpio_chips, 0, sizeof(vgpio_chips[0]) * vgpio_nchips);
 
-	vgpio_class = class_create(THIS_MODULE, MODULE_NAME);
-	if (IS_ERR(vgpio_class)) {
-		err = PTR_ERR(vgpio_class);
-		pr_err("%s: class_create failed. err = %d\n",
+	err = class_register(&vgpio_class);
+	if (err) {
+		pr_err("%s: class_create register. err = %d\n",
 				MODULE_NAME, err);
 		goto fail_class_create;
 	}
@@ -289,7 +291,7 @@ static int __init vgpio_init(void)
 fail_vgpio_chip_init_loop:
 	while (i--)
 		vgpio_chip_cleanup(&vgpio_chips[i]);
-	class_destroy(vgpio_class);
+	class_unregister(&vgpio_class);
 fail_class_create:
 	vfree(vgpio_chips);
 fail_vmalloc_vgpio_chips:
@@ -302,7 +304,7 @@ static void __exit vgpio_exit(void)
 	int i;
 	for (i = 0; i < vgpio_nchips; i++)
 		vgpio_chip_cleanup(&vgpio_chips[i]);
-	class_destroy(vgpio_class);
+	class_unregister(&vgpio_class);
 	vfree(vgpio_chips);
 	pr_info("%s: exited successfully\n", MODULE_NAME);
 }
@@ -311,5 +313,5 @@ module_exit(vgpio_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual gpio controller chips");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
