@@ -5,6 +5,7 @@
 #include <linux/mutex.h>
 #include <net/net_namespace.h>
 #include <net/netlink.h>
+#include <net/sock.h>
 
 #include "nldummy_uapi.h"
 
@@ -103,7 +104,8 @@ static void nldummy_net_exit(struct net *net)
 
 	mutex_lock(&nldummy_sock_mutex);
 	list_for_each_entry(nd_sk, &nldummy_sock_list, list)
-		goto found;
+		if (sock_net(nd_sk->sk) == net)
+			goto found;
 	mutex_unlock(&nldummy_sock_mutex);
 	pr_warn("<%s> failed to find nldummy socket for net %p\n",
 			__func__, net);
@@ -127,5 +129,5 @@ module_driver(nldummy_net_ops, register_pernet_subsys,
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A netlink server that xors incoming packets");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
