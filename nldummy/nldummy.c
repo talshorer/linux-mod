@@ -29,7 +29,9 @@ static int nldummy_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 	int i;
 	int err;
 
-	print_hex_dump(KERN_INFO, pr_fmt("rx: "), DUMP_PREFIX_OFFSET, 16, 1,
+	pr_info("received message of len %u from pid %d\n",
+			nlh->nlmsg_len, nlh->nlmsg_pid);
+	print_hex_dump(KERN_INFO, pr_fmt("\trx: "), DUMP_PREFIX_OFFSET, 16, 1,
 			nlmsg_data(nlh), len, false);
 
 	skb_out = nlmsg_new(len, GFP_KERNEL);
@@ -42,7 +44,7 @@ static int nldummy_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 	memcpy(nlmsg_data(nlh_out), nlmsg_data(nlh), len);
 	for (i = 0; i < len; i++)
 		((char *)nlmsg_data(nlh_out))[i] ^= 0xff;
-	print_hex_dump(KERN_INFO, pr_fmt("tx: "), DUMP_PREFIX_OFFSET, 16, 1,
+	print_hex_dump(KERN_INFO, pr_fmt("\ttx: "), DUMP_PREFIX_OFFSET, 16, 1,
 			nlmsg_data(nlh_out), len, false);
 	err = nlmsg_unicast(skb->sk, skb_out, nlh->nlmsg_pid);
 	if (err)
@@ -53,10 +55,6 @@ static int nldummy_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 
 static void nldummy_input(struct sk_buff *skb)
 {
-	struct nlmsghdr *nlh;
-	nlh = nlmsg_hdr(skb);
-	pr_info("<%s> received message of len %u from sk %p\n",
-			__func__, nlh->nlmsg_len, skb->sk);
 	netlink_rcv_skb(skb, &nldummy_rcv_msg);
 }
 
@@ -129,5 +127,5 @@ module_driver(nldummy_net_ops, register_pernet_subsys,
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A netlink server that xors incoming packets");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
