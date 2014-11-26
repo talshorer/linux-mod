@@ -194,16 +194,18 @@ static unsigned int cpipe_poll(struct file *filp, poll_table *wait)
 	struct cpipe_dev *dev = filp->private_data;
 	unsigned int mask = 0;
 	/* read */
-	mutex_lock(&dev->rmutex);
-	if (!kfifo_is_empty(&dev->rfifo))
-		mask |= POLLIN | POLLRDNORM;
-	mutex_unlock(&dev->rmutex);
+	if (mutex_trylock(&dev->rmutex)) {
+		if (!kfifo_is_empty(&dev->rfifo))
+			mask |= POLLIN | POLLRDNORM;
+		mutex_unlock(&dev->rmutex);
+	}
 	poll_wait(filp, &dev->rq, wait);
 	/* write */
-	mutex_lock(cpipe_dev_wmutex(dev));
-	if (!kfifo_is_full(cpipe_dev_wfifo(dev)))
-		mask |= POLLOUT | POLLWRNORM;
-	mutex_unlock(cpipe_dev_wmutex(dev));
+	if (mutex_trylock(cpipe_dev_wmutex(dev))) {
+		if (!kfifo_is_full(cpipe_dev_wfifo(dev)))
+			mask |= POLLOUT | POLLWRNORM;
+		mutex_unlock(cpipe_dev_wmutex(dev));
+	}
 	poll_wait(filp, &dev->wq, wait);
 	return mask;
 }
@@ -430,5 +432,5 @@ module_exit(cpipe_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("1.1.1");
+MODULE_VERSION("1.1.2");
 MODULE_LICENSE("GPL");
