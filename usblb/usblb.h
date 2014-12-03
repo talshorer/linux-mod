@@ -1,15 +1,12 @@
 #ifndef _USBLB_H
 #define _USBLB_H
 
-struct usblb_host;
 struct usblb_gadget;
+struct usblb_host;
 
 /************************************************/
 /***************** usblb_main.c *****************/
 /************************************************/
-
-extern int usblb_aquire_bus_g(struct usblb_gadget *);
-extern int usblb_aquire_bus_h(struct usblb_host *);
 
 /************************************************/
 /**************** usblb_gadget.c ****************/
@@ -17,6 +14,7 @@ extern int usblb_aquire_bus_h(struct usblb_host *);
 
 struct usblb_gadget {
 	struct usblb_host *host;
+	struct device *dev;
 };
 
 extern int usblb_gadget_init(void);
@@ -33,6 +31,7 @@ extern int usblb_gadget_set_host(struct usblb_gadget *, struct usblb_host *);
 
 struct usblb_host {
 	struct usblb_gadget *gadget;
+	struct device *dev;
 };
 
 extern int usblb_host_init(void);
