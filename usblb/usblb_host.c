@@ -105,10 +105,12 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			goto error;
 		switch (wValue) {
 		case USB_PORT_FEAT_POWER:
-			host->port1_status.wPortStatus |= USB_PORT_STAT_ENABLE;
+			host->port1_status.wPortStatus &= ~USB_PORT_STAT_POWER;
 			usblb_spawn_gadget_event(host, USBLB_GE_PWROF);
 			break;
 		case USB_PORT_FEAT_ENABLE:
+			host->port1_status.wPortStatus &=
+					~USB_PORT_STAT_ENABLE;
 			break;
 		default:
 			goto error;
@@ -127,8 +129,11 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 			goto error;
 		switch (wValue) {
 		case USB_PORT_FEAT_POWER:
-			host->port1_status.wPortStatus |= USB_PORT_STAT_ENABLE;
+			host->port1_status.wPortStatus |= USB_PORT_STAT_POWER;
 			usblb_spawn_gadget_event(host, USBLB_GE_PWRON);
+			break;
+		case USB_PORT_FEAT_ENABLE:
+			host->port1_status.wPortStatus |= USB_PORT_STAT_ENABLE;
 			break;
 		default:
 			goto error;
