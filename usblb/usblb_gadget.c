@@ -87,8 +87,7 @@ static void usblb_gadget_free_request(struct usb_ep *ep,
 }
 
 static const struct usb_ep_ops usblb_gadget_ep_ops = {
-	#if 0
-	/* TODO */
+#if 0 /* TODO */
 	.enable         = usblb_gadget_enable,
 	.disable        = usblb_gadget_disable,
 	.queue          = usblb_gadget_queue,
@@ -97,20 +96,19 @@ static const struct usb_ep_ops usblb_gadget_ep_ops = {
 	.set_wedge      = usblb_gadget_set_wedge,
 	.fifo_status    = usblb_gadget_fifo_status,
 	.fifo_flush     = usblb_gadget_fifo_flush
-	#endif /* 0 */
+#endif /* 0 */
 	.alloc_request  = usblb_gadget_alloc_request,
 	.free_request   = usblb_gadget_free_request,
 };
 
 static const struct usb_ep_ops usblb_gadget_ep0_ops = {
-	#if 0
-	/* TODO */
+#if 0 /* TODO */
 	.enable         = usblb_g_ep0_enable,
 	.disable        = usblb_g_ep0_disable,
 	.queue          = usblb_g_ep0_queue,
 	.dequeue        = usblb_g_ep0_dequeue,
 	.set_halt       = usblb_g_ep0_halt,
-	#endif /* 0 */
+#endif /* 0 */
 	.alloc_request  = usblb_gadget_alloc_request,
 	.free_request   = usblb_gadget_free_request,
 };
@@ -150,14 +148,13 @@ static int usblb_gadget_stop(struct usb_gadget *g,
 }
 
 static const struct usb_gadget_ops usblb_gadget_operations = {
-	#if 0
-	/* TODO */
+#if 0 /* TODO */
 	.get_frame              = usblb_gadget_get_frame,
 	.wakeup                 = usblb_gadget_wakeup,
 	.set_selfpowered        = usblb_gadget_set_self_powered,
 	.vbus_draw              = usblb_gadget_vbus_draw,
 	.pullup                 = usblb_gadget_pullup,
-	#endif /* 0 */
+#endif /* 0 */
 	.udc_start              = usblb_gadget_start,
 	.udc_stop               = usblb_gadget_stop,
 };
