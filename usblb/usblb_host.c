@@ -39,12 +39,108 @@ static void usblb_host_stop(struct usb_hcd *hcd)
 	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
 }
 
+static int usblb_host_hub_status_data(struct usb_hcd *hcd, char *buf)
+{
+	struct usblb_host *host = to_usblb_host(hcd);
+	int ret = 0;
+	unsigned long flags;
+
+	usblb_host_lock_irqsave(host, flags);
+	/* called in_irq() via usb_hcd_poll_rh_status() */
+	if (host->port1_status.wPortChange) {
+		*buf = 0x02;
+		ret = 1;
+	}
+	usblb_host_unlock_irqrestore(host, flags);
+	return ret;
+}
+
 static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		u16 wIndex, char *buf, u16 wLength)
 {
 	struct usblb_host *host = to_usblb_host(hcd);
-	dev_info(host->dev, "<%s>\n", __func__);
-	return 0;
+	int ret = 0;
+	unsigned long flags;
+
+	dev_info(host->dev, "<%s> typeReq=0x%04x wValue=0x%04x wIndex=0x%04x "
+			"wLength=0x%04x\n", __func__,
+			typeReq, wValue, wIndex, wLength);
+
+	usblb_host_lock_irqsave(host, flags);
+	switch (typeReq) {
+	case SetHubFeature:
+		/* fallthrough */
+	case ClearHubFeature:
+		switch (wValue) {
+		case C_HUB_OVER_CURRENT:
+		case C_HUB_LOCAL_POWER:
+			break;
+		default:
+			goto error;
+		}
+		break;
+	case GetHubStatus:
+		memset(buf, 0, sizeof(__le32));
+		/* *(__le32 *)buf = cpu_to_le32(0); */
+		break;
+	case GetHubDescriptor:
+		{
+		/* based on drivers/usb/musb/musb_virthub.c */
+		struct usb_hub_descriptor *desc = (void *)buf;
+		desc->bDescLength = 9;
+		desc->bDescriptorType = 0x29;
+		desc->bNbrPorts = 1;
+		desc->wHubCharacteristics = cpu_to_le16(
+			  0x0001 /* per-port power switching */
+			| 0x0010 /* no overcurrent reporting */
+		);
+		desc->bPwrOn2PwrGood = 5; /* msec/2 */
+		desc->bHubContrCurrent = 0;
+		desc->u.hs.DeviceRemovable[0] = 0x02; /* port 1 */
+		desc->u.hs.DeviceRemovable[1] = 0xff;
+		}
+		break;
+	case ClearPortFeature:
+		if ((wIndex & 0xff) != 1)
+			goto error;
+		switch (wValue) {
+		case USB_PORT_FEAT_POWER:
+			host->port1_status.wPortStatus |= USB_PORT_STAT_ENABLE;
+			usblb_spawn_gadget_event(host, USBLB_GE_PWROF);
+			break;
+		case USB_PORT_FEAT_ENABLE:
+			break;
+		default:
+			goto error;
+		}
+		break;
+	case GetPortStatus:
+		{
+		struct usb_port_status *port_status = (void *)buf;
+		if ((wIndex & 0xff) != 1)
+			goto error;
+		memcpy(port_status, &host->port1_status, sizeof(port_status));
+		}
+		break;
+	case SetPortFeature:
+		if ((wIndex & 0xff) != 1)
+			goto error;
+		switch (wValue) {
+		case USB_PORT_FEAT_POWER:
+			host->port1_status.wPortStatus |= USB_PORT_STAT_ENABLE;
+			usblb_spawn_gadget_event(host, USBLB_GE_PWRON);
+			break;
+		default:
+			goto error;
+		}
+		break;
+	default:
+error:
+		/* "stall" on error */
+		ret = -EPIPE;
+	}
+	usblb_host_unlock_irqrestore(host, flags);
+	return ret;
 }
 
 static const struct hc_driver usblb_host_driver = {
@@ -62,9 +158,9 @@ static const struct hc_driver usblb_host_driver = {
 	.urb_enqueue            = usblb_host_urb_enqueue,
 	.urb_dequeue            = usblb_host_urb_dequeue,
 	.endpoint_disable       = usblb_host_disable,
+#endif /* 0 */
 
 	.hub_status_data        = usblb_host_hub_status_data,
-#endif /* 0 */
 	.hub_control            = usblb_host_hub_control,
 #if 0 /* TODO */
 	.bus_suspend            = usblb_host_bus_suspend,
@@ -137,4 +233,17 @@ int usblb_host_set_gadget(struct usblb_host *h, struct usblb_gadget *g)
 
 fail_sysfs_create_link:
 	return err;
+}
+
+void __usblb_spawn_host_event(struct usblb_host *dev,
+		enum usblb_host_event event)
+{
+	switch (event) {
+	case USBLB_HE_GCONN:
+		/* TODO */
+		break;
+	case USBLB_HE_GDISC:
+		/* TODO */
+		break;
+	}
 }

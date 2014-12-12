@@ -238,3 +238,16 @@ int usblb_gadget_set_host(struct usblb_gadget *g, struct usblb_host *h)
 fail_sysfs_create_link:
 	return err;
 }
+
+void __usblb_spawn_gadget_event(struct usblb_gadget *dev,
+		enum usblb_gadget_event event)
+{
+	switch (event) {
+	case USBLB_GE_PWRON:
+		/* TODO */
+		break;
+	case USBLB_GE_PWROF:
+		/* TODO */
+		break;
+	}
+}
