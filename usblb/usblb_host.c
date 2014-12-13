@@ -106,7 +106,7 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		switch (wValue) {
 		case USB_PORT_FEAT_POWER:
 			host->port1_status.wPortStatus &= ~USB_PORT_STAT_POWER;
-			usblb_spawn_gadget_event(host, USBLB_GE_PWROF);
+			usblb_host_spawn_event(host, USBLB_E_DISC);
 			break;
 		case USB_PORT_FEAT_ENABLE:
 			host->port1_status.wPortStatus &=
@@ -130,7 +130,7 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		switch (wValue) {
 		case USB_PORT_FEAT_POWER:
 			host->port1_status.wPortStatus |= USB_PORT_STAT_POWER;
-			usblb_spawn_gadget_event(host, USBLB_GE_PWRON);
+			usblb_host_spawn_event(host, USBLB_E_CONN);
 			break;
 		case USB_PORT_FEAT_ENABLE:
 			host->port1_status.wPortStatus |= USB_PORT_STAT_ENABLE;
@@ -236,18 +236,4 @@ int usblb_host_set_gadget(struct usblb_host *h, struct usblb_gadget *g)
 
 fail_sysfs_create_link:
 	return err;
-}
-
-/* context: bus locked */
-void __usblb_spawn_host_event(struct usblb_host *host,
-		enum usblb_host_event event)
-{
-	switch (event) {
-	case USBLB_HE_GCONN:
-		/* TODO */
-		break;
-	case USBLB_HE_GDISC:
-		/* TODO */
-		break;
-	}
 }

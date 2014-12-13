@@ -151,13 +151,13 @@ static int usblb_gadget_pullup(struct usb_gadget *g, int is_on)
 {
 	struct usblb_gadget *gadget = to_usblb_gadget(g);
 	unsigned long flags;
-	enum usblb_host_event event;
+	enum usblb_event event;
 
 	dev_info(gadget->dev, "<%s> is_on=%d\n", __func__, is_on);
 
-	event = is_on ? USBLB_HE_GCONN : USBLB_HE_GDISC;
+	event = is_on ? USBLB_E_CONN : USBLB_E_DISC;
 	usblb_gadget_lock_irqsave(gadget, flags);
-	usblb_spawn_host_event(gadget, event);
+	usblb_gadget_spawn_event(gadget, event);
 	usblb_gadget_unlock_irqrestore(gadget, flags);
 	return 0;
 }
@@ -250,18 +250,4 @@ int usblb_gadget_set_host(struct usblb_gadget *g, struct usblb_host *h)
 
 fail_sysfs_create_link:
 	return err;
-}
-
-/* context: bus locked */
-void __usblb_spawn_gadget_event(struct usblb_gadget *gadget,
-		enum usblb_gadget_event event)
-{
-	switch (event) {
-	case USBLB_GE_PWRON:
-		/* TODO */
-		break;
-	case USBLB_GE_PWROF:
-		/* TODO */
-		break;
-	}
 }

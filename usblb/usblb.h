@@ -29,16 +29,6 @@ extern void usblb_gadget_device_cleanup(struct usblb_gadget *);
 
 extern int usblb_gadget_set_host(struct usblb_gadget *, struct usblb_host *);
 
-enum usblb_gadget_event {
-	USBLB_GE_PWRON,
-	USBLB_GE_PWROF,
-};
-
-extern void __usblb_spawn_gadget_event(struct usblb_gadget *,
-		enum usblb_gadget_event);
-#define usblb_spawn_gadget_event(host, event) \
-	__usblb_spawn_gadget_event(usblb_host_to_gadget(host), event)
-
 /************************************************/
 /***************** usblb_host.c *****************/
 /************************************************/
@@ -57,16 +47,6 @@ extern void usblb_host_device_cleanup(struct usblb_host *);
 
 extern int usblb_host_set_gadget(struct usblb_host *, struct usblb_gadget *);
 
-enum usblb_host_event {
-	USBLB_HE_GCONN,
-	USBLB_HE_GDISC,
-};
-
-extern void __usblb_spawn_host_event(struct usblb_host *,
-		enum usblb_host_event);
-#define usblb_spawn_host_event(gadget, event) \
-	__usblb_spawn_host_event(usblb_gadget_to_host(gadget), event)
-
 /************************************************/
 /***************** usblb_main.c *****************/
 /************************************************/
@@ -74,7 +54,9 @@ extern void __usblb_spawn_host_event(struct usblb_host *,
 struct usblb_bus {
 	struct usblb_gadget gadget;
 	struct usblb_host host;
+	int busnum;
 	spinlock_t lock;
+	u8 connected_ends;
 };
 
 #define usblb_gadget_to_bus(_host) \
@@ -86,6 +68,21 @@ struct usblb_bus {
 	(&usblb_gadget_to_bus(gadget)->host)
 #define usblb_host_to_gadget(host) \
 	(&usblb_host_to_bus(host)->gadget)
+
+/************************************************/
+/***************** usblb_glue.c *****************/
+/************************************************/
+
+enum usblb_event {
+	USBLB_E_CONN,
+	USBLB_E_DISC,
+};
+
+extern void __usblb_spawn_event(struct usblb_bus *, enum usblb_event);
+#define usblb_gadget_spawn_event(gadget, event) \
+	__usblb_spawn_event(usblb_gadget_to_bus(gadget), event)
+#define usblb_host_spawn_event(host, event) \
+	__usblb_spawn_event(usblb_host_to_bus(host), event)
 
 #define usblb_bus_lock_irqsave(bus, flags) \
 	spin_lock_irqsave(&(bus)->lock, flags)
