@@ -37,7 +37,7 @@ enum usblb_gadget_event {
 extern void __usblb_spawn_gadget_event(struct usblb_gadget *,
 		enum usblb_gadget_event);
 #define usblb_spawn_gadget_event(host, event) \
-	__usblb_spawn_gadget_event(&usblb_host_to_bus(host)->gadget, event)
+	__usblb_spawn_gadget_event(usblb_host_to_gadget(host), event)
 
 /************************************************/
 /***************** usblb_host.c *****************/
@@ -65,7 +65,7 @@ enum usblb_host_event {
 extern void __usblb_spawn_host_event(struct usblb_host *,
 		enum usblb_host_event);
 #define usblb_spawn_host_event(gadget, event) \
-	__usblb_spawn_host_event(&usblb_gadget_to_bus(gadget)->host, event)
+	__usblb_spawn_host_event(usblb_gadget_to_host(gadget), event)
 
 /************************************************/
 /***************** usblb_main.c *****************/
@@ -82,6 +82,11 @@ struct usblb_bus {
 #define usblb_host_to_bus(_host) \
 	container_of(_host, struct usblb_bus, host)
 
+#define usblb_gadget_to_host(gadget) \
+	(&usblb_gadget_to_bus(gadget)->host)
+#define usblb_host_to_gadget(host) \
+	(&usblb_host_to_bus(host)->gadget)
+
 #define usblb_bus_lock_irqsave(bus, flags) \
 	spin_lock_irqsave(&(bus)->lock, flags)
 #define usblb_bus_unlock_irqrestore(bus, flags) \
@@ -95,6 +100,6 @@ struct usblb_bus {
 #define usblb_gadget_lock_irqsave(gadget, flags) \
 	usblb_bus_lock_irqsave(usblb_gadget_to_bus(gadget), flags)
 #define usblb_gadget_unlock_irqrestore(gadget, flags) \
-	usblb_bus_unlock_irqrestore(usblb_host_to_bus(gadget), flags)
+	usblb_bus_unlock_irqrestore(usblb_gadget_to_bus(gadget), flags)
 
 #endif /* _USBLB_H */

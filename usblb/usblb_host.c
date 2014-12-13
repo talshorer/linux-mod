@@ -238,6 +238,7 @@ fail_sysfs_create_link:
 	return err;
 }
 
+/* context: bus locked */
 void __usblb_spawn_host_event(struct usblb_host *host,
 		enum usblb_host_event event)
 {
