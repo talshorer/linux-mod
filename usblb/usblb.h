@@ -16,7 +16,6 @@ struct usblb_host;
 struct usblb_gadget_io_ep;
 
 struct usblb_gadget {
-	struct usblb_host *host;
 	struct device *dev;
 	struct usb_gadget g;
 	struct usblb_gadget_io_ep *ep;
@@ -45,7 +44,6 @@ extern void __usblb_spawn_gadget_event(struct usblb_gadget *,
 /************************************************/
 
 struct usblb_host {
-	struct usblb_gadget *gadget;
 	struct device *dev;
 	struct usb_hcd *hcd;
 	struct usb_port_status port1_status;

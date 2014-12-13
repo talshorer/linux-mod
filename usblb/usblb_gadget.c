@@ -159,72 +159,70 @@ static const struct usb_gadget_ops usblb_gadget_operations = {
 	.udc_stop               = usblb_gadget_stop,
 };
 
-int usblb_gadget_device_setup(struct usblb_gadget *dev, int i)
+int usblb_gadget_device_setup(struct usblb_gadget *gadget, int i)
 {
 	int err;
 	int j;
 
-	dev->dev = device_create(usblb_gadget_class, NULL, MKDEV(0, i), dev,
-			"%s%d", usblb_gadget_class->name, i);
-	if (IS_ERR(dev->dev)) {
-		err = PTR_ERR(dev->dev);
+	gadget->dev = device_create(usblb_gadget_class, NULL, MKDEV(0, i),
+			gadget, "%s%d", usblb_gadget_class->name, i);
+	if (IS_ERR(gadget->dev)) {
+		err = PTR_ERR(gadget->dev);
 		pr_err("device_create failed. i = %d, err = %d\n", i, err);
 		goto fail_device_create;
 	}
 
-	dev->ep = kzalloc(sizeof(dev->ep[0]) * USBLB_GADGET_EP_NUM,
+	gadget->ep = kzalloc(sizeof(gadget->ep[0]) * USBLB_GADGET_EP_NUM,
 			GFP_KERNEL);
-	if (!dev->ep) {
+	if (!gadget->ep) {
 		err = -ENOMEM;
 		pr_err("failed to allocate endpoints for %s\n",
-				dev_name(dev->dev));
+				dev_name(gadget->dev));
 		goto fail_kzalloc_ep;
 	}
 
-	dev->g.ops = &usblb_gadget_operations;
-	dev->g.max_speed = USB_SPEED_HIGH;
-	dev->g.speed = USB_SPEED_UNKNOWN;
-	dev->g.name = dev_name(dev->dev);
-	INIT_LIST_HEAD(&dev->g.ep_list);
+	gadget->g.ops = &usblb_gadget_operations;
+	gadget->g.max_speed = USB_SPEED_HIGH;
+	gadget->g.speed = USB_SPEED_UNKNOWN;
+	gadget->g.name = dev_name(gadget->dev);
+	INIT_LIST_HEAD(&gadget->g.ep_list);
 	for (j = 0; j < USBLB_GADGET_EP_NUM; j++) {
-		struct usblb_gadget_io_ep *ep = &dev->ep[j];
-		ep->g = dev;
+		struct usblb_gadget_io_ep *ep = &gadget->ep[j];
+		ep->g = gadget;
 		ep->epnum = j;
 		usblb_gadget_ep_init(&ep->out, j, 0);
 		usblb_gadget_ep_init(&ep->in, j, 1);
 	}
 
-	err = usb_add_gadget_udc(dev->dev, &dev->g);
+	err = usb_add_gadget_udc(gadget->dev, &gadget->g);
 	if (err) {
 		pr_err("usb_add_gadget_udc failed for %s. err = %d\n",
-				dev_name(dev->dev), err);
+				dev_name(gadget->dev), err);
 		goto fail_usb_add_gadget_udc;
 	}
 
-	pr_info("created %s successfully\n", dev_name(dev->dev));
+	pr_info("created %s successfully\n", dev_name(gadget->dev));
 	return 0;
 
 fail_usb_add_gadget_udc:
-	kfree(dev->ep);
+	kfree(gadget->ep);
 fail_kzalloc_ep:
-	device_destroy(usblb_gadget_class, dev->dev->devt);
+	device_destroy(usblb_gadget_class, gadget->dev->devt);
 fail_device_create:
 	return err;
 }
 
-void usblb_gadget_device_cleanup(struct usblb_gadget *dev)
+void usblb_gadget_device_cleanup(struct usblb_gadget *gadget)
 {
-	pr_info("destroying %s\n", dev_name(dev->dev));
-	usb_del_gadget_udc(&dev->g);
-	kfree(dev->ep);
-	device_destroy(usblb_gadget_class, dev->dev->devt);
+	pr_info("destroying %s\n", dev_name(gadget->dev));
+	usb_del_gadget_udc(&gadget->g);
+	kfree(gadget->ep);
+	device_destroy(usblb_gadget_class, gadget->dev->devt);
 }
 
 int usblb_gadget_set_host(struct usblb_gadget *g, struct usblb_host *h)
 {
 	int err;
-
-	g->host = h;
 
 	err = sysfs_create_link(&g->dev->kobj, &h->dev->kobj, "host");
 	if (err) {
@@ -239,7 +237,7 @@ fail_sysfs_create_link:
 	return err;
 }
 
-void __usblb_spawn_gadget_event(struct usblb_gadget *dev,
+void __usblb_spawn_gadget_event(struct usblb_gadget *gadget,
 		enum usblb_gadget_event event)
 {
 	switch (event) {

@@ -175,57 +175,55 @@ static const struct hc_driver usblb_host_driver = {
 #endif /* 0 */
 };
 
-int usblb_host_device_setup(struct usblb_host *dev, int i)
+int usblb_host_device_setup(struct usblb_host *host, int i)
 {
 	int err;
 
-	dev->dev = device_create(usblb_host_class, NULL, MKDEV(0, i), dev,
+	host->dev = device_create(usblb_host_class, NULL, MKDEV(0, i), host,
 			"%s%d", usblb_host_class->name, i);
-	if (IS_ERR(dev->dev)) {
-		err = PTR_ERR(dev->dev);
+	if (IS_ERR(host->dev)) {
+		err = PTR_ERR(host->dev);
 		pr_err("device_create failed. i = %d, err = %d\n", i, err);
 		goto fail_device_create;
 	}
 
-	dev->hcd = usb_create_hcd(&usblb_host_driver,
-			dev->dev, dev_name(dev->dev));
-	if (!dev->hcd) {
+	host->hcd = usb_create_hcd(&usblb_host_driver,
+			host->dev, dev_name(host->dev));
+	if (!host->hcd) {
 		err = -ENOMEM;
-		pr_err("usb_create_hcd failed for %s\n", dev_name(dev->dev));
+		pr_err("usb_create_hcd failed for %s\n", dev_name(host->dev));
 		goto fail_usb_create_hcd;
 	}
-	*dev->hcd->hcd_priv = (unsigned long)dev;
+	*host->hcd->hcd_priv = (unsigned long)host;
 
-	err = usb_add_hcd(dev->hcd, 0, 0);
+	err = usb_add_hcd(host->hcd, 0, 0);
 	if (err) {
-		pr_err("usb_add_hcd failed for %s\n", dev_name(dev->dev));
+		pr_err("usb_add_hcd failed for %s\n", dev_name(host->dev));
 		goto fail_usb_add_hcd;
 	}
 
-	pr_info("created %s successfully\n", dev_name(dev->dev));
+	pr_info("created %s successfully\n", dev_name(host->dev));
 	return 0;
 
 fail_usb_add_hcd:
-	usb_put_hcd(dev->hcd);
+	usb_put_hcd(host->hcd);
 fail_usb_create_hcd:
-	device_destroy(usblb_host_class, dev->dev->devt);
+	device_destroy(usblb_host_class, host->dev->devt);
 fail_device_create:
 	return err;
 }
 
-void usblb_host_device_cleanup(struct usblb_host *dev)
+void usblb_host_device_cleanup(struct usblb_host *host)
 {
-	pr_info("destroying %s\n", dev_name(dev->dev));
-	usb_remove_hcd(dev->hcd);
-	usb_put_hcd(dev->hcd);
-	device_destroy(usblb_host_class, dev->dev->devt);
+	pr_info("destroying %s\n", dev_name(host->dev));
+	usb_remove_hcd(host->hcd);
+	usb_put_hcd(host->hcd);
+	device_destroy(usblb_host_class, host->dev->devt);
 }
 
 int usblb_host_set_gadget(struct usblb_host *h, struct usblb_gadget *g)
 {
 	int err;
-
-	h->gadget = g;
 
 	err = sysfs_create_link(&h->dev->kobj, &g->dev->kobj, "gadget");
 	if (err) {
@@ -240,7 +238,7 @@ fail_sysfs_create_link:
 	return err;
 }
 
-void __usblb_spawn_host_event(struct usblb_host *dev,
+void __usblb_spawn_host_event(struct usblb_host *host,
 		enum usblb_host_event event)
 {
 	switch (event) {
