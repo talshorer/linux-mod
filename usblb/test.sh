@@ -1,12 +1,19 @@
 #! /bin/bash
 
 MODULE=$(basename $(dirname $(realpath $0)))
-NBUSES=4
+NBUSES=1
 GADGET_CLASS=${MODULE}_gadget
 HOST_CLASS=${MODULE}_host
 GADGET_SYSFS=/sys/class/$GADGET_CLASS
 HOST_SYSFS=/sys/class/$HOST_CLASS
 GADGET_DRIVER=g_zero
+
+# RM start
+DEBUG=false
+for f in "hub.c" "hcd.c"; do
+	echo "file $f +p" > /sys/kernel/debug/dynamic_debug/control
+done
+# RM end
 
 function __check_sysfs_link {
 	function sysfsvar {
@@ -34,12 +41,14 @@ for ((i=0; i<$NBUSES; i++)); do
 	__check_sysfs_link host gadget || err=1
 done
 modprobe $GADGET_DRIVER
-sleep 1
+sleep 2
 modprobe -r $GADGET_DRIVER
 ###############################################################################
 ############################## debug hacks start ##############################
-figlet $MODULE shell
-if [[ $err == 0 ]]; then bash; fi
+if $DEBUG; then
+	figlet $MODULE shell
+	if [[ $err == 0 ]]; then bash; fi
+fi
 ############################### debug hacks end ###############################
 ###############################################################################
 rmmod $MODULE

@@ -155,7 +155,7 @@ static int usblb_gadget_pullup(struct usb_gadget *g, int is_on)
 
 	dev_info(gadget->dev, "<%s> is_on=%d\n", __func__, is_on);
 
-	event = is_on ? USBLB_E_CONN : USBLB_E_DISC;
+	event = is_on ? USBLB_E_CONNECT : USBLB_E_DISCONNECT;
 	usblb_gadget_lock_irqsave(gadget, flags);
 	usblb_gadget_spawn_event(gadget, event);
 	usblb_gadget_unlock_irqrestore(gadget, flags);

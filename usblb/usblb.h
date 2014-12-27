@@ -37,6 +37,7 @@ struct usblb_host {
 	struct device *dev;
 	struct usb_hcd *hcd;
 	struct usb_port_status port1_status;
+	struct timer_list reset_timer;
 };
 
 extern int usblb_host_init(void);
@@ -56,6 +57,7 @@ struct usblb_bus {
 	struct usblb_host host;
 	int busnum;
 	spinlock_t lock;
+	atomic_t event; /* requires lock to write. readable anytime */
 	u8 connected_ends;
 };
 
@@ -74,8 +76,9 @@ struct usblb_bus {
 /************************************************/
 
 enum usblb_event {
-	USBLB_E_CONN,
-	USBLB_E_DISC,
+	USBLB_E_CONNECT,
+	USBLB_E_DISCONNECT,
+	USBLB_E_RESET,
 };
 
 extern void __usblb_spawn_event(struct usblb_bus *, enum usblb_event);

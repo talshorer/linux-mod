@@ -39,19 +39,46 @@ static void usblb_host_stop(struct usb_hcd *hcd)
 	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
 }
 
+static int usblb_host_get_frame_number(struct usb_hcd *hcd)
+{
+	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
+	return 0;
+}
+
+static int usblb_host_urb_enqueue( struct usb_hcd *hcd, struct urb *urb,
+		gfp_t mem_flags)
+{
+	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
+	return 0;
+}
+
+static int usblb_host_urb_dequeue( struct usb_hcd *hcd, struct urb *urb,
+		int status)
+{
+	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
+	return 0;
+}
+
 static int usblb_host_hub_status_data(struct usb_hcd *hcd, char *buf)
 {
 	struct usblb_host *host = to_usblb_host(hcd);
 	int ret = 0;
 	unsigned long flags;
+	int event;
 
-	usblb_host_lock_irqsave(host, flags);
+	event = atomic_read(&usblb_host_to_bus(host)->event);
+	if (!event)
+		usblb_host_lock_irqsave(host, flags);
 	/* called in_irq() via usb_hcd_poll_rh_status() */
 	if (host->port1_status.wPortChange) {
 		*buf = 0x02;
 		ret = 1;
 	}
-	usblb_host_unlock_irqrestore(host, flags);
+	if (!event)
+		usblb_host_unlock_irqrestore(host, flags);
+	if (ret)
+		dev_info(to_usblb_host(hcd)->dev,
+				"<%s> true return value\n", __func__);
 	return ret;
 }
 
@@ -61,12 +88,16 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 	struct usblb_host *host = to_usblb_host(hcd);
 	int ret = 0;
 	unsigned long flags;
+	int event;
 
 	dev_info(host->dev, "<%s> typeReq=0x%04x wValue=0x%04x wIndex=0x%04x "
 			"wLength=0x%04x\n", __func__,
 			typeReq, wValue, wIndex, wLength);
+	//dump_stack();
 
-	usblb_host_lock_irqsave(host, flags);
+	event = atomic_read(&usblb_host_to_bus(host)->event);
+	if (!event)
+		usblb_host_lock_irqsave(host, flags);
 	switch (typeReq) {
 	case SetHubFeature:
 		/* fallthrough */
@@ -106,11 +137,23 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		switch (wValue) {
 		case USB_PORT_FEAT_POWER:
 			host->port1_status.wPortStatus &= ~USB_PORT_STAT_POWER;
-			usblb_host_spawn_event(host, USBLB_E_DISC);
+			usblb_host_spawn_event(host, USBLB_E_DISCONNECT);
 			break;
 		case USB_PORT_FEAT_ENABLE:
 			host->port1_status.wPortStatus &=
 					~USB_PORT_STAT_ENABLE;
+			break;
+		case USB_PORT_FEAT_C_CONNECTION:
+			host->port1_status.wPortChange &=
+					~USB_PORT_STAT_C_CONNECTION;
+			break;
+		case USB_PORT_FEAT_C_ENABLE:
+			host->port1_status.wPortChange &=
+					~USB_PORT_STAT_C_ENABLE;
+			break;
+		case USB_PORT_FEAT_C_RESET:
+			host->port1_status.wPortChange &=
+					~USB_PORT_STAT_C_RESET;
 			break;
 		default:
 			goto error;
@@ -121,7 +164,10 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		struct usb_port_status *port_status = (void *)buf;
 		if ((wIndex & 0xff) != 1)
 			goto error;
-		memcpy(port_status, &host->port1_status, sizeof(port_status));
+		port_status->wPortStatus = cpu_to_le16(
+				host->port1_status.wPortStatus);
+		port_status->wPortChange = cpu_to_le16(
+				host->port1_status.wPortChange);
 		}
 		break;
 	case SetPortFeature:
@@ -130,10 +176,14 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		switch (wValue) {
 		case USB_PORT_FEAT_POWER:
 			host->port1_status.wPortStatus |= USB_PORT_STAT_POWER;
-			usblb_host_spawn_event(host, USBLB_E_CONN);
+			usblb_host_spawn_event(host, USBLB_E_CONNECT);
 			break;
 		case USB_PORT_FEAT_ENABLE:
 			host->port1_status.wPortStatus |= USB_PORT_STAT_ENABLE;
+			break;
+		case USB_PORT_FEAT_RESET:
+			host->port1_status.wPortStatus |= USB_PORT_STAT_RESET;
+			usblb_host_spawn_event(host, USBLB_E_RESET);
 			break;
 		default:
 			goto error;
@@ -144,7 +194,8 @@ error:
 		/* "stall" on error */
 		ret = -EPIPE;
 	}
-	usblb_host_unlock_irqrestore(host, flags);
+	if (!event)
+		usblb_host_unlock_irqrestore(host, flags);
 	return ret;
 }
 
@@ -157,11 +208,10 @@ static const struct hc_driver usblb_host_driver = {
 	.start                  = usblb_host_start,
 	.stop                   = usblb_host_stop,
 
-#if 0 /* TODO */
 	.get_frame_number       = usblb_host_get_frame_number,
-
 	.urb_enqueue            = usblb_host_urb_enqueue,
 	.urb_dequeue            = usblb_host_urb_dequeue,
+#if 0 /* TODO */
 	.endpoint_disable       = usblb_host_disable,
 #endif /* 0 */
 
@@ -195,6 +245,7 @@ int usblb_host_device_setup(struct usblb_host *host, int i)
 		goto fail_usb_create_hcd;
 	}
 	*host->hcd->hcd_priv = (unsigned long)host;
+	host->hcd->uses_new_polling = 1;
 
 	err = usb_add_hcd(host->hcd, 0, 0);
 	if (err) {
