@@ -42,6 +42,7 @@ static void usblb_host_stop(struct usb_hcd *hcd)
 static int usblb_host_get_frame_number(struct usb_hcd *hcd)
 {
 	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
+	/* TODO */
 	return 0;
 }
 
@@ -49,6 +50,7 @@ static int usblb_host_urb_enqueue( struct usb_hcd *hcd, struct urb *urb,
 		gfp_t mem_flags)
 {
 	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
+	/* TODO */
 	return 0;
 }
 
@@ -56,6 +58,7 @@ static int usblb_host_urb_dequeue( struct usb_hcd *hcd, struct urb *urb,
 		int status)
 {
 	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
+	/* TODO */
 	return 0;
 }
 
