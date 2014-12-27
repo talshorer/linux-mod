@@ -98,7 +98,7 @@ static int virtblock_check_module_params(void) {
 
 static void virtblock_request(struct request_queue *q) {
 	struct request *req;
-	struct bio_vec *bv;
+	struct bio_vec bv;
 	struct req_iterator iter;
 	struct virtblock_dev *dev;
 	unsigned int write, nsect, offset;
@@ -134,17 +134,17 @@ static void virtblock_request(struct request_queue *q) {
 			__blk_end_request_all(req, -EIO);
 		}
 		rq_for_each_segment(bv, req, iter) {
-			printk(KERN_INFO "%s: \tprocessing segment %p\n",
-					DRIVER_NAME, bv);
-			printk(KERN_INFO "%s: \t\tlen %u\n",
-					DRIVER_NAME, bv->bv_len);
-			blkbuf = page_address(bv->bv_page) + bv->bv_offset;
+			blkbuf = page_address(bv.bv_page) + bv.bv_offset;
 			devbuf = dev->data + offset;
+			printk(KERN_INFO "%s: \tprocessing segment %p\n",
+					DRIVER_NAME, blkbuf);
+			printk(KERN_INFO "%s: \t\tlen %u\n",
+					DRIVER_NAME, bv.bv_len);
 			if (write) /* write to device */
-				memcpy(devbuf, blkbuf, bv->bv_len);
+				memcpy(devbuf, blkbuf, bv.bv_len);
 			else /* read from device */
-				memcpy(blkbuf, devbuf, bv->bv_len);
-			offset += bv->bv_len;
+				memcpy(blkbuf, devbuf, bv.bv_len);
+			offset += bv.bv_len;
 		}
 		__blk_end_request_all(req, 0);
 	}
@@ -280,5 +280,5 @@ module_exit(virtblock_exit)
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple block device residing in ram");
-MODULE_VERSION("1.0.2");
+MODULE_VERSION("1.0.3");
 MODULE_LICENSE("GPL");

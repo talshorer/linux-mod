@@ -11,7 +11,7 @@ insmod $MODULE.ko
 insmod $DEVICE_MODULE.ko ndevices=$NDEVICES
 driver=$MODULE
 driver_sysfs=$PLATFORM_SYSFS/drivers/$driver
-for ((i=0; i<$NDEVICES; i++)); do
+for i in $(seq 0 $(( $NDEVICES - 1 ))); do
 	device=$MODULE.$i
 	echo "$0: running test with device $device" 1>&2
 	device_sysfs=$PLATFORM_SYSFS/devices/$device

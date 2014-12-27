@@ -301,8 +301,8 @@ static int virtnet_init_iface(void)
 	struct net_device *dev;
 	int err;
 
-	dev = alloc_netdev(virtnet_backend_priv_size,
-			virtnet_iface_fmt, virtnet_setup);
+	dev = alloc_netdev(virtnet_backend_priv_size, virtnet_iface_fmt,
+			NET_NAME_UNKNOWN, virtnet_setup);
 	if (!dev) {
 		err = -ENOMEM;
 		printk(KERN_ERR "%s: alloc_netdev failed\n", DRIVER_NAME);
@@ -387,5 +387,5 @@ module_exit(virtnet_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.2.4");
+MODULE_VERSION("1.2.5");
 MODULE_LICENSE("GPL");

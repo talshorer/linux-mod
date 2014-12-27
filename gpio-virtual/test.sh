@@ -10,12 +10,14 @@ OUT=out
 DIRECTION=direction
 VALUE=value
 
-function get_gpio_sysfs {
+get_gpio_sysfs()
+{
 	gpioname=$1
 	echo $GPIO_SYSFS/$gpioname
 }
 
-function check_gpio_value {
+check_gpio_value()
+{
 	gpioname=$1
 	expected=$2
 	gpio_sysfs=$(get_gpio_sysfs $gpioname)
@@ -31,7 +33,7 @@ function check_gpio_value {
 err=0
 cd $(dirname $0)
 insmod $MODULE.ko nchips=$NCHIPS chip_npins=$CHIP_NPINS
-for ((i=0; i<$NCHIPS; i++)); do
+for i in $(seq 0 $(( $NCHIPS - 1 ))); do
 	chip=${MODULE}$i
 	gpiochip=$(ls -1 $MODULE_SYSFS/$chip | grep gpiochip)
 	echo "$0: running test on chip $chip ($gpiochip)" 1>&2
@@ -43,7 +45,7 @@ for ((i=0; i<$NCHIPS; i++)); do
 		echo "expected $CHIP_NPINS, actual $ngpio" 1>&2
 		err=1
 	fi
-	for ((j=0; j<$ngpio; j++)); do
+	for j in $(seq 0 $(( $ngpio - 1 ))); do
 		gpio=$(( $base + $j ))
 		gpioname=gpio$gpio
 		echo $gpio > $GPIO_SYSFS/export

@@ -3,15 +3,17 @@
 MODULE=$(basename $(dirname $(realpath $0)))
 DRIVERS="a b c d e f"
 NDEVICES=8
-BUS_SYSFS=buslink
+BUS_SYSFS=/sys/bus/$MODULE
 ADD=add
 DEL=del
 
-function driver_sysfs {
+driver_sysfs()
+{
 	echo $BUS_SYSFS/drivers/$1
 }
 
-function device_sysfs {
+device_sysfs()
+{
 	echo $BUS_SYSFS/devices/$1
 }
 

@@ -2,11 +2,12 @@
 
 MODULE=$(basename $(dirname $(realpath $0)))
 NDEVICES=4
-CLASS_SYSFS=classlink
+CLASS_SYSFS=/sys/class/$MODULE
 VALUES=$(seq 0 0x80 $(( 0x10000 - 1 )))
 NVALUES=$(echo $VALUES | wc -w)
 
-function readback_test {
+readback_test()
+{
 	attr_file=$1
 	expected=$2
 	actual=$(cat $attr_file)
@@ -21,7 +22,7 @@ function readback_test {
 err=0
 cd $(dirname $0)
 insmod $MODULE.ko ndevices=$NDEVICES
-for (( i=0; i<$NDEVICES; i++ )); do
+for i in $(seq 0 $(( $NDEVICES - 1 ))); do
 	device=${MODULE}$i
 	attr_file=$CLASS_SYSFS/$device/attr
 	echo "$0: running test with device $device and $NVALUES values" 1>&2

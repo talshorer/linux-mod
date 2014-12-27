@@ -2,6 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/utsname.h>
+#include <linux/uaccess.h>
 #include <asm/syscall.h>
 
 #include "interceptor_uapi.h"
@@ -58,6 +59,10 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 	char dummy;
 	struct file *filp;
 	mm_segment_t oldfs;
+	char *filenames[] = {
+		sysmap_filename,
+		"/proc/kallsyms",
+	};
 
 	oldfs = get_fs();
 	set_fs(get_ds());
@@ -65,7 +70,14 @@ static sys_call_ptr_t *interceptor_get_syscall_table(void)
 	uname = utsname();
 	sprintf(sysmap_filename, INTERCEPTOR_SYSMAP_FILE_PREFIX "%s",
 			uname->release);
-	filp = filp_open(sysmap_filename, O_RDONLY | O_LARGEFILE, 0);
+
+	for (i = 0; i < ARRAY_SIZE(filenames); i++) {
+		pr_info("%s: <%s> trying %s\n",
+				MODULE_NAME, __func__, filenames[i]);
+		filp = filp_open(filenames[i], O_RDONLY | O_LARGEFILE, 0);
+		if (!IS_ERR(filp))
+			break;
+	}
 	if (IS_ERR(filp)) {
 		err = PTR_ERR(filp);
 		pr_err("%s: <%s> filp_open failed, err = %d\n",
@@ -181,5 +193,5 @@ module_exit(interceptor_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.1.0");
 MODULE_LICENSE("GPL");

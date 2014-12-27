@@ -5,7 +5,7 @@ NPIPES=2
 DATA="abcdefg"
 # BSIZE must be a power of 2
 BSIZE=$(echo $DATA | wc -c)
-SLEEP_INTERVAL=0.1
+SLEEP_INTERVAL=1
 
 err=0
 cd $(dirname $0)
@@ -16,7 +16,7 @@ for pipe_num in $(seq 0 $(( NPIPES - 1 ))); do
 		src=$pipe.$end
 		snk=$pipe.$(( 1 - $end ))
 		echo "$0: running test with source $src and sink $snk" 1>&2
-		tmp=$(tempfile)
+		tmp=$(mktemp)
 		head -n 1 $snk > $tmp &
 		pid=$!
 		sleep $SLEEP_INTERVAL

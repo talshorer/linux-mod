@@ -3,7 +3,7 @@
 DRIVER=$(basename $(dirname $(realpath $0)))
 DEVTEMPLATE=/dev/$DRIVER
 DEV=${DEVTEMPLATE}a
-MOUNTT=vfat
+MOUNTT=ext2
 MOUNTP=mountp
 DATA="hello world!"
 FILE="hi.txt"
@@ -11,7 +11,7 @@ FILE="hi.txt"
 err=0
 cd $(dirname $0)
 insmod $DRIVER.ko ndevices=2 nsectors=1024 hardsect_size=1024
-mkfs -t $MOUNTT $DEV
+mkfs.$MOUNTT $DEV || err=1
 mkdir -p $MOUNTP
 mount -t $MOUNTT $DEV $MOUNTP
 echo $DATA > $MOUNTP/$FILE

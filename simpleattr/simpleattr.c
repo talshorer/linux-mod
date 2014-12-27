@@ -5,7 +5,7 @@
 #include <linux/sched.h> /* to extract pid */
 #include <linux/device.h>
 
-#define SIMPLEATTR_SYSFS_PERM (0666)
+#define SIMPLEATTR_SYSFS_PERM (0644)
 
 static char DRIVER_NAME[] = "simpleattr";
 
@@ -18,6 +18,7 @@ static ssize_t simpleattr_sys_attr_show(struct device *dev,
 		struct device_attribute *attr, char *buf);
 static ssize_t simpleattr_sys_attr_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count);
+
 static DEVICE_ATTR(attr, SIMPLEATTR_SYSFS_PERM,
 		simpleattr_sys_attr_show, simpleattr_sys_attr_store);
 
@@ -154,5 +155,5 @@ module_exit(simpleattr_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A simple dummy device with a sysfs attribute");
-MODULE_VERSION("1.2.0");
+MODULE_VERSION("1.2.1");
 MODULE_LICENSE("GPL");
