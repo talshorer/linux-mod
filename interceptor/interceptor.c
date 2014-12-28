@@ -3,13 +3,13 @@
 #include <linux/fs.h>
 #include <linux/utsname.h>
 #include <linux/uaccess.h>
+#include <linux/kallsyms.h>
 #include <asm/syscall.h>
 
 #include "interceptor_uapi.h"
 
 #define MODULE_NAME "interceptor"
 
-#define INTERCEPTOR_SYSMAP_FILE_PREFIX "/boot/System.map-"
 #define INTERCEPTOR_SYSCALL_TABLE_SYMBOL "sys_call_table"
 
 static sys_call_ptr_t *interceptor_sys_call_table;
@@ -40,110 +40,11 @@ asmlinkage int interceptor_syscall(const char *pathname, int flags, int mode)
 	return ret;
 }
 
-/*
- * all this trouble for
- * grep "\bsys_call_table\b" /boot/System.map-$(uname -r) | awk '{print $1}'
- */
-static sys_call_ptr_t *interceptor_get_syscall_table(void)
-{
-	int err = 0;
-	loff_t i;
-	struct new_utsname *uname;
-	char sysmap_filename[sizeof(uname->release) + \
-			sizeof(INTERCEPTOR_SYSMAP_FILE_PREFIX) - 1];
-	/* should be able to contain any line in the sysmap file */
-	char buf[128];
-	/* should be able to conatin the name of any symbol */
-	char symbol[128];
-	unsigned long addr;
-	char dummy;
-	struct file *filp;
-	mm_segment_t oldfs;
-	char *filenames[] = {
-		sysmap_filename,
-		"/proc/kallsyms",
-	};
-
-	oldfs = get_fs();
-	set_fs(get_ds());
-
-	uname = utsname();
-	sprintf(sysmap_filename, INTERCEPTOR_SYSMAP_FILE_PREFIX "%s",
-			uname->release);
-
-	for (i = 0; i < ARRAY_SIZE(filenames); i++) {
-		pr_info("%s: <%s> trying %s\n",
-				MODULE_NAME, __func__, filenames[i]);
-		filp = filp_open(filenames[i], O_RDONLY | O_LARGEFILE, 0);
-		if (!IS_ERR(filp))
-			break;
-	}
-	if (IS_ERR(filp)) {
-		err = PTR_ERR(filp);
-		pr_err("%s: <%s> filp_open failed, err = %d\n",
-				MODULE_NAME, __func__, err);
-		goto out_none;
-	}
-
-	do {
-		memset(buf, 0, sizeof(buf));
-		err = vfs_read(filp, (char __user *)buf, sizeof(buf),
-				&filp->f_pos);
-		if (err < 0) {
-			pr_err("%s: <%s> vfs_read failed, err = %d\n",
-					MODULE_NAME, __func__, err);
-			goto out_close;
-		}
-		/* vfs_read returned 0, reached EOF */
-		if (!err) {
-			err = -EINVAL;
-			pr_err("%s: <%s> reached end of file. "
-					"should never happen!\n",
-					MODULE_NAME, __func__);
-			goto out_close;
-		}
-		for (i = 0; i < sizeof(buf); i++)
-			if (buf[i] == '\n') {
-				buf[i] = 0;
-				break;
-			}
-		if (i == sizeof(buf)) {
-			pr_err("%s: <%s> buf not big enough to hold a line\n",
-					MODULE_NAME, __func__);
-			err = -ENOMEM;
-			goto out_close;
-		}
-		/* 1 after the newline */
-		vfs_llseek(filp, i - sizeof(buf) + 1, SEEK_CUR);
-		if (sscanf(buf, "%lx %c %s", &addr, &dummy, symbol) != 3) {
-			pr_err("%s: <%s> sscanf returned unexpected value\n",
-					MODULE_NAME, __func__);
-			pr_err("%s: <%s> line was \"%s\"\n",
-					MODULE_NAME, __func__, buf);
-			err = -EINVAL;
-			goto out_close;
-		}
-	} while (strcmp(symbol, INTERCEPTOR_SYSCALL_TABLE_SYMBOL));
-
-	err = 0; /* clear return value from vfs_read */
-	pr_info("%s: <%s> found %s 0x%lx\n", MODULE_NAME, __func__,
-			INTERCEPTOR_SYSCALL_TABLE_SYMBOL, addr);
-
-out_close:
-	filp_close(filp, NULL);
-out_none:
-	set_fs(oldfs);
-	if (err)
-		return ERR_PTR(err);
-	return (sys_call_ptr_t *)addr;
-}
-
 #define ptep_val_dref(ptep) (*(unsigned long *)ptep)
 
 static sys_call_ptr_t interceptor_swap_syscalls(
 		sys_call_ptr_t *table, unsigned int nr, sys_call_ptr_t value)
 {
-	/* TODO memory permissions */
 	unsigned long addr = (unsigned long)&table[nr];
 	unsigned int level;
 	int ro;
@@ -163,12 +64,15 @@ static sys_call_ptr_t interceptor_swap_syscalls(
 static int __init interceptor_init(void)
 {
 	int err;
+	unsigned long addr;
 
-	interceptor_sys_call_table = interceptor_get_syscall_table();
-	if (IS_ERR(interceptor_sys_call_table)) {
-		err = PTR_ERR(interceptor_sys_call_table);
+	addr = kallsyms_lookup_name(INTERCEPTOR_SYSCALL_TABLE_SYMBOL);
+	if (!addr) {
+		err = -EINVAL;
+		pr_err("%s: kallsyms_lookup_name failed\n", MODULE_NAME);
 		goto fail_get_syscall_table;
 	}
+	interceptor_sys_call_table = (sys_call_ptr_t *)addr;
 
 	interceptor_orig_syscall_ptr = interceptor_swap_syscalls(
 			interceptor_sys_call_table, INTERCEPTOR_SYSCALL_NR,
@@ -193,5 +97,5 @@ module_exit(interceptor_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.1.1");
 MODULE_LICENSE("GPL");
