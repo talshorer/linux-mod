@@ -140,8 +140,7 @@ static int usblb_gadget_start(struct usb_gadget *g,
 	return 0;
 }
 
-static int usblb_gadget_stop(struct usb_gadget *g,
-		struct usb_gadget_driver *drv)
+static int usblb_gadget_stop(struct usb_gadget *g)
 {
 	dev_info(to_usblb_gadget(g)->dev, "<%s>\n", __func__);
 	return 0;

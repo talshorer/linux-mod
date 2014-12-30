@@ -34,6 +34,7 @@ extern int usblb_gadget_set_host(struct usblb_gadget *, struct usblb_host *);
 /************************************************/
 
 struct usblb_host {
+	struct platform_device *pdev;
 	struct device *dev;
 	struct usb_hcd *hcd;
 	struct usb_port_status port1_status;

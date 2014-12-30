@@ -15,8 +15,10 @@ for f in "hub.c" "hcd.c"; do
 done
 # RM end
 
-function __check_sysfs_link {
-	function sysfsvar {
+__check_sysfs_link()
+{
+	sysfsvar()
+	{
 		eval var=\$${1}_sysfs
 		echo $var
 	}
@@ -32,7 +34,7 @@ err=0
 cd $(dirname $0)
 modprobe udc_core
 insmod $MODULE.ko nbuses=$NBUSES
-for ((i=0; i<$NBUSES; i++)); do
+for i in $(seq 0 $(( $NBUSES - 1 ))); do
 	bus=${MODULE}$i
 	echo "$0: running test on bus $bus" 1>&2
 	gadget_sysfs=$GADGET_SYSFS/${GADGET_CLASS}$i

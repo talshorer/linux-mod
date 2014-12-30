@@ -5,19 +5,39 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/device.h>
+#include <linux/platform_device.h>
 
 #include "usblb.h"
 
 #define to_usblb_host(hcd) (*(struct usblb_host **)(hcd)->hcd_priv)
 
-static struct class *usblb_host_class;
+static int usblb_host_platform_probe(struct platform_device *pdev)
+{
+	dev_info(&pdev->dev, "<%s>\n", __func__);
+	return 0;
+}
+
+static int usblb_host_platform_remove(struct platform_device *pdev)
+{
+	dev_info(&pdev->dev, "<%s>\n", __func__);
+	return 0;
+}
+
+static struct platform_driver usblb_host_platform_driver = {
+	.driver = {
+		.name		= MODULE_NAME,
+		.owner		= THIS_MODULE,
+	},
+	.probe		= usblb_host_platform_probe,
+	.remove		= usblb_host_platform_remove,
+};
 
 int usblb_host_init(void)
 {
-	usblb_host_class = class_create(THIS_MODULE, MODULE_NAME);
-	if (IS_ERR(usblb_host_class)) {
-		int err = PTR_ERR(usblb_host_class);
-		pr_err("class_create failed. err = %d\n", err);
+	int err;
+	err = platform_driver_register(&usblb_host_platform_driver);
+	if (err) {
+		pr_err("platform_driver_register failed. err = %d\n", err);
 		return err;
 	}
 	return 0;
@@ -25,7 +45,7 @@ int usblb_host_init(void)
 
 void usblb_host_exit(void)
 {
-	class_destroy(usblb_host_class);
+	platform_driver_unregister(&usblb_host_platform_driver);
 }
 
 static int usblb_host_start(struct usb_hcd *hcd)
@@ -232,13 +252,19 @@ int usblb_host_device_setup(struct usblb_host *host, int i)
 {
 	int err;
 
-	host->dev = device_create(usblb_host_class, NULL, MKDEV(0, i), host,
-			"%s%d", usblb_host_class->name, i);
-	if (IS_ERR(host->dev)) {
-		err = PTR_ERR(host->dev);
-		pr_err("device_create failed. i = %d, err = %d\n", i, err);
-		goto fail_device_create;
+	host->pdev = platform_device_alloc(MODULE_NAME, i);
+	if (!host->pdev) {
+		err = -ENOMEM;
+		pr_err("platform_device_alloc. i = %d\n", i);
+		goto fail_platform_device_alloc;
 	}
+
+	err = platform_device_add(host->pdev);
+	if (err) {
+		pr_err("platform_device_add. i = %d, err = %d\n", i, err);
+		goto fail_platform_device_add;
+	}
+	host->dev = &host->pdev->dev;
 
 	host->hcd = usb_create_hcd(&usblb_host_driver,
 			host->dev, dev_name(host->dev));
@@ -262,8 +288,9 @@ int usblb_host_device_setup(struct usblb_host *host, int i)
 fail_usb_add_hcd:
 	usb_put_hcd(host->hcd);
 fail_usb_create_hcd:
-	device_destroy(usblb_host_class, host->dev->devt);
-fail_device_create:
+fail_platform_device_add:
+	platform_device_put(host->pdev);
+fail_platform_device_alloc:
 	return err;
 }
 
@@ -272,7 +299,7 @@ void usblb_host_device_cleanup(struct usblb_host *host)
 	pr_info("destroying %s\n", dev_name(host->dev));
 	usb_remove_hcd(host->hcd);
 	usb_put_hcd(host->hcd);
-	device_destroy(usblb_host_class, host->dev->devt);
+	platform_device_unregister(host->pdev);
 }
 
 int usblb_host_set_gadget(struct usblb_host *h, struct usblb_gadget *g)
