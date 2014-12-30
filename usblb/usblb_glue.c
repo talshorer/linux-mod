@@ -16,6 +16,7 @@ static void usblb_glue_connect(struct usblb_bus *bus)
 	usblb_bus_info(bus, "<%s>\n", __func__);
 	bus->host.port1_status.wPortChange |= USB_PORT_STAT_C_CONNECTION;
 	bus->host.port1_status.wPortStatus |= USB_PORT_STAT_CONNECTION;
+	bus->host.port1_status.wPortStatus |= USB_PORT_STAT_HIGH_SPEED;
 	usb_hcd_poll_rh_status(bus->host.hcd);
 }
 
@@ -24,6 +25,8 @@ static void usblb_glue_disconnect(struct usblb_bus *bus)
 {
 	usblb_bus_info(bus, "<%s>\n", __func__);
 	bus->host.port1_status.wPortChange |= USB_PORT_STAT_C_CONNECTION;
+	bus->host.port1_status.wPortStatus &= ~USB_PORT_STAT_ENABLE;
+	bus->host.port1_status.wPortStatus &= ~USB_PORT_STAT_HIGH_SPEED;
 	bus->host.port1_status.wPortStatus &= ~USB_PORT_STAT_CONNECTION;
 	usb_hcd_poll_rh_status(bus->host.hcd);
 }

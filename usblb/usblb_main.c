@@ -125,5 +125,5 @@ module_exit(usblb_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Loopback between virtual usb gadget and host controllers");
-MODULE_VERSION("0.3.0");
+MODULE_VERSION("0.3.1");
 MODULE_LICENSE("GPL");

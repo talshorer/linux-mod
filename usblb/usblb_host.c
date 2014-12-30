@@ -69,15 +69,31 @@ static int usblb_host_get_frame_number(struct usb_hcd *hcd)
 static int usblb_host_urb_enqueue( struct usb_hcd *hcd, struct urb *urb,
 		gfp_t mem_flags)
 {
-	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
-	/* TODO */
-	return 0;
+	struct usblb_host *host = to_usblb_host(hcd);
+	int ret;
+	unsigned long flags;
+
+	dev_info(host->dev, "<%s> urb = %p\n", __func__, urb);
+
+	usblb_host_lock_irqsave(host, flags);
+	ret = usb_hcd_link_urb_to_ep(hcd, urb);
+	/* always fail the enumeration */
+	/* TODO actually do something with urb */
+	if (!ret)
+		usb_hcd_unlink_urb_from_ep(hcd, urb);
+	usblb_host_unlock_irqrestore(host, flags);
+	return -EPIPE;
 }
 
 static int usblb_host_urb_dequeue( struct usb_hcd *hcd, struct urb *urb,
 		int status)
 {
-	dev_info(to_usblb_host(hcd)->dev, "<%s>\n", __func__);
+	struct usblb_host *host = to_usblb_host(hcd);
+	unsigned long flags;
+
+	dev_info(host->dev, "<%s> urb = %p, status = %d\n", __func__,
+			urb, status);
+
 	/* TODO */
 	return 0;
 }
@@ -116,7 +132,6 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 	dev_info(host->dev, "<%s> typeReq=0x%04x wValue=0x%04x wIndex=0x%04x "
 			"wLength=0x%04x\n", __func__,
 			typeReq, wValue, wIndex, wLength);
-	//dump_stack();
 
 	event = atomic_read(&usblb_host_to_bus(host)->event);
 	if (!event)
