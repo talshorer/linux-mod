@@ -7,29 +7,10 @@
 #include <linux/device.h>
 #include <linux/slab.h>
 
-#include "usblb.h"
+#include "usblb_gadget.h"
 
 #define USBLB_GADGET_EP_NUM 16
 #define USBLB_GADGET_MAXPACKET 1024
-
-#define to_usblb_gadget(_g) container_of(_g, struct usblb_gadget, g)
-
-/* single direction */
-struct usblb_gadget_ep {
-	struct usb_ep ep;
-	struct usblb_gadget *g;
-	u8 epnum;
-	char name[16];
-};
-
-#define to_usblb_gadget_ep(_ep) container_of(_ep, struct usblb_gadget_ep, ep)
-
-struct usblb_gadget_request {
-	struct usb_request req;
-};
-
-#define to_usblb_gadget_request(_req) \
-	container_of(_req, struct usblb_gadget_request, req)
 
 static struct class *usblb_gadget_class;
 
@@ -103,7 +84,7 @@ static void usblb_gadget_ep_init(struct usblb_gadget_ep *ep, int epnum)
 	sprintf(ep->name, "ep%d", epnum);
 	ep->ep.name = ep->name;
 	INIT_LIST_HEAD(&ep->ep.ep_list);
-	ep->ep.maxpacket = USBLB_GADGET_MAXPACKET;
+	usb_ep_set_maxpacket_limit(&ep->ep, USBLB_GADGET_MAXPACKET);
 	if (epnum) {
 		ep->ep.ops = &usblb_gadget_ep_ops;
 		list_add_tail(&ep->ep.ep_list,

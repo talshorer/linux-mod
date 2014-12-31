@@ -6,7 +6,7 @@ GADGET=${MODULE}_gadget
 HOST=${MODULE}_host
 GADGET_SYSFS=/sys/class/$GADGET
 HOST_SYSFS=/sys/bus/platform/drivers/$HOST
-GADGET_DRIVER=g_zero
+GADGET_DRIVER=g_serial
 
 # RM start
 DEBUG=false

@@ -66,35 +66,40 @@ static int usblb_host_get_frame_number(struct usb_hcd *hcd)
 	return 0;
 }
 
-static int usblb_host_urb_enqueue( struct usb_hcd *hcd, struct urb *urb,
+static int usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 		gfp_t mem_flags)
 {
 	struct usblb_host *host = to_usblb_host(hcd);
 	int ret;
 	unsigned long flags;
 
-	dev_info(host->dev, "<%s> urb = %p\n", __func__, urb);
+	dev_info(host->dev, "<%s> urb @%p for ep%u\n",
+			__func__, urb, usb_pipeendpoint(urb->pipe));
 
 	usblb_host_lock_irqsave(host, flags);
 	ret = usb_hcd_link_urb_to_ep(hcd, urb);
-	/* always fail the enumeration */
-	/* TODO actually do something with urb */
-	if (!ret)
-		usb_hcd_unlink_urb_from_ep(hcd, urb);
+	if (ret)
+		goto out;
+	ret = usblb_glue_transfer_h2g(host, urb);
+out:
 	usblb_host_unlock_irqrestore(host, flags);
-	return -EPIPE;
+	return ret;
 }
 
-static int usblb_host_urb_dequeue( struct usb_hcd *hcd, struct urb *urb,
+static int usblb_host_urb_dequeue(struct usb_hcd *hcd, struct urb *urb,
 		int status)
 {
 	struct usblb_host *host = to_usblb_host(hcd);
+	int ret;
+	unsigned long flags;
 
-	dev_info(host->dev, "<%s> urb = %p, status = %d\n", __func__,
+	dev_info(host->dev, "<%s> urb @%p, status = %d\n", __func__,
 			urb, status);
 
-	/* TODO */
-	return 0;
+	usblb_host_lock_irqsave(host, flags);
+	ret = usb_hcd_check_unlink_urb(hcd, urb, status);
+	usblb_host_unlock_irqrestore(host, flags);
+	return ret;
 }
 
 static int usblb_host_hub_status_data(struct usb_hcd *hcd, char *buf)

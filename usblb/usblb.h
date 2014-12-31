@@ -60,6 +60,10 @@ struct usblb_bus {
 	spinlock_t lock;
 	atomic_t event; /* requires lock to write. readable anytime */
 	u8 connected_ends;
+	struct timer_list transfer_timer;
+	atomic_t transfer_timer_active;
+	struct list_head g2h;
+	struct list_head h2g;
 };
 
 #define usblb_gadget_to_bus(_host) \
@@ -87,6 +91,14 @@ extern void __usblb_spawn_event(struct usblb_bus *, enum usblb_event);
 	__usblb_spawn_event(usblb_gadget_to_bus(gadget), event)
 #define usblb_host_spawn_event(host, event) \
 	__usblb_spawn_event(usblb_host_to_bus(host), event)
+
+#define USBLB_TRANSFER_INTERVAL_MSEC 10
+#define USBLB_TRANSFER_INTERVAL_JIFFIES \
+	msecs_to_jiffies(USBLB_TRANSFER_INTERVAL_MSEC)
+extern void usblb_glue_transfer_timer_func(unsigned long);
+extern int usblb_glue_transfer_g2h(struct usblb_gadget *,
+		struct usb_request *);
+extern int usblb_glue_transfer_h2g(struct usblb_host *, struct urb *);
 
 #define usblb_bus_lock_irqsave(bus, flags) \
 	spin_lock_irqsave(&(bus)->lock, flags)
