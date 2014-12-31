@@ -30,6 +30,49 @@ void usblb_gadget_exit(void)
 	class_destroy(usblb_gadget_class);
 }
 
+static int usblb_gadget_queue(struct usb_ep *_ep, struct usb_request *_req,
+		gfp_t gfp_flags)
+{
+	struct usblb_gadget_request *req = to_usblb_gadget_request(_req);
+	struct usblb_gadget_ep *ep = to_usblb_gadget_ep(_ep);
+	struct usblb_gadget *gadget = ep->g;
+	unsigned long flags;
+	int ret = 0;
+
+	dev_info(gadget->dev, "<%s> on %s\n", __func__, ep->name);
+
+	usblb_gadget_lock_irqsave(gadget, flags);
+	if (!atomic_read(&usblb_gadget_to_bus(gadget)->transfer_active))
+		ret = -EPIPE;
+	else
+		list_add_tail(&req->link, &ep->requests);
+	usblb_gadget_unlock_irqrestore(gadget, flags);
+
+	return ret;
+}
+
+static int usblb_gadget_dequeue(struct usb_ep *_ep, struct usb_request *_req)
+{
+	struct usblb_gadget_request *req = to_usblb_gadget_request(_req);
+	struct usblb_gadget_ep *ep = to_usblb_gadget_ep(_ep);
+	struct usblb_gadget *gadget = ep->g;
+	int ret;
+	unsigned long flags;
+
+	dev_info(gadget->dev, "<%s> on %s\n", __func__, ep->name);
+
+	usblb_gadget_lock_irqsave(gadget, flags);
+	if (req->link.next == LIST_POISON1)
+		ret = -EINVAL;
+	else {
+		ret = 0;
+		list_del(&req->link);
+	}
+	usblb_gadget_unlock_irqrestore(gadget, flags);
+
+	return 0;
+}
+
 static struct usb_request *usblb_gadget_alloc_request(struct usb_ep *ep,
 		gfp_t gfp_flags)
 {
@@ -56,24 +99,14 @@ static const struct usb_ep_ops usblb_gadget_ep_ops = {
 #if 0 /* TODO */
 	.enable         = usblb_gadget_enable,
 	.disable        = usblb_gadget_disable,
+#endif /* 0 */
 	.queue          = usblb_gadget_queue,
 	.dequeue        = usblb_gadget_dequeue,
+#if 0 /* TODO */
 	.set_halt       = usblb_gadget_set_halt,
 	.set_wedge      = usblb_gadget_set_wedge,
 	.fifo_status    = usblb_gadget_fifo_status,
 	.fifo_flush     = usblb_gadget_fifo_flush
-#endif /* 0 */
-	.alloc_request  = usblb_gadget_alloc_request,
-	.free_request   = usblb_gadget_free_request,
-};
-
-static const struct usb_ep_ops usblb_gadget_ep0_ops = {
-#if 0 /* TODO */
-	.enable         = usblb_g_ep0_enable,
-	.disable        = usblb_g_ep0_disable,
-	.queue          = usblb_g_ep0_queue,
-	.dequeue        = usblb_g_ep0_dequeue,
-	.set_halt       = usblb_g_ep0_halt,
 #endif /* 0 */
 	.alloc_request  = usblb_gadget_alloc_request,
 	.free_request   = usblb_gadget_free_request,
@@ -84,15 +117,13 @@ static void usblb_gadget_ep_init(struct usblb_gadget_ep *ep, int epnum)
 	sprintf(ep->name, "ep%d", epnum);
 	ep->ep.name = ep->name;
 	INIT_LIST_HEAD(&ep->ep.ep_list);
+	INIT_LIST_HEAD(&ep->requests);
 	usb_ep_set_maxpacket_limit(&ep->ep, USBLB_GADGET_MAXPACKET);
-	if (epnum) {
-		ep->ep.ops = &usblb_gadget_ep_ops;
-		list_add_tail(&ep->ep.ep_list,
-				&ep->g->g.ep_list);
-	} else {
-		ep->ep.ops = &usblb_gadget_ep0_ops;
+	ep->ep.ops = &usblb_gadget_ep_ops;
+	if (epnum)
+		list_add_tail(&ep->ep.ep_list, &ep->g->g.ep_list);
+	else
 		ep->g->g.ep0 = &ep->ep;
-	}
 
 }
 

@@ -7,7 +7,7 @@
 #include <linux/device.h>
 #include <linux/platform_device.h>
 
-#include "usblb.h"
+#include "usblb_host.h"
 
 #define to_usblb_host(hcd) (*(struct usblb_host **)(hcd)->hcd_priv)
 
@@ -70,6 +70,7 @@ static int usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 		gfp_t mem_flags)
 {
 	struct usblb_host *host = to_usblb_host(hcd);
+	struct usblb_host_urb_node *node;
 	int ret;
 	unsigned long flags;
 
@@ -79,9 +80,23 @@ static int usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 	usblb_host_lock_irqsave(host, flags);
 	ret = usb_hcd_link_urb_to_ep(hcd, urb);
 	if (ret)
-		goto out;
-	ret = usblb_glue_transfer_h2g(host, urb);
-out:
+		goto out_none;
+	if (!atomic_read(&usblb_host_to_bus(host)->transfer_active)) {
+		ret = -EPIPE;
+		goto out_unlink;
+	}
+	node = kzalloc(sizeof(*node), GFP_ATOMIC);
+	if (!node) {
+		ret = -ENOMEM;
+		goto out_unlink;
+	}
+	node->urb = urb;
+	list_add_tail(&node->link, &host->urb_queue);
+	ret = 0;
+	goto out_none;
+out_unlink:
+	usb_hcd_unlink_urb_from_ep(hcd, urb);
+out_none:
 	usblb_host_unlock_irqrestore(host, flags);
 	return ret;
 }
@@ -90,6 +105,7 @@ static int usblb_host_urb_dequeue(struct usb_hcd *hcd, struct urb *urb,
 		int status)
 {
 	struct usblb_host *host = to_usblb_host(hcd);
+	struct usblb_host_urb_node *node;
 	int ret;
 	unsigned long flags;
 
@@ -98,6 +114,13 @@ static int usblb_host_urb_dequeue(struct usb_hcd *hcd, struct urb *urb,
 
 	usblb_host_lock_irqsave(host, flags);
 	ret = usb_hcd_check_unlink_urb(hcd, urb, status);
+	if (!ret)
+		list_for_each_entry(node, &host->urb_queue, link)
+			if (node->urb == urb) {
+				list_del(&node->link);
+				kfree(node);
+				break;
+			}
 	usblb_host_unlock_irqrestore(host, flags);
 	return ret;
 }
@@ -270,6 +293,8 @@ static const struct hc_driver usblb_host_driver = {
 int usblb_host_device_setup(struct usblb_host *host, int i)
 {
 	int err;
+
+	INIT_LIST_HEAD(&host->urb_queue);
 
 	host->pdev = platform_device_alloc(MODULE_NAME, i);
 	if (!host->pdev) {

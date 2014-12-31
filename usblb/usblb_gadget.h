@@ -9,6 +9,7 @@
 struct usblb_gadget_ep {
 	struct usb_ep ep;
 	struct usblb_gadget *g;
+	struct list_head requests;
 	u8 epnum;
 	char name[16];
 };
@@ -17,6 +18,7 @@ struct usblb_gadget_ep {
 
 struct usblb_gadget_request {
 	struct usb_request req;
+	struct list_head link;
 };
 
 #define to_usblb_gadget_request(_req) \

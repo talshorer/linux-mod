@@ -27,8 +27,6 @@ static int usblb_bus_setup(struct usblb_bus *bus, int i)
 	spin_lock_init(&bus->lock);
 	bus->busnum = i;
 	atomic_set(&bus->event, 0);
-	INIT_LIST_HEAD(&bus->g2h);
-	INIT_LIST_HEAD(&bus->h2g);
 
 	err = usblb_gadget_device_setup(&bus->gadget, i);
 	if (err)
@@ -44,7 +42,7 @@ static int usblb_bus_setup(struct usblb_bus *bus, int i)
 	if (err)
 		goto fail_attach;
 
-	atomic_set(&bus->transfer_timer_active, 1);
+	atomic_set(&bus->transfer_active, 1);
 	setup_timer(&bus->transfer_timer, usblb_glue_transfer_timer_func,
 			(unsigned long)bus);
 	mod_timer(
@@ -65,10 +63,14 @@ fail_g_setup:
 
 static void usblb_bus_cleanup(struct usblb_bus *bus)
 {
+	unsigned long flags;
 	pr_info("destroying %s%d\n",
 			KBUILD_MODNAME, (int)(bus - usblb_buses));
-	atomic_set(&bus->transfer_timer_active, 0);
+	usblb_bus_lock_irqsave(bus, flags);
+	atomic_set(&bus->transfer_active, 0);
+	usblb_bus_unlock_irqrestore(bus, flags);
 	del_timer_sync(&bus->transfer_timer);
+	usblb_glue_cleanup_queues(bus);
 	usblb_host_device_cleanup(&bus->host);
 	usblb_gadget_device_cleanup(&bus->gadget);
 }
@@ -137,5 +139,5 @@ module_exit(usblb_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Loopback between virtual usb gadget and host controllers");
-MODULE_VERSION("0.3.3");
+MODULE_VERSION("0.3.4");
 MODULE_LICENSE("GPL");
