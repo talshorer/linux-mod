@@ -90,8 +90,10 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 {
 	struct usblb_bus *bus = (void *)data;
 	unsigned long flags;
+	int status = -EPIPE;
 
 	usblb_bus_lock_irqsave(bus, flags);
+	atomic_inc(&bus->in_transfer);
 	if (!list_empty(&bus->host.urb_queue)) {
 		struct usblb_host_urb_node *node = list_first_entry(
 			&bus->host.urb_queue,
@@ -101,15 +103,60 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 		struct urb *urb = node->urb;
 		u8 epnum = usb_pipeendpoint(urb->pipe);
 		struct usblb_gadget_ep *ep = &bus->gadget.ep[epnum];
-		usblb_bus_info(bus, "<%s> h2g transfer on %s\n",
-				__func__, ep->name);
-		/* fail the transfer */
-		usb_hcd_unlink_urb_from_ep(bus->host.hcd, urb);
-		usb_hcd_giveback_urb(bus->host.hcd, urb, -EPIPE);
-		/* TODO actually transfer... */
+		int do_transfer = 1;
+		if (!epnum) {
+			struct usb_ctrlrequest *setup = \
+				(void *)urb->setup_packet;
+			if (setup->bRequest == USB_REQ_SET_ADDRESS) {
+				usblb_bus_info(bus, "<%s> set address %d\n",
+						__func__,
+						le16_to_cpu(setup->wValue));
+				status = 0;
+				do_transfer = 0;
+			} else {
+				usblb_bus_info(bus, "<%s> setup\n", __func__);
+				status = bus->gadget.driver->setup(
+					&bus->gadget.g,
+					setup
+				);
+				do_transfer = (status >= 0);
+			}
+		}
+		if (do_transfer) {
+			struct usblb_gadget_request *req;
+			void *hbuf, *gbuf;
+			size_t hlen, glen, len;
+			u8 to_host = usb_pipein(urb->pipe);
+			if (list_empty(&ep->requests)) /* warn? */
+				goto out;
+			req = list_first_entry(&ep->requests,
+					typeof(*req), link);
+			hlen = urb->transfer_buffer_length -
+					urb->actual_length;
+			glen = req->req.length - req->req.actual;
+			usblb_bus_info(bus, "<%s> %s transfer on %s. "
+					"hlen = %zu, glen = %zu\n",
+					__func__, to_host ? "g2h" : "h2g",
+					ep->name, hlen, glen);
+			len = min(hlen, glen);
+			hbuf = urb->transfer_buffer + urb->actual_length;
+			gbuf = req->req.buf + req->req.actual;
+			if (to_host)
+				memcpy(hbuf, gbuf, len);
+			else
+				memcpy(gbuf, hbuf, len);
+			req->req.status = 0;
+			status = 0;
+			list_del(&req->link);
+			usb_gadget_giveback_request(&ep->ep, &req->req);
+		}
 		list_del(&node->link);
 		kfree(node);
+		usb_hcd_unlink_urb_from_ep(bus->host.hcd, urb);
+		usb_hcd_giveback_urb(bus->host.hcd, urb, status);
 	}
+out:
+	atomic_dec(&bus->in_transfer);
 	usblb_bus_unlock_irqrestore(bus, flags);
 
 	if (atomic_read(&bus->transfer_active))

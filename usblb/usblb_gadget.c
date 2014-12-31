@@ -38,15 +38,19 @@ static int usblb_gadget_queue(struct usb_ep *_ep, struct usb_request *_req,
 	struct usblb_gadget *gadget = ep->g;
 	unsigned long flags;
 	int ret = 0;
+	int in_transfer;
 
 	dev_info(gadget->dev, "<%s> on %s\n", __func__, ep->name);
 
-	usblb_gadget_lock_irqsave(gadget, flags);
+	in_transfer = atomic_read(&usblb_gadget_to_bus(gadget)->in_transfer);
+	if (!in_transfer)
+		usblb_gadget_lock_irqsave(gadget, flags);
 	if (!atomic_read(&usblb_gadget_to_bus(gadget)->transfer_active))
 		ret = -EPIPE;
 	else
 		list_add_tail(&req->link, &ep->requests);
-	usblb_gadget_unlock_irqrestore(gadget, flags);
+	if (!in_transfer)
+		usblb_gadget_unlock_irqrestore(gadget, flags);
 
 	return ret;
 }
@@ -130,8 +134,10 @@ static void usblb_gadget_ep_init(struct usblb_gadget_ep *ep, int epnum)
 static int usblb_gadget_start(struct usb_gadget *g,
 		struct usb_gadget_driver *drv)
 {
-	dev_info(to_usblb_gadget(g)->dev, "<%s> with driver \"%s\"\n",
+	struct usblb_gadget *gadget = to_usblb_gadget(g);
+	dev_info(gadget->dev, "<%s> with driver \"%s\"\n",
 			__func__, drv->function);
+	gadget->driver = drv;
 	return 0;
 }
 

@@ -19,6 +19,7 @@ struct usblb_gadget {
 	struct device *dev;
 	struct usb_gadget g;
 	struct usblb_gadget_ep *ep;
+	struct usb_gadget_driver *driver;
 };
 
 extern int usblb_gadget_init(void);
@@ -63,6 +64,7 @@ struct usblb_bus {
 	u8 connected_ends;
 	struct timer_list transfer_timer;
 	atomic_t transfer_active;
+	atomic_t in_transfer; /* requires lock to write. readable anytime */
 };
 
 #define usblb_gadget_to_bus(_host) \

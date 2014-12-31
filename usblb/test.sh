@@ -43,7 +43,7 @@ for i in $(seq 0 $(( $NBUSES - 1 ))); do
 	__check_sysfs_link host gadget || err=1
 done
 modprobe $GADGET_DRIVER
-sleep 2
+sleep 4
 modprobe -r $GADGET_DRIVER
 ###############################################################################
 ############################## debug hacks start ##############################

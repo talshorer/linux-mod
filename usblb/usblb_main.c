@@ -27,6 +27,7 @@ static int usblb_bus_setup(struct usblb_bus *bus, int i)
 	spin_lock_init(&bus->lock);
 	bus->busnum = i;
 	atomic_set(&bus->event, 0);
+	atomic_set(&bus->in_transfer, 0);
 
 	err = usblb_gadget_device_setup(&bus->gadget, i);
 	if (err)
@@ -139,5 +140,5 @@ module_exit(usblb_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Loopback between virtual usb gadget and host controllers");
-MODULE_VERSION("0.3.4");
+MODULE_VERSION("0.3.5");
 MODULE_LICENSE("GPL");
