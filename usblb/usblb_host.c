@@ -89,7 +89,6 @@ static int usblb_host_urb_dequeue( struct usb_hcd *hcd, struct urb *urb,
 		int status)
 {
 	struct usblb_host *host = to_usblb_host(hcd);
-	unsigned long flags;
 
 	dev_info(host->dev, "<%s> urb = %p, status = %d\n", __func__,
 			urb, status);

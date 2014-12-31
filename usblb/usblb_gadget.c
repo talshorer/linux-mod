@@ -17,27 +17,12 @@
 /* single direction */
 struct usblb_gadget_ep {
 	struct usb_ep ep;
+	struct usblb_gadget *g;
+	u8 epnum;
 	char name[16];
-	u8 is_in;
 };
 
 #define to_usblb_gadget_ep(_ep) container_of(_ep, struct usblb_gadget_ep, ep)
-
-/* two way */
-struct usblb_gadget_io_ep {
-	struct usblb_gadget *g;
-	u8 epnum;
-	struct usblb_gadget_ep out;
-	struct usblb_gadget_ep in;
-};
-
-static inline struct usblb_gadget_io_ep *usblb_gadget_io_ep_from_ep(
-		struct usblb_gadget_ep *ep)
-{
-	return ep->is_in ?
-			container_of(ep, struct usblb_gadget_io_ep, in) :
-			container_of(ep, struct usblb_gadget_io_ep, out);
-}
 
 struct usblb_gadget_request {
 	struct usb_request req;
@@ -68,7 +53,7 @@ static struct usb_request *usblb_gadget_alloc_request(struct usb_ep *ep,
 		gfp_t gfp_flags)
 {
 	struct usblb_gadget_request *req;
-	dev_info(usblb_gadget_io_ep_from_ep(to_usblb_gadget_ep(ep))->g->dev,
+	dev_info(to_usblb_gadget_ep(ep)->g->dev,
 			"<%s> on %s\n", __func__, ep->name);
 	req = kzalloc(sizeof(*req), gfp_flags);
 	if (!req)
@@ -80,7 +65,7 @@ static void usblb_gadget_free_request(struct usb_ep *ep,
 		struct usb_request *_req)
 {
 	struct usblb_gadget_request *req;
-	dev_info(usblb_gadget_io_ep_from_ep(to_usblb_gadget_ep(ep))->g->dev,
+	dev_info(to_usblb_gadget_ep(ep)->g->dev,
 			"<%s> on %s\n", __func__, ep->name);
 	req = to_usblb_gadget_request(_req);
 	kfree(req);
@@ -113,21 +98,19 @@ static const struct usb_ep_ops usblb_gadget_ep0_ops = {
 	.free_request   = usblb_gadget_free_request,
 };
 
-static void usblb_gadget_ep_init(struct usblb_gadget_ep *ep, int epnum,
-		u8 is_in)
+static void usblb_gadget_ep_init(struct usblb_gadget_ep *ep, int epnum)
 {
-	sprintf(ep->name, "ep%d%s", epnum, is_in ? "in" : "out");
+	sprintf(ep->name, "ep%d", epnum);
 	ep->ep.name = ep->name;
 	INIT_LIST_HEAD(&ep->ep.ep_list);
 	ep->ep.maxpacket = USBLB_GADGET_MAXPACKET;
-	ep->is_in = is_in;
 	if (epnum) {
 		ep->ep.ops = &usblb_gadget_ep_ops;
 		list_add_tail(&ep->ep.ep_list,
-				&usblb_gadget_io_ep_from_ep(ep)->g->g.ep_list);
+				&ep->g->g.ep_list);
 	} else {
 		ep->ep.ops = &usblb_gadget_ep0_ops;
-		usblb_gadget_io_ep_from_ep(ep)->g->g.ep0 = &ep->ep;
+		ep->g->g.ep0 = &ep->ep;
 	}
 
 }
@@ -201,11 +184,10 @@ int usblb_gadget_device_setup(struct usblb_gadget *gadget, int i)
 	gadget->g.name = dev_name(gadget->dev);
 	INIT_LIST_HEAD(&gadget->g.ep_list);
 	for (j = 0; j < USBLB_GADGET_EP_NUM; j++) {
-		struct usblb_gadget_io_ep *ep = &gadget->ep[j];
+		struct usblb_gadget_ep *ep = &gadget->ep[j];
 		ep->g = gadget;
 		ep->epnum = j;
-		usblb_gadget_ep_init(&ep->out, j, 0);
-		usblb_gadget_ep_init(&ep->in, j, 1);
+		usblb_gadget_ep_init(ep, j);
 	}
 
 	err = usb_add_gadget_udc(gadget->dev, &gadget->g);

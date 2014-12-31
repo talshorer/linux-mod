@@ -13,12 +13,12 @@ struct usblb_host;
 /**************** usblb_gadget.c ****************/
 /************************************************/
 
-struct usblb_gadget_io_ep;
+struct usblb_gadget_ep;
 
 struct usblb_gadget {
 	struct device *dev;
 	struct usb_gadget g;
-	struct usblb_gadget_io_ep *ep;
+	struct usblb_gadget_ep *ep;
 };
 
 extern int usblb_gadget_init(void);
