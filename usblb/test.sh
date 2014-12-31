@@ -7,6 +7,7 @@ HOST=${MODULE}_host
 GADGET_SYSFS=/sys/class/$GADGET
 HOST_SYSFS=/sys/bus/platform/drivers/$HOST
 GADGET_DRIVER=g_serial
+HOST_DRIVER=cdc_acm
 
 # RM start
 DEBUG=false
@@ -42,9 +43,11 @@ for i in $(seq 0 $(( $NBUSES - 1 ))); do
 	__check_sysfs_link gadget host || err=1
 	__check_sysfs_link host gadget || err=1
 done
+modprobe $HOST_DRIVER
 modprobe $GADGET_DRIVER
 sleep 4
 modprobe -r $GADGET_DRIVER
+modprobe -r $HOST_DRIVER
 ###############################################################################
 ############################## debug hacks start ##############################
 if $DEBUG; then

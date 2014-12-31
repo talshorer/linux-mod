@@ -30,6 +30,21 @@ void usblb_gadget_exit(void)
 	class_destroy(usblb_gadget_class);
 }
 
+static int usblb_gadget_enable(struct usb_ep *ep,
+		const struct usb_endpoint_descriptor *desc)
+{
+	dev_info(to_usblb_gadget_ep(ep)->g->dev,
+			"<%s> on %s\n", __func__, ep->name);
+	return 0;
+}
+
+static int usblb_gadget_disable(struct usb_ep *ep)
+{
+	dev_info(to_usblb_gadget_ep(ep)->g->dev,
+			"<%s> on %s\n", __func__, ep->name);
+	return 0;
+}
+
 static int usblb_gadget_queue(struct usb_ep *_ep, struct usb_request *_req,
 		gfp_t gfp_flags)
 {
@@ -41,6 +56,8 @@ static int usblb_gadget_queue(struct usb_ep *_ep, struct usb_request *_req,
 	int in_transfer;
 
 	dev_info(gadget->dev, "<%s> on %s\n", __func__, ep->name);
+
+	_req->actual = 0;
 
 	in_transfer = atomic_read(&usblb_gadget_to_bus(gadget)->in_transfer);
 	if (!in_transfer)
@@ -100,10 +117,8 @@ static void usblb_gadget_free_request(struct usb_ep *ep,
 }
 
 static const struct usb_ep_ops usblb_gadget_ep_ops = {
-#if 0 /* TODO */
 	.enable         = usblb_gadget_enable,
 	.disable        = usblb_gadget_disable,
-#endif /* 0 */
 	.queue          = usblb_gadget_queue,
 	.dequeue        = usblb_gadget_dequeue,
 #if 0 /* TODO */
@@ -122,12 +137,15 @@ static void usblb_gadget_ep_init(struct usblb_gadget_ep *ep, int epnum)
 	ep->ep.name = ep->name;
 	INIT_LIST_HEAD(&ep->ep.ep_list);
 	INIT_LIST_HEAD(&ep->requests);
-	usb_ep_set_maxpacket_limit(&ep->ep, USBLB_GADGET_MAXPACKET);
 	ep->ep.ops = &usblb_gadget_ep_ops;
-	if (epnum)
+	if (epnum) {
+		usb_ep_set_maxpacket_limit(&ep->ep, USBLB_GADGET_MAXPACKET);
 		list_add_tail(&ep->ep.ep_list, &ep->g->g.ep_list);
-	else
+	}
+	else {
+		usb_ep_set_maxpacket_limit(&ep->ep, 64);
 		ep->g->g.ep0 = &ep->ep;
+	}
 
 }
 
@@ -198,7 +216,7 @@ int usblb_gadget_device_setup(struct usblb_gadget *gadget, int i)
 
 	gadget->g.ops = &usblb_gadget_operations;
 	gadget->g.max_speed = USB_SPEED_HIGH;
-	gadget->g.speed = USB_SPEED_UNKNOWN;
+	gadget->g.speed = gadget->g.max_speed;
 	gadget->g.name = dev_name(gadget->dev);
 	INIT_LIST_HEAD(&gadget->g.ep_list);
 	for (j = 0; j < USBLB_GADGET_EP_NUM; j++) {

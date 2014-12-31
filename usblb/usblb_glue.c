@@ -114,11 +114,13 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 				status = 0;
 				do_transfer = 0;
 			} else {
-				usblb_bus_info(bus, "<%s> setup\n", __func__);
 				status = bus->gadget.driver->setup(
 					&bus->gadget.g,
 					setup
 				);
+				usblb_bus_info(bus, "<%s> setup. "
+						"status = %d\n",
+						__func__, status);
 				do_transfer = (status >= 0);
 			}
 		}
@@ -145,6 +147,8 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 				memcpy(hbuf, gbuf, len);
 			else
 				memcpy(gbuf, hbuf, len);
+			urb->actual_length += len;
+			req->req.actual += len;
 			req->req.status = 0;
 			status = 0;
 			list_del(&req->link);
