@@ -12,6 +12,9 @@ default: all
 lib%.so: %.c
 	$(CC) $< -o $@ -shared $(LMOD_CFLAGS) $($@_CFLAGS)
 
+%.pyc: %.py
+	pycompile $<
+
 kern_make:
 	$(MAKE) -C $(KERNEL) M=$(M) $(KTARGET)
 
@@ -26,3 +29,6 @@ gen-clean:
 
 bin-clean:
 	rm -f *.out
+
+py-clean:
+	rm -f *.pyc

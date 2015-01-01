@@ -9,13 +9,6 @@ HOST_SYSFS=/sys/bus/platform/drivers/$HOST
 GADGET_DRIVER=g_serial
 HOST_DRIVER=cdc_acm
 
-# RM start
-DEBUG=false
-for f in "hub.c" "hcd.c"; do
-	echo "file $f +p" > /sys/kernel/debug/dynamic_debug/control
-done
-# RM end
-
 __check_sysfs_link()
 {
 	sysfsvar()
@@ -46,15 +39,8 @@ done
 modprobe $HOST_DRIVER
 modprobe $GADGET_DRIVER
 sleep 4
+python test.pyc || err=1
 modprobe -r $GADGET_DRIVER
 modprobe -r $HOST_DRIVER
-###############################################################################
-############################## debug hacks start ##############################
-if $DEBUG; then
-	figlet $MODULE shell
-	if [[ $err == 0 ]]; then bash; fi
-fi
-############################### debug hacks end ###############################
-###############################################################################
 rmmod $MODULE
 exit $err

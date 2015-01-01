@@ -73,11 +73,14 @@ static int usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 	struct usblb_host_urb_node *node;
 	int ret;
 	unsigned long flags;
+	int in_transfer;
 
 	dev_info(host->dev, "<%s> urb @%p for ep%u\n",
 			__func__, urb, usb_pipeendpoint(urb->pipe));
 
-	usblb_host_lock_irqsave(host, flags);
+	in_transfer = atomic_read(&usblb_host_to_bus(host)->in_transfer);
+	if (!in_transfer)
+		usblb_host_lock_irqsave(host, flags);
 	ret = usb_hcd_link_urb_to_ep(hcd, urb);
 	if (ret)
 		goto out_none;
@@ -97,7 +100,8 @@ static int usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 out_unlink:
 	usb_hcd_unlink_urb_from_ep(hcd, urb);
 out_none:
-	usblb_host_unlock_irqrestore(host, flags);
+	if (!in_transfer)
+		usblb_host_unlock_irqrestore(host, flags);
 	return ret;
 }
 
@@ -114,13 +118,16 @@ static int usblb_host_urb_dequeue(struct usb_hcd *hcd, struct urb *urb,
 
 	usblb_host_lock_irqsave(host, flags);
 	ret = usb_hcd_check_unlink_urb(hcd, urb, status);
-	if (!ret)
+	if (!ret) {
 		list_for_each_entry(node, &host->urb_queue, link)
 			if (node->urb == urb) {
 				list_del(&node->link);
 				kfree(node);
 				break;
 			}
+		usb_hcd_unlink_urb_from_ep(host->hcd, urb);
+		usb_hcd_giveback_urb(host->hcd, urb, 0);
+	}
 	usblb_host_unlock_irqrestore(host, flags);
 	return ret;
 }

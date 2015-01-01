@@ -91,15 +91,11 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 	struct usblb_bus *bus = (void *)data;
 	unsigned long flags;
 	int status = -EPIPE;
+	struct usblb_host_urb_node *node, *tmp;
 
 	usblb_bus_lock_irqsave(bus, flags);
 	atomic_inc(&bus->in_transfer);
-	if (!list_empty(&bus->host.urb_queue)) {
-		struct usblb_host_urb_node *node = list_first_entry(
-			&bus->host.urb_queue,
-			struct usblb_host_urb_node,
-			link
-		);
+	list_for_each_entry_safe(node, tmp, &bus->host.urb_queue, link) {
 		struct urb *urb = node->urb;
 		u8 epnum = usb_pipeendpoint(urb->pipe);
 		struct usblb_gadget_ep *ep = &bus->gadget.ep[epnum];
@@ -129,17 +125,17 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 			void *hbuf, *gbuf;
 			size_t hlen, glen, len;
 			u8 to_host = usb_pipein(urb->pipe);
-			if (list_empty(&ep->requests)) /* warn? */
-				goto out;
+			if (list_empty(&ep->requests))
+				continue;
 			req = list_first_entry(&ep->requests,
 					typeof(*req), link);
+			usblb_bus_info(bus, "<%s> %s transfer on %s, "
+					"urb @%p\n", __func__,
+					to_host ? "g2h" : "h2g", ep->name,
+					urb);
 			hlen = urb->transfer_buffer_length -
 					urb->actual_length;
 			glen = req->req.length - req->req.actual;
-			usblb_bus_info(bus, "<%s> %s transfer on %s. "
-					"hlen = %zu, glen = %zu\n",
-					__func__, to_host ? "g2h" : "h2g",
-					ep->name, hlen, glen);
 			len = min(hlen, glen);
 			hbuf = urb->transfer_buffer + urb->actual_length;
 			gbuf = req->req.buf + req->req.actual;
@@ -159,7 +155,6 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 		usb_hcd_unlink_urb_from_ep(bus->host.hcd, urb);
 		usb_hcd_giveback_urb(bus->host.hcd, urb, status);
 	}
-out:
 	atomic_dec(&bus->in_transfer);
 	usblb_bus_unlock_irqrestore(bus, flags);
 
