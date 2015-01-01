@@ -1,14 +1,14 @@
 #! /bin/bash
 
 DRIVER=$(basename $(dirname $(realpath $0)))
-DEBUGFS=debugfs
+DEBUGFS="/sys/kernel/debug/$DRIVER"
 NTHREADS=4
 NWAKES=4
 
 get_thread_stat()
 {
 	thread=$DRIVER$1
-	cat $DEBUGFS/stats | grep $thread  | sed "s/$thread: \([0-9]\+\)/\1/"
+	cat $DEBUGFS/stats | grep $thread | sed "s/$thread: \([0-9]\+\)/\1/"
 }
 
 wake_thread()
@@ -21,11 +21,12 @@ wake_thread()
 err=0
 cd $(dirname $0)
 insmod $DRIVER.ko nthreads=$NTHREADS
+sleep 1
 for i in $(seq 0 $(( $NWAKES - 1 ))); do
 	for j in $(seq 0 $(( $NTHREADS - 1 ))); do
 		wake_thread $j
 		for k in $(seq 0 $(( $NTHREADS - 1 ))); do
-			if [[ $k > $j ]]; then
+			if [[ $k -gt $j ]]; then
 				expected_stat=$i
 			else
 				expected_stat=$(( $i + 1 ))
