@@ -4,6 +4,7 @@ mkdir -p $1
 TARGET=$(realpath $1)
 VM_USER=$2
 VM_DIR="/tmp"
+UTILS=$(dirname $0)
 
 shift; shift
 modules="$@"
@@ -18,7 +19,7 @@ function test_module {
 	make -C $m all || err=1
 	echo $SEP
 	if [[ $err == 0 ]]; then
-		cmd="utils/send_vm.sh $m $VM_USER:$VM_DIR"
+		cmd="$UTILS/send_vm.sh $m $VM_USER:$VM_DIR"
 		echo $cmd
 		eval $cmd || err=1
 		echo $SEP
@@ -32,8 +33,6 @@ function test_module {
 	echo "err=$err"
 	let failure+=$err
 }
-
-cd $(dirname $0)/..
 
 if [[ -z "$modules" ]]; then modules=$(utils/all_modules.sh); fi
 
