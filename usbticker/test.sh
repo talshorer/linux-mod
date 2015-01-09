@@ -1,0 +1,22 @@
+#! /bin/bash
+
+H_MODULE=ticker
+G_MODULE=usb_f_ticker
+UDC_NAME="dummy_udc"
+EXTRA_MODULES="libcomposite dummy_hcd"
+
+err=0
+cd $(dirname $0)
+for m in $EXTRA_MODULES; do modprobe $m; done
+insmod $H_MODULE.ko
+insmod $G_MODULE.ko
+gadget_configfs=$(sh g_ticker.sh)
+echo $UDC_NAME.0 > $gadget_configfs/UDC
+# test logic
+rm -rf $gadget_configfs 2> /dev/null
+rmmod $G_MODULE
+rmmod $H_MODULE
+for m in $(for x in $EXTRA_MODULES; do echo $x; done | sed '1!G;h;$!d'); do
+	rmmod $m
+done
+exit $err
