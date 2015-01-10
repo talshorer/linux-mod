@@ -10,9 +10,10 @@ cd $(dirname $0)
 for m in $EXTRA_MODULES; do modprobe $m; done
 insmod $H_MODULE.ko
 insmod $G_MODULE.ko
-gadget_configfs=$(sh g_ticker.sh)
+gadget_configfs=$(sh g_ticker.sh create)
 echo $UDC_NAME.0 > $gadget_configfs/UDC
 # test logic
+sleep 4
 rm -rf $gadget_configfs 2> /dev/null
 rmmod $G_MODULE
 rmmod $H_MODULE

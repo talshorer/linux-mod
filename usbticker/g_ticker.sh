@@ -1,9 +1,12 @@
 #! /bin/sh
+
+source parsedefs.sh
+
 FUNCTION="ticker"
-idVendor=0x0525
-idProduct=0xa4a2
 manufacturer="Shorer"
 product="Ticker"
+idVendor=$usbticker_idVendor
+idProduct=$usbticker_idProduct
 
 GADGET=/sys/kernel/config/usb_gadget/g_$FUNCTION
 STRINGSDIR=$GADGET/strings/0x409

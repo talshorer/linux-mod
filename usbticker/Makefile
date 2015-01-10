@@ -6,6 +6,9 @@ M:=$(shell pwd)
 
 include $(M)/../env.mk
 
-all: modules
+checkdefs: checkdefs.sh
+	./$<
+
+all: checkdefs modules
 
 clean: modules-clean

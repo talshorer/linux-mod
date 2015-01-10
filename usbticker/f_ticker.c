@@ -8,6 +8,7 @@
 #include "u_f.h"
 
 #define TICKER_POLL_INTERVAL_MS 10
+#define TICKER_DEFAULT_INTERVAL_MS 1000
 
 struct f_ticker_opts {
 	struct usb_function_instance func_inst;
@@ -260,7 +261,7 @@ static struct configfs_item_operations ticker_item_ops = {
 static ssize_t f_ticker_opts_interval_show(struct f_ticker_opts *opts,
 		char *page)
 {
-	return sprintf(page, "%d", opts->interval);
+	return sprintf(page, "%u\n", opts->interval);
 }
 
 static ssize_t f_ticker_opts_interval_store(struct f_ticker_opts *opts,
@@ -318,6 +319,7 @@ static struct usb_function_instance *ticker_alloc_instance(void)
 		pr_err("<%s> failed to allocate instance\n", __func__);
 		goto fail_kzalloc_fti;
 	}
+	opts->interval = TICKER_DEFAULT_INTERVAL_MS;
 	opts->func_inst.free_func_inst = ticker_free_instance;
 	config_group_init_type_name(&opts->func_inst.group, "",
 			&ticker_func_type);
@@ -332,5 +334,5 @@ DECLARE_USB_FUNCTION_INIT(ticker, ticker_alloc_instance, ticker_alloc_func);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Ticker usb gadget function");
-MODULE_VERSION("0.1.0");
+MODULE_VERSION("0.1.1");
 MODULE_LICENSE("GPL");
