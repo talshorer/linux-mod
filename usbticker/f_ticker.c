@@ -7,7 +7,8 @@
 
 #include "u_f.h"
 
-#define TICKER_POLL_INTERVAL_MS 10
+#include "usbticker.h"
+
 #define TICKER_DEFAULT_INTERVAL_MS 1000
 
 struct f_ticker_opts {
@@ -21,14 +22,15 @@ static inline struct f_ticker_opts *to_f_ticker_opts(struct config_item *item)
 		func_inst.group);
 }
 
-typedef u32 ticker_count_t;
-
 struct f_ticker {
 	struct usb_function func;
 	struct usb_ep *ep;
+	struct usb_request *req;
+	struct timer_list timer;
 	atomic_t active;
 	u32 interval;
-	ticker_count_t count;
+	u32 count;
+	spinlock_t count_lock;
 };
 
 static inline struct f_ticker *func_to_ticker(struct usb_function *f)
@@ -54,7 +56,7 @@ static struct usb_endpoint_descriptor ticker_fs_int_desc = {
 	.bDescriptorType =  USB_DT_ENDPOINT,
 	.bEndpointAddress = USB_DIR_IN,
 	.bmAttributes =     USB_ENDPOINT_XFER_INT,
-	.wMaxPacketSize =   cpu_to_le16(sizeof(ticker_count_t)),
+	.wMaxPacketSize =   cpu_to_le16(sizeof(__le32)),
 	.bInterval =        TICKER_POLL_INTERVAL_MS,
 };
 
@@ -71,7 +73,7 @@ static struct usb_endpoint_descriptor ticker_hs_int_desc = {
 	.bDescriptorType =  USB_DT_ENDPOINT,
 	.bEndpointAddress = USB_DIR_IN,
 	.bmAttributes =     USB_ENDPOINT_XFER_INT,
-	.wMaxPacketSize =   cpu_to_le16(sizeof(ticker_count_t)),
+	.wMaxPacketSize =   cpu_to_le16(sizeof(__le32)),
 	.bInterval =        TICKER_POLL_INTERVAL_MS,
 };
 
@@ -88,7 +90,7 @@ static struct usb_endpoint_descriptor ticker_ss_int_desc = {
 	.bDescriptorType =  USB_DT_ENDPOINT,
 	.bEndpointAddress = USB_DIR_IN,
 	.bmAttributes =     USB_ENDPOINT_XFER_INT,
-	.wMaxPacketSize =   cpu_to_le16(sizeof(ticker_count_t)),
+	.wMaxPacketSize =   cpu_to_le16(sizeof(__le32)),
 	.bInterval =        TICKER_POLL_INTERVAL_MS,
 };
 
@@ -175,18 +177,94 @@ static void ticker_free_func(struct usb_function *f)
 	kfree(ticker);
 }
 
+static inline void f_ticker_fire_timer(struct f_ticker *ticker) {
+	mod_timer(
+		&ticker->timer,
+		jiffies +msecs_to_jiffies(ticker->interval)
+	);
+}
+
+static void ticker_req_complete(struct usb_ep *ep, struct usb_request *req)
+{
+	pr_debug("<%s>\n", __func__);
+}
+
+static void f_ticker_timer_func(unsigned long data)
+{
+	struct f_ticker *ticker = (void *)data;
+	__le32 count;
+	unsigned long flags;
+	int err;
+
+	pr_debug("<%s>\n", __func__);
+
+	spin_lock_irqsave(&ticker->count_lock, flags);
+	count = cpu_to_le32(ticker->count++);
+	memcpy(ticker->req->buf, &count, sizeof(count));
+	err = usb_ep_queue(ticker->ep, ticker->req, GFP_ATOMIC);
+	spin_unlock_irqrestore(&ticker->count_lock, flags);
+
+	if (err)
+		pr_err("<%s> usb_ep_queue failed, err = %d\n", __func__, err);
+
+	if (atomic_read(&ticker->active))
+		f_ticker_fire_timer(ticker);
+}
+
 static int f_ticker_enable(struct f_ticker *ticker,
 		struct usb_composite_dev *cdev)
 {
+	int err;
+
 	pr_debug("<%s>\n", __func__);
-	/* TODO */
+
+	if (!ticker->ep->desc &&
+			config_ep_by_speed(
+				cdev->gadget,
+				&ticker->func,
+				ticker->ep
+			))
+		return -EINVAL;
+	usb_ep_enable(ticker->ep);
+
+	ticker->ep->driver_data = ticker;
+	atomic_set(&ticker->active, 1);
+
+	ticker->req = usb_ep_alloc_request(ticker->ep, GFP_ATOMIC);
+	if (!ticker->req) {
+		err = -ENOMEM;
+		pr_err("<%s> usb_ep_alloc_request failed\n", __func__);
+		goto fail_usb_ep_alloc_request;
+	}
+	ticker->req->buf = kmalloc(sizeof(ticker->count), GFP_ATOMIC);
+	if (!ticker->req->buf) {
+		err = -ENOMEM;
+		pr_err("<%s> failed to allocate request buffer\n", __func__);
+		goto fail_kmalloc_req_buf;
+	}
+	ticker->req->complete = ticker_req_complete;
+	ticker->req->context = ticker;
+	ticker->req->length = sizeof(ticker->count);
+
+	f_ticker_fire_timer(ticker);
 	return 0;
+
+fail_kmalloc_req_buf:
+	usb_ep_free_request(ticker->ep, ticker->req);
+fail_usb_ep_alloc_request:
+	return err;
 }
 
 static void f_ticker_disable(struct f_ticker *ticker)
 {
 	pr_debug("<%s>\n", __func__);
-	/* TODO */
+	atomic_set(&ticker->active, 0);
+	del_timer_sync(&ticker->timer);
+	usb_ep_disable(ticker->ep);
+	ticker->ep->driver_data = NULL;
+	usb_ep_dequeue(ticker->ep, ticker->req);
+	kfree(ticker->req->buf);
+	usb_ep_free_request(ticker->ep, ticker->req);
 }
 
 static void ticker_disable(struct usb_function *f)
@@ -226,6 +304,8 @@ static struct usb_function *ticker_alloc_func(struct usb_function_instance *fi)
 	ticker->interval = opts->interval;
 	ticker->count = 0;
 	atomic_set(&ticker->active, 0);
+	spin_lock_init(&ticker->count_lock);
+	setup_timer(&ticker->timer, f_ticker_timer_func, (unsigned long)ticker);
 
 	func = &ticker->func;
 	func->name = "ticker";
@@ -334,5 +414,5 @@ DECLARE_USB_FUNCTION_INIT(ticker, ticker_alloc_instance, ticker_alloc_func);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Ticker usb gadget function");
-MODULE_VERSION("0.1.1");
+MODULE_VERSION("1.0.0");
 MODULE_LICENSE("GPL");

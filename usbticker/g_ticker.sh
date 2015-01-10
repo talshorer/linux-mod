@@ -2,7 +2,7 @@
 
 source parsedefs.sh
 
-FUNCTION="ticker"
+FUNCTION=$1
 manufacturer="Shorer"
 product="Ticker"
 idVendor=$usbticker_idVendor
