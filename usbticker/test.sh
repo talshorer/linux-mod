@@ -12,8 +12,12 @@ insmod $H_MODULE.ko
 insmod $G_MODULE.ko
 gadget_configfs=$(sh g_ticker.sh create)
 echo $UDC_NAME.0 > $gadget_configfs/UDC
-# test logic
-sleep 4
+sleep 1
+usbdevice_sysfs="/sys/bus/usb/drivers/$H_MODULE/*:*" 2>/dev/null
+if [[ -z $usbdevice_sysfs ]]; then
+	echo "$0: device not bound to driver" 1>&2
+	err=1
+fi
 rm -rf $gadget_configfs 2> /dev/null
 rmmod $G_MODULE
 rmmod $H_MODULE
