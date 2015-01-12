@@ -1,0 +1,18 @@
+the entire filesystem has one parameter (given @mount)
+	max_depth (in $(seq 1 0xff))
+each directory has two parameters
+	depth (in $(seq 0 $max_depth) )
+	id ( in $(seq 0 $depth) )
+each directory has name "$(dirname $id)"
+	function dirname { $(printf %02x $1); }
+each directory has files
+	depth (r--)
+		read returns $(printf %02x $depth)
+each directory has $(nsubdirs $depth) subdirectories
+	function nsubdirs { $(( $max_depth - $1 )); }
+	each subdirectory has parameters
+		depth=$(( $depth + 1 ))
+		id (each child is given an id)
+each directory contains a symlink named "link"
+	links to "../$(dirname $(( ($id + 1) % $(nsubdirs $depth) ))
+everything should be allocated and released "on the fly" (@open/close)
