@@ -34,7 +34,12 @@ function test_module {
 	let failure+=$err
 }
 
-if [[ -z "$modules" ]]; then modules=$(utils/all_modules.sh); fi
+if [[ -z $KERNEL ]]; then
+	echo "KERNEL is not set"
+	exit 1
+fi
+
+if [[ -z "$modules" ]]; then modules=$($UTILS/all_modules.sh); fi
 
 for m in $modules; do
 	test_module $m 2>&1 | tee /$TARGET/$m

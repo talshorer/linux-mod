@@ -19,6 +19,11 @@ struct deepfs_fs_info {
 	struct deepfs_mount_opts opts;
 };
 
+struct deepfs_dir_priv {
+	unsigned int depth;
+	unsigned int id;
+};
+
 enum {
 	deepfs_opt_max_depth,
 	deepfs_opt_err,
@@ -59,6 +64,61 @@ static int deepfs_parse_options(char *data, struct deepfs_mount_opts *opts)
 	return 0;
 }
 
+static int deepfs_dir_iterate(struct file *filp, struct dir_context *cts)
+{
+	return 0;
+}
+
+static const struct file_operations deepfs_dir_fops = {
+	.owner = THIS_MODULE,
+	.iterate = deepfs_dir_iterate,
+};
+
+static struct inode *deepfs_create_dir(struct super_block *sb, umode_t mode,
+		unsigned int depth, unsigned int id)
+{
+	struct inode *ret;
+	struct deepfs_dir_priv *priv;
+	int err;
+
+	ret = new_inode(sb);
+	if (!ret) {
+		pr_err("failed to create inode\n");
+		err = -ENOMEM;
+		goto fail_new_inode;
+	}
+	ret->i_mode = mode | S_IFDIR;
+	ret->i_uid.val = 0;
+	ret->i_gid.val = 0;
+	ret->i_blocks = 0;
+	ret->i_atime = ret->i_mtime = ret->i_ctime = CURRENT_TIME;
+	ret->i_op = &simple_dir_inode_operations;
+	ret->i_fop = &deepfs_dir_fops;
+
+	priv = kzalloc(sizeof(struct deepfs_dir_priv), GFP_KERNEL);
+	if (!priv) {
+		pr_err("failed to allocate directory private data\n");
+		err = -ENOMEM;
+		goto fail_kzalloc_private;
+	}
+	priv->depth = depth;
+	priv->id = 0;
+	ret->i_private = priv;
+
+	return ret;
+
+fail_kzalloc_private:
+	iput(ret);
+fail_new_inode:
+	return ERR_PTR(err);
+}
+
+static void deepfs_destroy_dir(struct inode *inode)
+{
+	kfree(inode->i_private);
+	iput(inode);
+}
+
 struct super_operations deepfs_super_ops = {
 	.statfs = simple_statfs,
 	.drop_inode = generic_delete_inode,
@@ -76,6 +136,7 @@ static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 	sb->s_blocksize = PAGE_CACHE_SIZE;
 	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
 	sb->s_magic = DEEPFS_MAGIC;
+	sb->s_flags |= MS_RDONLY;
 	sb->s_op = &deepfs_super_ops;
 
 	fsi = kzalloc(sizeof(*fsi), GFP_KERNEL);
@@ -90,21 +151,17 @@ static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 	if (err)
 		goto fail_deepfs_parse_options;
 
-	root = new_inode(sb);
-	if (!root) {
+	root = deepfs_create_dir(sb, 0755, 0, 0);
+	if (IS_ERR(root)) {
 		pr_err("failed to create root inode\n");
-		err = -ENOMEM;
-		goto fail_new_inode;
+		err = PTR_ERR(root);
+		goto fail_deepfs_create_dir;
 	}
-	root->i_mode = S_IFDIR | 0755;
-	root->i_uid.val = 0;
-	root->i_gid.val = 0;
-	root->i_blocks = 0;
-	root->i_atime = root->i_mtime = root->i_ctime = CURRENT_TIME;
 
 	root_dentry = d_make_root(root);
 	if (!root_dentry) {
 		pr_err("failed to create root dentry\n");
+		err = -ENOMEM;
 		goto fail_d_make_root;
 	}
 	sb->s_root = root_dentry;
@@ -112,8 +169,8 @@ static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 	return 0;
 
 fail_d_make_root:
-	iput(root);
-fail_new_inode:
+	deepfs_destroy_dir(root);
+fail_deepfs_create_dir:
 fail_deepfs_parse_options:
 	kfree(fsi);
 	sb->s_fs_info = NULL;

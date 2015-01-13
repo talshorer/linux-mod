@@ -1,5 +1,5 @@
 KERNEL?=/lib/modules/$(shell uname -r)/build
-LMOD_CFLAGS:=-Wall -D_GNU_SOURCE
+LMOD_CFLAGS:=-Wall -Werror -D_GNU_SOURCE
 ccflags-y+=$(LMOD_CFLAGS)
 
 CC = $(CROSS_COMPILE)gcc
