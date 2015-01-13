@@ -19,10 +19,15 @@ struct deepfs_fs_info {
 	struct deepfs_mount_opts opts;
 };
 
-struct deepfs_dir_priv {
+struct deepfs_dir {
+	struct inode *inode;
+	struct kref kref;
 	unsigned int depth;
 	unsigned int id;
 };
+
+#define to_deepfs_dir(inode) \
+	((struct deepfs_dir *)(inode->i_private))
 
 enum {
 	deepfs_opt_max_depth,
@@ -64,13 +69,50 @@ static int deepfs_parse_options(char *data, struct deepfs_mount_opts *opts)
 	return 0;
 }
 
+static inline int __must_check deepfs_dir_get(struct deepfs_dir *d)
+{
+	return kref_get_unless_zero(&d->kref);
+};
+
+
+static void deepfs_dir_destroy(struct deepfs_dir *d)
+{
+	iput(d->inode);
+	kfree(d);
+}
+
+static void deepfs_dir_kref_release(struct kref *kref)
+{
+	deepfs_dir_destroy(container_of(kref, struct deepfs_dir, kref));
+}
+
+static inline void deepfs_dir_put(struct deepfs_dir *d)
+{
+	kref_put(&d->kref, deepfs_dir_kref_release);
+}
+
+static int deepfs_dir_open(struct inode *inode, struct file *filp)
+{
+	pr_info("<%s>\n", __func__);
+	return 0;
+}
+
+static int deepfs_dir_release(struct inode *inode, struct file *filp)
+{
+	pr_info("<%s>\n", __func__);
+	return 0;
+}
+
 static int deepfs_dir_iterate(struct file *filp, struct dir_context *cts)
 {
+	pr_info("<%s>\n", __func__);
 	return 0;
 }
 
 static const struct file_operations deepfs_dir_fops = {
 	.owner = THIS_MODULE,
+	.open = deepfs_dir_open,
+	.release = deepfs_dir_release,
 	.iterate = deepfs_dir_iterate,
 };
 
@@ -78,7 +120,7 @@ static struct inode *deepfs_create_dir(struct super_block *sb, umode_t mode,
 		unsigned int depth, unsigned int id)
 {
 	struct inode *ret;
-	struct deepfs_dir_priv *priv;
+	struct deepfs_dir *priv;
 	int err;
 
 	ret = new_inode(sb);
@@ -95,7 +137,7 @@ static struct inode *deepfs_create_dir(struct super_block *sb, umode_t mode,
 	ret->i_op = &simple_dir_inode_operations;
 	ret->i_fop = &deepfs_dir_fops;
 
-	priv = kzalloc(sizeof(struct deepfs_dir_priv), GFP_KERNEL);
+	priv = kzalloc(sizeof(struct deepfs_dir), GFP_KERNEL);
 	if (!priv) {
 		pr_err("failed to allocate directory private data\n");
 		err = -ENOMEM;
@@ -103,6 +145,8 @@ static struct inode *deepfs_create_dir(struct super_block *sb, umode_t mode,
 	}
 	priv->depth = depth;
 	priv->id = 0;
+	priv->inode = ret;
+	kref_init(&priv->kref);
 	ret->i_private = priv;
 
 	return ret;
@@ -111,12 +155,6 @@ fail_kzalloc_private:
 	iput(ret);
 fail_new_inode:
 	return ERR_PTR(err);
-}
-
-static void deepfs_destroy_dir(struct inode *inode)
-{
-	kfree(inode->i_private);
-	iput(inode);
 }
 
 struct super_operations deepfs_super_ops = {
@@ -169,7 +207,7 @@ static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 	return 0;
 
 fail_d_make_root:
-	deepfs_destroy_dir(root);
+	deepfs_dir_put(to_deepfs_dir(root));
 fail_deepfs_create_dir:
 fail_deepfs_parse_options:
 	kfree(fsi);
@@ -213,5 +251,5 @@ module_exit(deepfs_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Recursive pseudo file system");
-MODULE_VERSION("0.1.1");
+MODULE_VERSION("0.1.3");
 MODULE_LICENSE("GPL");
