@@ -14,6 +14,8 @@ struct deepfs_mount_opts {
 };
 #define DEEPFS_MAX_MAX_DEPTH \
 	(typeof(((struct deepfs_mount_opts *)0)->max_depth))(-1)
+#define to_deepfs_mount_opts(sb) \
+	(struct deepfs_mount_opts *)(sb->s_fs_info)
 
 struct deepfs_fs_info {
 	struct deepfs_mount_opts opts;
@@ -21,11 +23,14 @@ struct deepfs_fs_info {
 
 struct deepfs_dir {
 	struct inode *inode;
-	struct kref kref;
+	struct dentry *dentry;
+	struct deepfs_dir *parent;
 	unsigned int depth;
 	unsigned int id;
+	struct list_head children;
+	struct list_head parlink;
+	struct mutex lock;
 };
-
 #define to_deepfs_dir(inode) \
 	((struct deepfs_dir *)(inode->i_private))
 
@@ -69,43 +74,55 @@ static int deepfs_parse_options(char *data, struct deepfs_mount_opts *opts)
 	return 0;
 }
 
-static inline int __must_check deepfs_dir_get(struct deepfs_dir *d)
+static inline void deepfs_dir_destroy(struct deepfs_dir *d)
 {
-	return kref_get_unless_zero(&d->kref);
-};
-
-
-static void deepfs_dir_destroy(struct deepfs_dir *d)
-{
-	iput(d->inode);
 	kfree(d);
 }
 
-static void deepfs_dir_kref_release(struct kref *kref)
-{
-	deepfs_dir_destroy(container_of(kref, struct deepfs_dir, kref));
-}
+static const char deepfs_subdir_basename[] = "sub0x";
+#define DEEPFS_DIRNAME_LEN (sizeof(deepfs_subdir_basename) + 2)
 
-static inline void deepfs_dir_put(struct deepfs_dir *d)
+static int deepfs_fill_dirname(char *buf, struct deepfs_dir *d)
 {
-	kref_put(&d->kref, deepfs_dir_kref_release);
+	return sprintf(buf, "%s%02x", deepfs_subdir_basename, d->id);
 }
 
 static int deepfs_dir_open(struct inode *inode, struct file *filp)
 {
 	pr_info("<%s>\n", __func__);
+	filp->private_data = inode->i_private;
 	return 0;
 }
 
 static int deepfs_dir_release(struct inode *inode, struct file *filp)
 {
 	pr_info("<%s>\n", __func__);
+	filp->private_data = NULL;
 	return 0;
 }
 
-static int deepfs_dir_iterate(struct file *filp, struct dir_context *cts)
+static int deepfs_dir_iterate(struct file *filp, struct dir_context *ctx)
 {
+	struct deepfs_dir *d = filp->private_data;
+	struct deepfs_dir *subdir;
+	char name[DEEPFS_DIRNAME_LEN];
+	unsigned int pos;
+
 	pr_info("<%s>\n", __func__);
+
+	if (!dir_emit_dots(filp, ctx))
+		return 0;
+	pos = ctx->pos - 2;
+	list_for_each_entry(subdir, &d->children, parlink) {
+		if (subdir->id < pos)
+			continue;
+		deepfs_fill_dirname(name, subdir);
+		if (!dir_emit(ctx, name, strlen(name), subdir->inode->i_ino,
+				DT_DIR))
+			return 0;
+		ctx->pos++;
+	}
+
 	return 0;
 }
 
@@ -113,29 +130,31 @@ static const struct file_operations deepfs_dir_fops = {
 	.owner = THIS_MODULE,
 	.open = deepfs_dir_open,
 	.release = deepfs_dir_release,
+	.llseek = default_llseek,
+	.read = generic_read_dir,
 	.iterate = deepfs_dir_iterate,
 };
 
-static struct inode *deepfs_create_dir(struct super_block *sb, umode_t mode,
-		unsigned int depth, unsigned int id)
+static struct deepfs_dir *deepfs_dir_create(struct super_block *sb,
+		struct deepfs_dir *parent, unsigned int depth, unsigned int id)
 {
-	struct inode *ret;
+	struct deepfs_mount_opts *opts = to_deepfs_mount_opts(sb);
+	struct inode *inode;
 	struct deepfs_dir *priv;
 	int err;
 
-	ret = new_inode(sb);
-	if (!ret) {
+	inode = new_inode(sb);
+	if (!inode) {
 		pr_err("failed to create inode\n");
 		err = -ENOMEM;
 		goto fail_new_inode;
 	}
-	ret->i_mode = mode | S_IFDIR;
-	ret->i_uid.val = 0;
-	ret->i_gid.val = 0;
-	ret->i_blocks = 0;
-	ret->i_atime = ret->i_mtime = ret->i_ctime = CURRENT_TIME;
-	ret->i_op = &simple_dir_inode_operations;
-	ret->i_fop = &deepfs_dir_fops;
+	inode->i_mode = 0555 | S_IFDIR;
+	inode->i_uid.val = 0;
+	inode->i_gid.val = 0;
+	inode->i_atime = inode->i_mtime = inode->i_ctime = CURRENT_TIME;
+	inode->i_op = &simple_dir_inode_operations;
+	inode->i_fop = &deepfs_dir_fops;
 
 	priv = kzalloc(sizeof(struct deepfs_dir), GFP_KERNEL);
 	if (!priv) {
@@ -144,29 +163,78 @@ static struct inode *deepfs_create_dir(struct super_block *sb, umode_t mode,
 		goto fail_kzalloc_private;
 	}
 	priv->depth = depth;
-	priv->id = 0;
-	priv->inode = ret;
-	kref_init(&priv->kref);
-	ret->i_private = priv;
+	priv->id = id;
+	priv->inode = inode;
+	INIT_LIST_HEAD(&priv->children);
+	mutex_init(&priv->lock);
+	inode->i_private = priv;
 
-	return ret;
+	if (parent) { /* not mount point */
+		char name[DEEPFS_DIRNAME_LEN];
+		struct qstr qname;
+		deepfs_fill_dirname(name, priv);
+		qname.name = name;
+		qname.len = strlen(name);
+		qname.hash = full_name_hash(name, qname.len);
+		priv->dentry = d_alloc(parent->dentry, &qname);
+		if (!priv->dentry) {
+			pr_err("failed to create dentry\n");
+			err = -ENOMEM;
+			goto fail_dentry;
+		}
+		d_add(priv->dentry, inode);
+	} else { /* mount point */
+		priv->dentry = d_make_root(priv->inode);
+		if (!priv->dentry) {
+			pr_err("failed to create root dentry\n");
+			err = -ENOMEM;
+			goto fail_dentry;
+		}
+		sb->s_root = priv->dentry;
+	}
 
+	if (depth < opts->max_depth) {
+		unsigned int i;
+		struct deepfs_dir *subdir;
+		unsigned int children_depth = depth + 1;
+		for (i = 0; i < opts->max_depth - priv->depth; i++) {
+			subdir = deepfs_dir_create(sb, priv,
+					children_depth, i);
+			if (IS_ERR(subdir)) {
+				pr_err("deepfs_dir_create failed, err = %d\n",
+						(int)PTR_ERR(subdir));
+			} else {
+				list_add_tail(&subdir->parlink,
+						&priv->children);
+			}
+		}
+	}
+
+	return priv;
+
+fail_dentry:
+	kfree(priv);
 fail_kzalloc_private:
-	iput(ret);
+	iput(inode);
 fail_new_inode:
 	return ERR_PTR(err);
 }
 
+static void deepfs_destroy_inode(struct inode *inode)
+{
+	if (S_ISDIR(inode->i_mode))
+		deepfs_dir_destroy(to_deepfs_dir(inode));
+}
+
 struct super_operations deepfs_super_ops = {
 	.statfs = simple_statfs,
-	.drop_inode = generic_delete_inode,
+	.destroy_inode = deepfs_destroy_inode,
 };
 
 static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 {
 	struct deepfs_fs_info *fsi;
-	struct inode *root;
-	struct dentry *root_dentry;
+	struct deepfs_dir *root;
 	int err;
 
 	save_mount_options(sb, data);
@@ -189,26 +257,16 @@ static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 	if (err)
 		goto fail_deepfs_parse_options;
 
-	root = deepfs_create_dir(sb, 0755, 0, 0);
+	root = deepfs_dir_create(sb, NULL, 0, 0);
 	if (IS_ERR(root)) {
 		pr_err("failed to create root inode\n");
 		err = PTR_ERR(root);
-		goto fail_deepfs_create_dir;
+		goto fail_deepfs_dir_create;
 	}
-
-	root_dentry = d_make_root(root);
-	if (!root_dentry) {
-		pr_err("failed to create root dentry\n");
-		err = -ENOMEM;
-		goto fail_d_make_root;
-	}
-	sb->s_root = root_dentry;
 
 	return 0;
 
-fail_d_make_root:
-	deepfs_dir_put(to_deepfs_dir(root));
-fail_deepfs_create_dir:
+fail_deepfs_dir_create:
 fail_deepfs_parse_options:
 	kfree(fsi);
 	sb->s_fs_info = NULL;
@@ -251,5 +309,5 @@ module_exit(deepfs_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Recursive pseudo file system");
-MODULE_VERSION("0.1.3");
+MODULE_VERSION("0.2.0");
 MODULE_LICENSE("GPL");

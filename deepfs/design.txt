@@ -4,7 +4,7 @@ each directory has two parameters
 	depth (in $(seq 0 $max_depth) )
 	id ( in $(seq 0 $depth) )
 each directory has name "$(dirname $id)"
-	function dirname { $(printf %02x $1); }
+	function dirname { sub0x$(printf %02x $1); }
 each directory has files
 	depth (r--)
 		read returns $(printf %02x $depth)
