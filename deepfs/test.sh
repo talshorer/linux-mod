@@ -13,9 +13,13 @@ exittest()
 check_subdirs()
 {
 	depth=$1
-	ls &> /dev/null
+	local lsoutput=$(ls -1)
 	for i in $(seq 0 $(( $MAXDEPTH - $depth - 1 ))); do
 		subdir=sub0x$(printf %02x $i)
+		if ! echo "$lsoutput" | grep $subdir &> /dev/null; then
+			echo "$0: missing subdir $(pwd)/$subdir in ls" 1>&2
+			err=1
+		fi
 		if [[ -e $subdir ]]; then
 			cd $subdir
 			check_subdirs $(( $depth + 1 ))

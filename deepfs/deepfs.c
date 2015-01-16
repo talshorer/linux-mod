@@ -19,6 +19,7 @@ struct deepfs_mount_opts {
 
 struct deepfs_fs_info {
 	struct deepfs_mount_opts opts;
+	atomic_t next_ino;
 };
 
 struct deepfs_dir {
@@ -135,6 +136,17 @@ static const struct file_operations deepfs_dir_fops = {
 	.iterate = deepfs_dir_iterate,
 };
 
+struct dentry *deepfs_dir_lookup(struct inode *dir, struct dentry *dentry,
+		unsigned int flags)
+{
+	pr_info("%s\n", __func__);
+	return simple_lookup(dir, dentry, flags);
+}
+
+const struct inode_operations deepfs_dir_inode_operations = {
+	.lookup = deepfs_dir_lookup,
+};
+
 static struct deepfs_dir *deepfs_dir_create(struct super_block *sb,
 		struct deepfs_dir *parent, unsigned int depth, unsigned int id)
 {
@@ -153,7 +165,7 @@ static struct deepfs_dir *deepfs_dir_create(struct super_block *sb,
 	inode->i_uid.val = 0;
 	inode->i_gid.val = 0;
 	inode->i_atime = inode->i_mtime = inode->i_ctime = CURRENT_TIME;
-	inode->i_op = &simple_dir_inode_operations;
+	inode->i_op = &deepfs_dir_inode_operations;
 	inode->i_fop = &deepfs_dir_fops;
 
 	priv = kzalloc(sizeof(struct deepfs_dir), GFP_KERNEL);
@@ -220,14 +232,28 @@ fail_new_inode:
 	return ERR_PTR(err);
 }
 
+static struct inode *deepfs_alloc_inode(struct super_block *sb)
+{
+	struct deepfs_fs_info *fsi = sb->s_fs_info;
+	struct inode *ret;
+	ret = kzalloc(sizeof(*ret), GFP_KERNEL);
+	if (ret) {
+		inode_init_once(ret);
+		ret->i_ino = atomic_inc_return(&fsi->next_ino);
+	}
+	return ret;
+}
+
 static void deepfs_destroy_inode(struct inode *inode)
 {
 	if (S_ISDIR(inode->i_mode))
 		deepfs_dir_destroy(to_deepfs_dir(inode));
+	kfree(inode);
 }
 
 struct super_operations deepfs_super_ops = {
 	.statfs = simple_statfs,
+	.alloc_inode = deepfs_alloc_inode,
 	.destroy_inode = deepfs_destroy_inode,
 };
 
@@ -251,6 +277,7 @@ static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 		err = -ENOMEM;
 		goto fail_kzalloc_fsi;
 	}
+	atomic_set(&fsi->next_ino, 0);
 	sb->s_fs_info = fsi;
 
 	err = deepfs_parse_options(data, &fsi->opts);
@@ -284,7 +311,6 @@ static struct dentry *deepfs_mount(struct file_system_type *fs_type, int flags,
 		const char *dev_name, void *data)
 {
 	pr_info("<%s>\n", __func__);
-	return mount_nodev(fs_type, flags, data, deepfs_fill_super);
 }
 
 static struct file_system_type deepfs_fs_type = {
@@ -309,5 +335,5 @@ module_exit(deepfs_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Recursive pseudo file system");
-MODULE_VERSION("0.2.0");
+MODULE_VERSION("0.2.1");
 MODULE_LICENSE("GPL");
