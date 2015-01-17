@@ -58,9 +58,10 @@ static void nldummy_input(struct sk_buff *skb)
 	netlink_rcv_skb(skb, &nldummy_rcv_msg);
 }
 
-static void nldummy_bind(int group)
+static int nldummy_bind(struct net *net, int group)
 {
-	pr_info("<%s> group=%d\n", __func__, group);
+	pr_info("<%s> net=%p group=%d\n", __func__, net, group);
+	return 0;
 }
 
 static int nldummy_net_init(struct net *net)
@@ -127,5 +128,5 @@ module_driver(nldummy_net_ops, register_pernet_subsys,
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("A netlink server that xors incoming packets");
-MODULE_VERSION("1.0.2");
+MODULE_VERSION("1.0.3");
 MODULE_LICENSE("GPL");
