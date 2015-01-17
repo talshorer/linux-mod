@@ -167,9 +167,9 @@ fail_new_inode:
 	return err;
 }
 
-static inline void deepfs_dir_destroy(struct deepfs_dir *d)
+static inline void deepfs_depth_file_destroy(struct deepfs_depth_file *f)
 {
-	kfree(d);
+	kfree(f);
 }
 
 static const char deepfs_subdir_basename[] = "sub0x";
@@ -330,6 +330,11 @@ fail_new_inode:
 	return ERR_PTR(err);
 }
 
+static inline void deepfs_dir_destroy(struct deepfs_dir *d)
+{
+	kfree(d);
+}
+
 static struct inode *deepfs_alloc_inode(struct super_block *sb)
 {
 	struct deepfs_fs_info *fsi = sb->s_fs_info;
@@ -344,8 +349,16 @@ static struct inode *deepfs_alloc_inode(struct super_block *sb)
 
 static void deepfs_destroy_inode(struct inode *inode)
 {
-	if (S_ISDIR(inode->i_mode))
+	switch (inode->i_mode & S_IFMT) {
+	case S_IFDIR:
 		deepfs_dir_destroy(to_deepfs_dir(inode));
+		break;
+	case S_IFREG:
+		deepfs_depth_file_destroy(to_deepfs_depth_file(inode));
+	default:
+		pr_err("no function to free inode type. i_mode = %d\n",
+				inode->i_mode);
+	}
 	kfree(inode);
 }
 
@@ -434,5 +447,5 @@ module_exit(deepfs_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Recursive pseudo file system");
-MODULE_VERSION("0.3.0");
+MODULE_VERSION("0.3.1");
 MODULE_LICENSE("GPL");
