@@ -311,6 +311,7 @@ static struct dentry *deepfs_mount(struct file_system_type *fs_type, int flags,
 		const char *dev_name, void *data)
 {
 	pr_info("<%s>\n", __func__);
+	return mount_nodev(fs_type, flags, data, deepfs_fill_super);
 }
 
 static struct file_system_type deepfs_fs_type = {
@@ -335,5 +336,5 @@ module_exit(deepfs_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Recursive pseudo file system");
-MODULE_VERSION("0.2.1");
+MODULE_VERSION("0.2.2");
 MODULE_LICENSE("GPL");

@@ -10,7 +10,7 @@ exittest()
 	exit $err
 }
 
-check_subdirs()
+__check_subdirs()
 {
 	depth=$1
 	local lsoutput=$(ls -1)
@@ -21,14 +21,19 @@ check_subdirs()
 			err=1
 		fi
 		if [[ -e $subdir ]]; then
-			cd $subdir
-			check_subdirs $(( $depth + 1 ))
-			cd ..
+			check_subdirs $subdir $(( $depth + 1 ))
 		else
 			echo "$0: missing subdir $(pwd)/$subdir" 1>&2
 			err=1
 		fi
 	done
+}
+
+check_subdirs()
+{
+	cd $1
+	__check_subdirs $2
+	cd ..
 }
 
 err=0
@@ -42,9 +47,7 @@ if [[ $err == 1 ]]; then
 fi
 echo "$0: mount successful" 1>&2
 echo "$0: running recursive files check" 1>&2
-cd $MOUNTP
-check_subdirs 0
-cd ../
+check_subdirs $MOUNTP 0
 umount $MOUNTP
 sleep 1
 exittest

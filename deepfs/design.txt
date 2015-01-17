@@ -15,4 +15,3 @@ each directory has $(nsubdirs $depth) subdirectories
 		id (each child is given an id)
 each directory contains a symlink named "link"
 	links to "../$(dirname $(( ($id + 1) % $(nsubdirs $depth) ))
-everything should be allocated and released "on the fly" (@open/close)
