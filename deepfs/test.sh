@@ -12,8 +12,16 @@ exittest()
 
 __check_subdirs()
 {
-	depth=$1
+	local depth=$1
 	local lsoutput=$(ls -1)
+	local depthfile=$(pwd)/depth
+	local actual=$(cat $depthfile)
+	local expected=$(printf 0x%02x $depth)
+	if [[ "$expected" != "$actual" ]]; then
+		echo -n "$0: unexpected data in depth file $depthfile " 1>&2
+		echo "expected $expected actual $actual" 1>&2
+		err=1
+	fi
 	for i in $(seq 0 $(( $MAXDEPTH - $depth - 1 ))); do
 		subdir=sub0x$(printf %02x $i)
 		if ! echo "$lsoutput" | grep $subdir &> /dev/null; then
