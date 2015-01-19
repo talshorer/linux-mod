@@ -14,7 +14,10 @@ FUNCTIONDIR=$GADGET/functions/$FUNCTION.0
 CONFIGDIR=$GADGET/configs/c.1
 CONFIGSTRINGSDIR=$CONFIGDIR/strings/0x409
 
-mkdir $GADGET
+if ! mkdir $GADGET 2>/dev/null; then
+	echo "$0: failed to create gadget" 1>&2
+	exit 1
+fi
 echo $idVendor > $GADGET/idVendor
 echo $idProduct > $GADGET/idProduct
 mkdir $STRINGSDIR
