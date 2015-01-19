@@ -10,6 +10,11 @@ exittest()
 	exit $err
 }
 
+__dirname()
+{
+	printf sub0x%02x $1
+}
+
 __check_subdirs()
 {
 	local depth=$1
@@ -22,8 +27,15 @@ __check_subdirs()
 		echo "expected $expected actual $actual" 1>&2
 		err=1
 	fi
+	if [[ $depth != 0 ]]; then
+		link=../$(__dirname $(( ($i + 1) % ($MAXDEPTH - $depth + 1) )))
+		if [[ "$(realpath link)" != "$(realpath $link)" ]]; then
+			echo -n "$0: unexpected link path in $(pwd)" 1>&2
+			err=1
+		fi
+	fi
 	for i in $(seq 0 $(( $MAXDEPTH - $depth - 1 ))); do
-		subdir=sub0x$(printf %02x $i)
+		subdir=$(__dirname $i)
 		if ! echo "$lsoutput" | grep $subdir &> /dev/null; then
 			echo "$0: missing subdir $(pwd)/$subdir in ls" 1>&2
 			err=1

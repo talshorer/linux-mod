@@ -6,8 +6,12 @@
 #include <linux/slab.h>
 #include <linux/parser.h>
 #include <linux/pagemap.h>
+#include <linux/namei.h>
 
 #define DEEPFS_MAGIC 0x0157ae10
+
+struct deepfs_depth_file;
+struct deepfs_symlink;
 
 struct deepfs_mount_opts {
 	u8 max_depth;
@@ -15,7 +19,7 @@ struct deepfs_mount_opts {
 #define DEEPFS_MAX_MAX_DEPTH \
 	(typeof(((struct deepfs_mount_opts *)0)->max_depth))(-1)
 #define to_deepfs_mount_opts(sb) \
-	(struct deepfs_mount_opts *)(sb->s_fs_info)
+	((struct deepfs_mount_opts *)(sb->s_fs_info))
 
 struct deepfs_fs_info {
 	struct deepfs_mount_opts opts;
@@ -26,6 +30,8 @@ struct deepfs_dir {
 	struct inode *inode;
 	struct dentry *dentry;
 	struct deepfs_dir *parent;
+	struct deepfs_depth_file *depth_file;
+	struct deepfs_symlink *symlink;
 	unsigned int depth;
 	unsigned int id;
 	struct list_head children;
@@ -35,13 +41,28 @@ struct deepfs_dir {
 #define to_deepfs_dir(inode) \
 	((struct deepfs_dir *)(inode->i_private))
 
+static const char deepfs_subdir_basename[] = "sub0x";
+#define DEEPFS_DIRNAME_LEN (sizeof(deepfs_subdir_basename) + 2)
+
 # define DEEPFS_DEPTH_FILE_BUF_LEN 6 /* 0xXX\n\0 */
 struct deepfs_depth_file {
 	struct deepfs_dir *dir;
+	struct inode *inode;
 	char buf[DEEPFS_DEPTH_FILE_BUF_LEN];
 };
 #define to_deepfs_depth_file(inode) \
 	((struct deepfs_depth_file *)(inode->i_private))
+
+static const char deepfs_depth_file_name[] = "depth";
+
+struct deepfs_symlink {
+	struct inode *inode;
+	char buf[DEEPFS_DIRNAME_LEN + 3]; /* add "../" */
+};
+#define to_deepfs_symlink(inode) \
+	((struct deepfs_symlink *)(inode->i_private))
+
+static const char deepfs_symlink_name[] = "link";
 
 enum {
 	deepfs_opt_max_depth,
@@ -114,7 +135,7 @@ static const struct file_operations deepfs_depth_file_fops = {
 	.read = deepfs_depth_file_read,
 };
 
-static int deepfs_create_depth_file(struct super_block *sb,
+static int deepfs_depth_file_create(struct super_block *sb,
 		struct deepfs_dir *dir)
 {
 	struct inode *inode;
@@ -137,15 +158,17 @@ static int deepfs_create_depth_file(struct super_block *sb,
 
 	f = kzalloc(sizeof(*f), GFP_KERNEL);
 	if (!f) {
-		pr_err("failed to allocate directory private data\n");
+		pr_err("failed to allocate depth file private data\n");
 		err = -ENOMEM;
 		goto fail_kzalloc_private;
 	}
 	f->dir = dir;
+	f->inode = inode;
+	dir->depth_file = f;
 	sprintf(f->buf, "0x%02x\n", dir->depth);
 	inode->i_private = f;
 
-	qname.name = "depth";
+	qname.name = deepfs_depth_file_name;
 	qname.len = strlen(qname.name);
 	qname.hash = full_name_hash(qname.name, qname.len);
 	dentry = d_alloc(dir->dentry, &qname);
@@ -160,6 +183,7 @@ static int deepfs_create_depth_file(struct super_block *sb,
 
 fail_d_alloc:
 	kfree(f);
+	dir->depth_file = NULL;
 	inode->i_private = NULL;
 fail_kzalloc_private:
 	iput(inode);
@@ -172,8 +196,76 @@ static inline void deepfs_depth_file_destroy(struct deepfs_depth_file *f)
 	kfree(f);
 }
 
-static const char deepfs_subdir_basename[] = "sub0x";
-#define DEEPFS_DIRNAME_LEN (sizeof(deepfs_subdir_basename) + 2)
+static void *deepfs_symlink_follow_link(struct dentry *dentry,
+		struct nameidata *nd)
+{
+	struct deepfs_symlink *l = to_deepfs_symlink(dentry->d_inode);
+	pr_info("<%s>\n", __func__);
+	nd_set_link(nd, l->buf);
+	return NULL;
+}
+
+const struct inode_operations deepfs_symlink_inode_operations = {
+	.readlink    = generic_readlink,
+	.follow_link = deepfs_symlink_follow_link,
+};
+
+static int deepfs_symlink_create(struct super_block *sb,
+		struct deepfs_dir *dir)
+{
+	struct inode *inode;
+	struct dentry *dentry;
+	struct deepfs_symlink *l;
+	struct qstr qname;
+	int err;
+
+	inode = new_inode(sb);
+	if (!inode) {
+		pr_err("failed to create inode\n");
+		err = -ENOMEM;
+		goto fail_new_inode;
+	}
+	inode->i_mode = S_IRUGO | S_IFLNK;
+	inode->i_uid.val = 0;
+	inode->i_gid.val = 0;
+	inode->i_atime = inode->i_mtime = inode->i_ctime = CURRENT_TIME;
+	inode->i_op = &deepfs_symlink_inode_operations;
+
+	l = kzalloc(sizeof(*l), GFP_KERNEL);
+	if (!l) {
+		pr_err("failed to allocate symlink private data\n");
+		err = -ENOMEM;
+		goto fail_kzalloc_private;
+	}
+	sprintf(l->buf, "../%s%02x", deepfs_subdir_basename, (dir->id + 1) %
+			(to_deepfs_mount_opts(sb)->max_depth - dir->depth + 1)
+	);
+	l->inode = inode;
+	dir->symlink = l;
+	inode->i_private = l;
+
+	qname.name = deepfs_symlink_name;
+	qname.len = strlen(qname.name);
+	qname.hash = full_name_hash(qname.name, qname.len);
+	dentry = d_alloc(dir->dentry, &qname);
+	if (!dentry) {
+		pr_err("failed to create dentry\n");
+		err = -ENOMEM;
+		goto fail_d_alloc;
+	}
+	d_add(dentry, inode);
+
+	return 0;
+
+fail_d_alloc:
+	kfree(l);
+	inode->i_private = NULL;
+	dir->symlink = NULL;
+fail_kzalloc_private:
+	iput(inode);
+fail_new_inode:
+	return err;
+}
 
 static int deepfs_fill_dirname(char *buf, struct deepfs_dir *d)
 {
@@ -205,7 +297,21 @@ static int deepfs_dir_iterate(struct file *filp, struct dir_context *ctx)
 
 	if (!dir_emit_dots(filp, ctx))
 		return 0;
-	pos = ctx->pos - 2;
+	if (ctx->pos < 4) {
+		if (ctx->pos < 3) {
+			if (!dir_emit(ctx, deepfs_depth_file_name,
+					strlen(deepfs_depth_file_name),
+					d->depth_file->inode->i_ino, DT_REG))
+				return 0;
+			ctx->pos++;
+		}
+		if (d->symlink && !dir_emit(ctx, deepfs_symlink_name,
+				strlen(deepfs_symlink_name),
+				d->symlink->inode->i_ino, DT_LNK))
+			return 0;
+		ctx->pos++;
+	}
+	pos = ctx->pos - 4;
 	list_for_each_entry(subdir, &d->children, parlink) {
 		if (subdir->id < pos)
 			continue;
@@ -217,6 +323,11 @@ static int deepfs_dir_iterate(struct file *filp, struct dir_context *ctx)
 	}
 
 	return 0;
+}
+
+static inline void deepfs_symlink_destroy(struct deepfs_symlink *l)
+{
+	kfree(l);
 }
 
 static const struct file_operations deepfs_dir_fops = {
@@ -287,6 +398,11 @@ static struct deepfs_dir *deepfs_dir_create(struct super_block *sb,
 			goto fail_dentry;
 		}
 		d_add(priv->dentry, inode);
+
+		err = deepfs_symlink_create(sb, priv);
+		if (err)
+			pr_err("deepfs_symlink_create failed, err = %d\n",
+					err);
 	} else { /* mount point */
 		BUG_ON(sb->s_root);
 		priv->dentry = d_make_root(priv->inode);
@@ -298,9 +414,9 @@ static struct deepfs_dir *deepfs_dir_create(struct super_block *sb,
 		sb->s_root = priv->dentry;
 	}
 
-	err = deepfs_create_depth_file(sb, priv);
+	err = deepfs_depth_file_create(sb, priv);
 	if (err)
-		pr_err("deepfs_create_depth_file failed, err = %d\n", err);
+		pr_err("deepfs_depth_file_create failed, err = %d\n", err);
 
 	if (depth < opts->max_depth) {
 		unsigned int i;
@@ -355,8 +471,12 @@ static void deepfs_destroy_inode(struct inode *inode)
 		break;
 	case S_IFREG:
 		deepfs_depth_file_destroy(to_deepfs_depth_file(inode));
+		break;
+	case S_IFLNK:
+		deepfs_symlink_destroy(to_deepfs_symlink(inode));
+		break;
 	default:
-		pr_err("no function to free inode type. i_mode = %d\n",
+		pr_err("no function to free inode type. i_mode = %o\n",
 				inode->i_mode);
 	}
 	kfree(inode);
@@ -447,5 +567,5 @@ module_exit(deepfs_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Recursive pseudo file system");
-MODULE_VERSION("0.3.1");
+MODULE_VERSION("1.0.0");
 MODULE_LICENSE("GPL");
