@@ -1,8 +1,0 @@
--rw-rw-r-- .[ch] files
--rw-rw-r-- makefiles
--rw-rw-r-- bash test scripts
--rwxrwxr-x code generating scripts
--rwxrwxr-x utility scripts
-lrwxrwxrwx soft links
-drwxrwxr-x directories
--rw-rw-r-- misc files located at repository's root
