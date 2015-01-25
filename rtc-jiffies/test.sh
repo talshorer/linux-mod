@@ -4,6 +4,7 @@ MODULE=$(basename $(dirname $(realpath $0)))
 NCLOCKS=4
 KBUILD_MODNAME=$(echo $MODULE | tr '-' '_')
 MODULE_SYSFS=/sys/class/$KBUILD_MODNAME
+RTC_SYSFS=/sys/class/rtc
 # used to protect access to output streams
 LOCKFILE=$(mktemp)
 
@@ -14,12 +15,16 @@ __echo()
 
 check_diff()
 {
-	local rtcdev=$1
-	local sysclk=$(date +%c)
-	local hwclk=$(hwclock -f $rtcdev -r |
-			sed "s/\(.*\)  0\.0\{6\}\ seconds/\1/")
-	[[ "$sysclk" == "$hwclk" ]] && return 0
-	# TODO allow a difference of up to one second
+	local rtc=$1
+	local sysclk=$(date +%s)
+	local hwclk=$(cat $RTC_SYSFS/$rtc/since_epoch)
+	local clkdiff=$(( $sysclk - $hwclk ))
+	[[ $clkdiff -lt 0 ]] && clkdiff=$(( - $clkdiff ))
+	# allow a difference of up to one second
+	if [[ $clkdiff -gt 1 ]]; then
+		__echo "sysclk and $rtc differ by more than 1 seconds "\
+				"(hwclk=$hwclk sysclk=$sysclk)"
+	fi
 }
 
 test_one_clock()
@@ -31,9 +36,10 @@ test_one_clock()
 	local rtcdev=/dev/$rtc
 	__echo "$0: beginning test on clock $clock ($rtc)"
 	hwclock -f $rtcdev -w
-	# TODO for each value in (0, 2, 4) sleep $value and run check_diff
-	__echo "$0: unfinished TODO"
-	lerr=1
+	for sleeptime in 0 2 4; do
+		sleep $sleeptime
+		check_diff $rtc || lerr=1
+	done
 	__echo "$0: finished test on clock $clock, err=$lerr"
 	[[ $lerr != 0 ]] && err=$lerr
 }
@@ -48,10 +54,6 @@ for i in $(seq 0 $(( $NCLOCKS - 1 ))); do
 	children="$children $!"
 done
 wait $children
-# debug start
-echo "hit return to finish test"
-read
-# debug end
 rmmod $MODULE
 rm $LOCKFILE
 exit $err
