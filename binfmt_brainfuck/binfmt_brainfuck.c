@@ -16,17 +16,21 @@ MODULE_PARM_DESC(interpreter, "path to the brainfuck interpreter");
 static struct linux_binfmt brainfuck_format;
 
 /* based on load_script in fs/binfmt_script.c */
-static int load_brainfuck_binary(struct linux_binprm * bprm)
+static int load_brainfuck_binary(struct linux_binprm *bprm)
 {
 	char *p;
 	const char *interp; /* used because of type checking  */
 	int ret;
+	char filepath[256];
 
 	p = strrchr(bprm->filename, '.');
 	if (!p || strcmp(p + 1, BRAINFUCK_SUFFIX))
 		return -ENOEXEC;
 
-	pr_info("<%s>\n", __func__);
+	p = d_path(&bprm->file->f_path, filepath, sizeof(filepath));
+	if (IS_ERR(p))
+		p = "(error)";
+	pr_info("<%s> path = \"%s\"\n", __func__, p);
 
 	allow_write_access(bprm->file);
 	fput(bprm->file);
@@ -94,5 +98,5 @@ module_exit(binfmt_brainfuck_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Binary interpreter for brainfuck files");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
 MODULE_LICENSE("GPL");
