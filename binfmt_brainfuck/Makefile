@@ -1,11 +1,11 @@
 obj-m := binfmt_brainfuck.o
 
-EXECV=execv.out
+EXE := execv.out bf.out
 
 M:=$(shell pwd)
 
 include $(M)/../env.mk
 
-all: $(EXECV) modules
+all: $(EXE) modules
 
 clean: modules-clean bin-clean
