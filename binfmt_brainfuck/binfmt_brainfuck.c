@@ -12,9 +12,6 @@ static char *brainfuck_interpreter;
 module_param_named(interpreter, brainfuck_interpreter, charp, S_IRUGO);
 MODULE_PARM_DESC(interpreter, "path to the brainfuck interpreter");
 
-/* declare this so it can be used for set_binfmt() */
-static struct linux_binfmt brainfuck_format;
-
 /* based on load_script in fs/binfmt_script.c */
 static int load_brainfuck_binary(struct linux_binprm *bprm)
 {
@@ -98,5 +95,5 @@ module_exit(binfmt_brainfuck_exit);
 
 MODULE_AUTHOR("Tal Shorer");
 MODULE_DESCRIPTION("Binary interpreter for brainfuck files");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
 MODULE_LICENSE("GPL");
