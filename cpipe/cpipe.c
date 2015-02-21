@@ -7,6 +7,8 @@
 #include <linux/sched.h>
 #include <linux/poll.h>
 
+#include <lmod/meta.h>
+
 #include "cpipe_ioctl.h"
 
 static const char DRIVER_NAME[] = "cpipe";
@@ -430,7 +432,6 @@ static void __exit cpipe_exit(void)
 module_exit(cpipe_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
 MODULE_VERSION("1.1.2");
-MODULE_LICENSE("GPL");

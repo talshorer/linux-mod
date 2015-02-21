@@ -8,6 +8,8 @@
 #include <linux/pagemap.h>
 #include <linux/namei.h>
 
+#include <lmod/meta.h>
+
 #define DEEPFS_MAGIC 0x0157ae10
 
 struct deepfs_depth_file;
@@ -565,7 +567,6 @@ static void __exit deepfs_exit(void)
 module_exit(deepfs_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Recursive pseudo file system");
 MODULE_VERSION("1.0.0");
-MODULE_LICENSE("GPL");

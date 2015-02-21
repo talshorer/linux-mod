@@ -2,6 +2,8 @@
 #include <linux/kernel.h>
 #include <linux/debugfs.h>
 
+#include <lmod/meta.h>
+
 #include "elfsect.h"
 
 #define MODULE_NAME "elfsect"
@@ -89,7 +91,6 @@ static void __exit elfsect_exit(void)
 module_exit(elfsect_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A module with a section of dummy function pointers");
 MODULE_VERSION("1.2.0");
-MODULE_LICENSE("GPL");

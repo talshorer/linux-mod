@@ -1,6 +1,8 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 
+#include <lmod/meta.h>
+
 #include "xprintk.h"
 
 #define MODULE_NAME "xprintk"
@@ -34,7 +36,6 @@ static void __exit xprintk_exit(void)
 module_exit(xprintk_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Subsystem-specific printk-like functions");
-MODULE_VERSION("0.0.0");
-MODULE_LICENSE("GPL");
+MODULE_VERSION("1.0.0");

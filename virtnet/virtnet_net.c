@@ -5,6 +5,8 @@
 #include <linux/u64_stats_sync.h>
 #include <net/rtnetlink.h>
 
+#include <lmod/meta.h>
+
 #include "virtnet.h"
 
 static const char DRIVER_NAME[] = "virtnet";
@@ -385,7 +387,6 @@ static void __exit virtnet_exit(void)
 module_exit(virtnet_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
 MODULE_VERSION("1.2.5");
-MODULE_LICENSE("GPL");

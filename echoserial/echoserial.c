@@ -5,6 +5,8 @@
 #include <linux/tty_flip.h>
 #include <linux/kfifo.h>
 
+#include <lmod/meta.h>
+
 #define ECHOSERIAL_PORT_NAME_LEN 8
 /* one more than the last type @ include/uapi/linux/serial_core.h */
 #define PORT_ECHOSERIAL 109
@@ -515,7 +517,6 @@ static void __exit echoserial_exit(void)
 module_exit(echoserial_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
 MODULE_VERSION("1.0.3");
-MODULE_LICENSE("GPL");

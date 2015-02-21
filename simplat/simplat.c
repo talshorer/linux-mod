@@ -2,6 +2,8 @@
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 
+#include <lmod/meta.h>
+
 #include "simplat.h"
 
 /* not needed */
@@ -30,7 +32,6 @@ static struct platform_driver simplat_driver = {
 
 module_platform_driver(simplat_driver);
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A simple platform driver that does nothing");
 MODULE_VERSION("1.0.0");
-MODULE_LICENSE("GPL");

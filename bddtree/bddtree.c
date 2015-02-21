@@ -6,6 +6,8 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 
+#include <lmod/meta.h>
+
 #define MODULE_NAME "bddtree"
 
 struct bddtree_bus {
@@ -426,7 +428,6 @@ static void __exit bddtree_exit(void)
 module_exit(bddtree_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A bus-driver-device tree");
 MODULE_VERSION("1.1.1");
-MODULE_LICENSE("GPL");

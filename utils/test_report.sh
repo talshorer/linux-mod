@@ -28,8 +28,8 @@ function test_module {
 		eval $cmd || err=1
 		echo $SEP
 	fi
-		make -C $m clean
-		echo $SEP
+	make -C $m clean
+	echo $SEP
 	echo "err=$err"
 	let failure+=$err
 }

@@ -6,6 +6,8 @@
 #include <linux/slab.h>
 #include <linux/pm_runtime.h>
 
+#include <lmod/meta.h>
+
 #define MODULE_NAME "gpio-virtual"
 
 static int vgpio_nchips = 1;
@@ -342,7 +344,6 @@ static void __exit vgpio_exit(void)
 module_exit(vgpio_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virtual gpio controller chips");
 MODULE_VERSION("1.1.1");
-MODULE_LICENSE("GPL");

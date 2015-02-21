@@ -5,6 +5,8 @@
 #include <linux/genhd.h>
 #include <linux/blkdev.h>
 
+#include <lmod/meta.h>
+
 #define VIRTBLOCK_MAGIC_NMINROS 16
 #define VIRTBLOCK_TO_BLK_LAYER (virtblock_hardsect_size / 512)
 
@@ -278,7 +280,6 @@ static void __exit virtblock_exit(void)
 module_exit(virtblock_exit)
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A simple block device residing in ram");
 MODULE_VERSION("1.0.3");
-MODULE_LICENSE("GPL");

@@ -7,6 +7,8 @@
 #include <net/netlink.h>
 #include <net/sock.h>
 
+#include <lmod/meta.h>
+
 #include "nldummy_uapi.h"
 
 #ifndef CONFIG_NET
@@ -126,7 +128,6 @@ module_driver(nldummy_net_ops, register_pernet_subsys,
 		unregister_pernet_subsys);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A netlink server that xors incoming packets");
 MODULE_VERSION("1.0.3");
-MODULE_LICENSE("GPL");

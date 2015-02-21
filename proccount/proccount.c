@@ -4,6 +4,8 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 
+#include <lmod/meta.h>
+
 #define PROCCOUNT_MODE 0444
 
 static const char DRIVER_NAME[] = "proccount";
@@ -68,7 +70,6 @@ static void __exit proccount_exit(void)
 module_exit(proccount_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A file in procfs that returns open count upon read");
 MODULE_VERSION("1.0.2");
-MODULE_LICENSE("GPL");

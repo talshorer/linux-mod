@@ -5,6 +5,8 @@
 #include <linux/slab.h>
 #include <linux/usb.h>
 
+#include <lmod/meta.h>
+
 #include "usbticker.h"
 
 struct usbticker {
@@ -139,7 +141,6 @@ static struct usb_driver ticker_driver = {
 module_usb_driver(ticker_driver);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("USB ticker host device driver");
 MODULE_VERSION("1.0.0");
-MODULE_LICENSE("GPL");

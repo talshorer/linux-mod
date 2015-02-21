@@ -5,6 +5,8 @@
 #include <linux/mutex.h>
 #include <linux/usb/composite.h>
 
+#include <lmod/meta.h>
+
 #include "u_f.h"
 
 #include "usbticker.h"
@@ -412,7 +414,6 @@ fail_kzalloc_fti:
 DECLARE_USB_FUNCTION_INIT(ticker, ticker_alloc_instance, ticker_alloc_func);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Ticker usb gadget function");
 MODULE_VERSION("1.0.0");
-MODULE_LICENSE("GPL");

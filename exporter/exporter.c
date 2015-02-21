@@ -1,6 +1,8 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 
+#include <lmod/meta.h>
+
 #define MODULE_NAME "exporter"
 
 void exporter_fn(void)
@@ -10,7 +12,6 @@ void exporter_fn(void)
 EXPORT_SYMBOL_GPL(exporter_fn);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A module that exports a function");
 MODULE_VERSION("1.0.0");
-MODULE_LICENSE("GPL");

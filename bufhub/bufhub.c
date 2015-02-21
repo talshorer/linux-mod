@@ -8,6 +8,8 @@
 #include <linux/mutex.h>
 #include <linux/uaccess.h>
 
+#include <lmod/meta.h>
+
 #include "bufhub_ioctl.h"
 
 #define MODULE_NAME "bufhub"
@@ -490,7 +492,6 @@ static void __exit bufhub_exit(void)
 module_exit(bufhub_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A misc device that allows the creation of clipboards");
 MODULE_VERSION("1.0.2");
-MODULE_LICENSE("GPL");

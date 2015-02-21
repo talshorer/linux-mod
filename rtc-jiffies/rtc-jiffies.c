@@ -4,6 +4,8 @@
 #include <linux/kernel.h>
 #include <linux/rtc.h>
 
+#include <lmod/meta.h>
+
 static int jrtc_nclocks = 1;
 module_param_named(nclocks, jrtc_nclocks, int, 0444);
 MODULE_PARM_DESC(nclocks, "number of virtual clocks to create");
@@ -180,7 +182,6 @@ static void __exit jrtc_exit(void)
 module_exit(jrtc_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virtual real time clocks that work on system ticks");
 MODULE_VERSION("1.0.0");
-MODULE_LICENSE("GPL");

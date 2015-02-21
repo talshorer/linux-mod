@@ -3,6 +3,8 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 
+#include <lmod/meta.h>
+
 #include "usblb.h"
 
 static int usblb_nbuses = 1;
@@ -138,7 +140,6 @@ static void __exit usblb_exit(void)
 module_exit(usblb_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Loopback between virtual usb gadget and host controllers");
 MODULE_VERSION("1.0.0");
-MODULE_LICENSE("GPL");

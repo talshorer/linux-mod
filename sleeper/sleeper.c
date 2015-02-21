@@ -6,6 +6,8 @@
 #include <linux/kthread.h>
 #include <linux/freezer.h>
 
+#include <lmod/meta.h>
+
 #define DRIVER_NAME "sleeper"
 
 static int sleeper_nthreads = 1;
@@ -248,7 +250,6 @@ static void __exit sleeper_exit(void)
 module_exit(sleeper_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Kernel threads that sleep until woken up by user");
 MODULE_VERSION("1.0.3");
-MODULE_LICENSE("GPL");

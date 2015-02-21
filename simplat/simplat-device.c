@@ -2,6 +2,8 @@
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 
+#include <lmod/meta.h>
+
 #include "simplat.h"
 
 #define DRIVER_NAME "simplat-device"
@@ -85,7 +87,6 @@ static void __exit simplat_device_exit(void)
 module_exit(simplat_device_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Spawns devices for the simplat platform driver");
 MODULE_VERSION("1.0.1");
-MODULE_LICENSE("GPL");

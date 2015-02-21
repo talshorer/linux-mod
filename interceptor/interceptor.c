@@ -6,6 +6,8 @@
 #include <linux/kallsyms.h>
 #include <asm/syscall.h>
 
+#include <lmod/meta.h>
+
 #include "interceptor_uapi.h"
 
 #define MODULE_NAME "interceptor"
@@ -95,7 +97,6 @@ static void __exit interceptor_exit(void)
 module_exit(interceptor_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Intercepts a system call");
 MODULE_VERSION("1.1.1");
-MODULE_LICENSE("GPL");

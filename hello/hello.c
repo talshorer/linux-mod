@@ -4,6 +4,8 @@
 #include <linux/module.h>	/* Needed by all modules */
 #include <linux/kernel.h>	/* Needed for KERN_INFO */
 
+#include <lmod/meta.h>
+
 int init_module(void)
 {
 	printk(KERN_INFO "Hello, World!\n");
@@ -19,7 +21,6 @@ void cleanup_module(void)
 	printk(KERN_INFO "Goodbye, World!\n");
 }
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("A simple module that prints to log upon init and exit");
 MODULE_VERSION("1.0.0");
-MODULE_LICENSE("GPL");

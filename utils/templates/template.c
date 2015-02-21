@@ -1,7 +1,9 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 
-#define MODULE_NAME "__MODULE_NAME_LOWERCASE"
+#include <lmod/meta.h>
 
 static int __init __FILE_NAME_LOWERCASE_init(void)
 {
@@ -15,7 +17,6 @@ static void __exit __FILE_NAME_LOWERCASE_exit(void)
 module_exit(__FILE_NAME_LOWERCASE_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("FIXME");
-MODULE_VERSION("0.0.0");
 MODULE_LICENSE("GPL");

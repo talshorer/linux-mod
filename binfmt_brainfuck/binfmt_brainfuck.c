@@ -6,6 +6,8 @@
 #include <linux/file.h>
 #include <linux/binfmts.h>
 
+#include <lmod/meta.h>
+
 #define BRAINFUCK_SUFFIX "bf"
 
 static char *brainfuck_interpreter;
@@ -93,7 +95,6 @@ static void __exit binfmt_brainfuck_exit(void)
 module_exit(binfmt_brainfuck_exit);
 
 
-MODULE_AUTHOR("Tal Shorer");
+LMOD_MODULE_META();
 MODULE_DESCRIPTION("Binary interpreter for brainfuck files");
 MODULE_VERSION("1.0.2");
-MODULE_LICENSE("GPL");

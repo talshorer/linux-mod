@@ -1,6 +1,8 @@
-KERNEL?=/lib/modules/$(shell uname -r)/build
-LMOD_CFLAGS:=-Wall -Werror -D_GNU_SOURCE
-ccflags-y+=$(LMOD_CFLAGS)
+KERNEL ?= /lib/modules/$(shell uname -r)/build
+LMOD_TOP := $(dir $(lastword $(MAKEFILE_LIST)))
+
+LMOD_CFLAGS := -Wall -Werror -D_GNU_SOURCE -I$(LMOD_TOP)/utils/include
+ccflags-y += $(LMOD_CFLAGS)
 
 CC = $(CROSS_COMPILE)gcc
 
