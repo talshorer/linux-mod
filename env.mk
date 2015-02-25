@@ -2,7 +2,7 @@ KERNEL ?= /lib/modules/$(shell uname -r)/build
 LMOD_TOP := $(dir $(lastword $(MAKEFILE_LIST)))
 
 LMOD_CFLAGS += -Wall -Werror -D_GNU_SOURCE -I$(LMOD_TOP)/utils/include
-LMOD_US_CFLAGS += $(LMOD_CFLAGS)
+LMOD_US_CFLAGS += $(LMOD_CFLAGS) $(TARGET_CFLAGS)
 ccflags-y += $(LMOD_CFLAGS)
 
 CC = $(CROSS_COMPILE)gcc
