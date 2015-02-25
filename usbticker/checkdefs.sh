@@ -7,7 +7,7 @@ function uphex {
 source parsedefs.sh
 KERNELVERSION=$(make -s -C $KERNEL kernelversion | grep -v "make")
 echo $KERNELVERSION
-MODALIASFILE=$INSTALL_MOD_PATH/lib/modules/$KERNELVERSION/modules.alias
+MODALIASFILE=$TARGET_ROOT/lib/modules/$KERNELVERSION/modules.alias
 usbalias="usb:v$(uphex $usbticker_idVendor)p$(uphex $usbticker_idProduct)"
 echo "making sure \"$usbalias\" does not appear in $MODALIASFILE"
 (grep $usbalias $MODALIASFILE > /dev/null) && exit 1
