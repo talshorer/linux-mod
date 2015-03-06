@@ -24,8 +24,11 @@ static int __init firmreq_check_module_params(void) {
 static ssize_t firmware_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
-	/* TODO */
-	return snprintf(buf, PAGE_SIZE, "Hello world!\n");
+	struct firmware *fw = dev_get_drvdata(dev);
+	memcpy(buf, fw->data, fw->size);
+	buf[fw->size] = '\n';
+	buf[fw->size + 1] = '\0';
+	return fw->size + 2;
 }
 static DEVICE_ATTR_RO(firmware);
 static struct attribute *firmreq_dev_attrs[] = {
@@ -74,6 +77,7 @@ fail_device_create:
 static void firmreq_device_destroy(struct device *dev)
 {
 	struct firmware *fw = dev_get_drvdata(dev);
+	dev_info(dev, "destroying\n");
 	release_firmware(fw);
 	device_unregister(dev);
 }
@@ -143,4 +147,4 @@ module_exit(firmreq_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virtual devices that require firmware from userspace");
-MODULE_VERSION("0.2.0");
+MODULE_VERSION("1.0.0");
