@@ -1,0 +1,117 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
+#include <linux/module.h>
+#include <linux/kernel.h>
+#include <linux/device.h>
+
+#include <lmod/meta.h>
+
+static int firmreq_ndevices = 1;
+module_param_named(ndevices, firmreq_ndevices, int, 0444);
+MODULE_PARM_DESC(ndevices, "number of virtual devices to create");
+
+static int __init firmreq_check_module_params(void) {
+	int err = 0;
+	if (firmreq_ndevices <= 0) {
+		pr_err("firmreq_ndevices <= 0. value = %d\n", firmreq_ndevices);
+		err = -EINVAL;
+	}
+	return err;
+}
+
+static ssize_t firmware_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	/* TODO */
+	return snprintf(buf, PAGE_SIZE, "Hello world!\n");
+}
+static DEVICE_ATTR_RO(firmware);
+static struct attribute *firmreq_dev_attrs[] = {
+	&dev_attr_firmware.attr,
+	NULL,
+};
+ATTRIBUTE_GROUPS(firmreq_dev);
+
+static struct class *firmreq_class;
+
+static struct device **firmreq_devices;
+
+static struct device *firmreq_device_create(int i)
+{
+	struct device *dev = NULL;
+	/* TODO */
+	(void)dev;
+	return dev;
+}
+
+static void firmreq_device_destroy(struct device *dev)
+{
+	/* TODO */
+}
+
+static int __init firmreq_init(void)
+{
+	int err;
+	int i;
+
+	err = firmreq_check_module_params();
+	if (err)
+		return err;
+
+	firmreq_devices = vmalloc(
+			sizeof(firmreq_devices[0]) * firmreq_ndevices);
+	if (!firmreq_devices) {
+		err = -ENOMEM;
+		pr_err("failed to allocate firmreq_devices\n");
+		goto fail_vmalloc_firmreq_devices;
+	}
+	memset(firmreq_devices, 0,
+			sizeof(firmreq_devices[0]) * firmreq_ndevices);
+
+	firmreq_class = class_create(THIS_MODULE, KBUILD_MODNAME);
+	if (IS_ERR(firmreq_class)) {
+		err = PTR_ERR(firmreq_class);
+		pr_err("class_create failed. err = %d\n", err);
+		goto fail_class_create;
+	}
+	firmreq_class->dev_groups = firmreq_dev_groups;
+
+	for (i = 0; i < firmreq_ndevices; i++) {
+		firmreq_devices[i] = firmreq_device_create(i);
+		if (IS_ERR(firmreq_devices[i])) {
+			err = PTR_ERR(firmreq_devices[i]);
+			pr_err("firmreq_device_create. i = %d, err=%d\n",
+					i, err);
+			goto fail_firmreq_device_create_loop;
+		}
+	}
+
+	pr_info("initializated successfully\n");
+	return 0;
+
+fail_firmreq_device_create_loop:
+	while (i--)
+		firmreq_device_destroy(firmreq_devices[i]);
+	class_destroy(firmreq_class);
+fail_class_create:
+	vfree(firmreq_devices);
+fail_vmalloc_firmreq_devices:
+	return err;
+}
+module_init(firmreq_init);
+
+static void __exit firmreq_exit(void)
+{
+	int i;
+	for (i = 0; i < firmreq_ndevices; i++)
+		firmreq_device_destroy(firmreq_devices[i]);
+	class_destroy(firmreq_class);
+	vfree(firmreq_devices);
+	pr_info("exited successfully\n");
+}
+module_exit(firmreq_exit);
+
+
+LMOD_MODULE_META();
+MODULE_DESCRIPTION("Virtual devices that require firmware from userspace");
+MODULE_VERSION("0.0.1");
