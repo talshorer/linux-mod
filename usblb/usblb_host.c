@@ -191,7 +191,7 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		/* based on drivers/usb/musb/musb_virthub.c */
 		struct usb_hub_descriptor *desc = (void *)buf;
 		desc->bDescLength = 9;
-		desc->bDescriptorType = 0x29;
+		desc->bDescriptorType = USB_DT_HUB;
 		desc->bNbrPorts = 1;
 		desc->wHubCharacteristics = cpu_to_le16(
 			  0x0001 /* per-port power switching */

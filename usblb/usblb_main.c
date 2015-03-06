@@ -142,4 +142,4 @@ module_exit(usblb_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Loopback between virtual usb gadget and host controllers");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
