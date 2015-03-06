@@ -3,6 +3,8 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
+#include <linux/fs.h>
+#include <linux/firmware.h>
 
 #include <lmod/meta.h>
 
@@ -38,15 +40,42 @@ static struct device **firmreq_devices;
 
 static struct device *firmreq_device_create(int i)
 {
+	int err;
 	struct device *dev = NULL;
-	/* TODO */
-	(void)dev;
+	char fw_name[32];
+	const struct firmware *fw;
+
+	dev = device_create(firmreq_class, NULL, MKDEV(0, i), NULL,
+			"%s%d", KBUILD_MODNAME, i);
+	if (IS_ERR(dev)) {
+		err = PTR_ERR(dev);
+		pr_err("device_create failed. i = %d, err = %d\n", i, err);
+		goto fail_device_create;
+	}
+
+	sprintf(fw_name, "%s/%s.fw", KBUILD_MODNAME, dev_name(dev));
+	err = request_firmware(&fw, fw_name, dev);
+	if (err) {
+		dev_err(dev, "request_firmware failed. i = %d, err = %d\n",
+				i, err);
+		goto fail_request_firmware;
+	}
+	dev_set_drvdata(dev, (void*)fw);
+
+	dev_info(dev, "created successfully\n");
 	return dev;
+
+fail_request_firmware:
+	device_unregister(dev);
+fail_device_create:
+	return ERR_PTR(err);
 }
 
 static void firmreq_device_destroy(struct device *dev)
 {
-	/* TODO */
+	struct firmware *fw = dev_get_drvdata(dev);
+	release_firmware(fw);
+	device_unregister(dev);
 }
 
 static int __init firmreq_init(void)
@@ -80,7 +109,7 @@ static int __init firmreq_init(void)
 		firmreq_devices[i] = firmreq_device_create(i);
 		if (IS_ERR(firmreq_devices[i])) {
 			err = PTR_ERR(firmreq_devices[i]);
-			pr_err("firmreq_device_create. i = %d, err=%d\n",
+			pr_err("firmreq_device_create. i = %d, err = %d\n",
 					i, err);
 			goto fail_firmreq_device_create_loop;
 		}
@@ -114,4 +143,4 @@ module_exit(firmreq_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virtual devices that require firmware from userspace");
-MODULE_VERSION("0.0.1");
+MODULE_VERSION("0.2.0");
