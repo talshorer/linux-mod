@@ -307,7 +307,8 @@ static struct usb_function *ticker_alloc_func(struct usb_function_instance *fi)
 	ticker->count = 0;
 	atomic_set(&ticker->active, 0);
 	spin_lock_init(&ticker->count_lock);
-	setup_timer(&ticker->timer, f_ticker_timer_func, (unsigned long)ticker);
+	setup_timer(&ticker->timer, f_ticker_timer_func,
+			(unsigned long)ticker);
 
 	func = &ticker->func;
 	func->name = "ticker";
@@ -416,4 +417,4 @@ DECLARE_USB_FUNCTION_INIT(ticker, ticker_alloc_instance, ticker_alloc_func);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Ticker usb gadget function");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");

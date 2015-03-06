@@ -15,7 +15,8 @@ MODULE_PARM_DESC(ndevices, "number of virtual devices to create");
 static int __init firmreq_check_module_params(void) {
 	int err = 0;
 	if (firmreq_ndevices <= 0) {
-		pr_err("firmreq_ndevices <= 0. value = %d\n", firmreq_ndevices);
+		pr_err("firmreq_ndevices <= 0. value = %d\n",
+				firmreq_ndevices);
 		err = -EINVAL;
 	}
 	return err;
@@ -147,4 +148,4 @@ module_exit(firmreq_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virtual devices that require firmware from userspace");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
