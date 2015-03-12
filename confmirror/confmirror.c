@@ -9,10 +9,28 @@
 
 struct confmirror_item {
 	struct config_item item;
+	struct kobject kobj;
 };
 
 static struct kobject *confmirror_kobj;
 
+static inline struct confmirror_item *kobj_to_confmirror_item(
+		struct kobject *kobj)
+{
+	return container_of(kobj, struct confmirror_item, kobj);
+}
+
+static void confmirror_kobj_release(struct kobject *kobj)
+{
+	config_item_put(&kobj_to_confmirror_item(kobj)->item);
+}
+
+static struct kobj_type confmirror_kobj_ktype = {
+	.release   = confmirror_kobj_release,
+	.sysfs_ops = &kobj_sysfs_ops,
+};
+
+/* expected by configfs */
 static inline struct confmirror_item *to_confmirror_item(
 		struct config_item *item)
 {
@@ -43,22 +61,43 @@ static struct config_item *confmirror_make_item(struct config_group *group,
 		const char *name)
 {
 	struct confmirror_item *cmi;
+	int err;
 
 	pr_info("<%s> %s\n", __func__, name);
 
 	cmi = kzalloc(sizeof(struct confmirror_item), GFP_KERNEL);
-	if (!cmi)
-		return ERR_PTR(-ENOMEM);
+	if (!cmi) {
+		err = -ENOMEM;
+		pr_err("<%s> failed to allocate item\n", __func__);
+		goto fail_kzalloc_cmi;
+	}
 	config_item_init_type_name(&cmi->item, name, &confmirror_item_type);
 
+	kobject_init(&cmi->kobj, &confmirror_kobj_ktype);
+	err = kobject_add(&cmi->kobj, confmirror_kobj, "%s", name);
+	if (err) {
+		pr_err("<%s> kobject_add failed. err = %d\n", __func__, err);
+		goto fail_kobject_add;
+	}
+	config_item_get(&cmi->item); /* dropped by the kobj's release */
+
 	return &cmi->item;
+
+fail_kobject_add:
+	kfree(cmi);
+fail_kzalloc_cmi:
+	return ERR_PTR(err);
 }
 
 static void confmirror_drop_item(struct config_group *group,
 		struct config_item *item)
 {
+	struct confmirror_item *cmi = to_confmirror_item(item);
+
 	pr_info("<%s> %s\n", __func__, config_item_name(item));
+
 	config_item_put(item);
+	kobject_put(&cmi->kobj);
 }
 
 static struct configfs_group_operations confmirror_subsys_ops = {
@@ -112,7 +151,7 @@ module_init(confmirror_init);
 static void __exit confmirror_exit(void)
 {
 	kobject_put(confmirror_kobj);
-	configfs_register_subsystem(&confmirror_subsys);
+	configfs_unregister_subsystem(&confmirror_subsys);
 	pr_info("exited successfully\n");
 }
 module_exit(confmirror_exit);
@@ -120,4 +159,4 @@ module_exit(confmirror_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("configfs subsystem that mirrors items to sysfs kobjects");
-MODULE_VERSION("0.0.1");
+MODULE_VERSION("0.1.0");
