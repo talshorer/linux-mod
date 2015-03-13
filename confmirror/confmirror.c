@@ -10,6 +10,7 @@
 struct confmirror_item {
 	struct config_item item;
 	struct kobject kobj;
+	unsigned long value;
 };
 
 static struct kobject *confmirror_kobj;
@@ -25,9 +26,25 @@ static void confmirror_kobj_release(struct kobject *kobj)
 	config_item_put(&kobj_to_confmirror_item(kobj)->item);
 }
 
+static ssize_t attr_show(struct kobject *kobj, struct kobj_attribute *attr,
+		char *buf)
+{
+	struct confmirror_item *cmi = kobj_to_confmirror_item(kobj);
+	pr_info("<%s> %s %lu\n", __func__, kobject_name(kobj), cmi->value);
+	return snprintf(buf, PAGE_SIZE, "%lu\n", cmi->value);
+}
+
+static struct kobj_attribute confmirror_kobj_attribute = __ATTR_RO(attr);
+
+static struct attribute *confmirror_kobj_attrs[] = {
+	&confmirror_kobj_attribute.attr,
+	NULL,
+};
+
 static struct kobj_type confmirror_kobj_ktype = {
-	.release   = confmirror_kobj_release,
-	.sysfs_ops = &kobj_sysfs_ops,
+	.release       = confmirror_kobj_release,
+	.default_attrs = confmirror_kobj_attrs,
+	.sysfs_ops     = &kobj_sysfs_ops,
 };
 
 /* expected by configfs */
@@ -159,4 +176,4 @@ module_exit(confmirror_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("configfs subsystem that mirrors items to sysfs kobjects");
-MODULE_VERSION("0.1.0");
+MODULE_VERSION("0.1.1");

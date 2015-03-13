@@ -1,9 +1,13 @@
 #! /bin/bash
 
 MODULE=$(basename $(dirname $(realpath $0)))
-NOBJS=8
+NOBJS=1
 MODULE_CONFIGFS=/sys/kernel/config/$MODULE
 MODULE_SYSFS=/sys/kernel/$MODULE
+# $(( 0x1000 - 1 )))
+VALUES=$(seq 0 0x80 $(( 0x100 - 1 )))
+NVALUES=$(echo $VALUES | wc -w)
+ATTR=attr
 
 __objname()
 {
@@ -20,6 +24,23 @@ __obj_sysfs()
 	echo $MODULE_SYSFS/$1
 }
 
+readback_test()
+{
+	obj=$1
+	expected=$2
+	lerr=0
+	for fs in configfs sysfs; do
+		attr_file=$(__obj_$fs $obj)/$ATTR
+		actual=$(cat $attr_file)
+		if [[ "$actual" != "$expected" ]]; then
+			echo -n "$0: failed readback test on $attr_file " 1>&2
+			echo "expected $expected, actual $actual" 1>&2
+			lerr=1
+		fi
+	done
+	return $lerr
+}
+
 err=0
 cd $(dirname $0)
 insmod $MODULE.ko
@@ -33,7 +54,13 @@ for i in $(seq 0 $(( $NOBJS - 1 ))); do
 		echo "$0: $obj missing from sysfs" 1>&2
 		err=1
 	fi
-	# TODO attr
+	echo "$0: running readback test on $obj with $NVALUES values" 1>&2
+	attr_file=$obj_configfs/$ATTR
+	readback_test $obj 0 || err=1
+	for v in $VALUES; do
+		eval "echo $v > $attr_file" || err=1
+		readback_test $obj $v || err=1
+	done
 done
 echo "$0: destroying all objects" 2>&1
 for i in $(seq 0 $(( $NOBJS - 1 ))); do
