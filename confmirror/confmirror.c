@@ -10,7 +10,7 @@
 struct confmirror_item {
 	struct config_item item;
 	struct kobject kobj;
-	unsigned long value;
+	atomic_t value;
 };
 
 static struct kobject *confmirror_kobj;
@@ -26,12 +26,25 @@ static void confmirror_kobj_release(struct kobject *kobj)
 	config_item_put(&kobj_to_confmirror_item(kobj)->item);
 }
 
+static void confmirror_print_attr_access(struct confmirror_item *cmi,
+		const char *func, unsigned value)
+{
+	pr_info("<%s> %s, %u\n", func, kobject_name(&cmi->kobj), value);
+}
+
+static ssize_t confmirror_attr_show(struct confmirror_item *cmi, char *buf,
+		const char *func)
+{
+	unsigned value = atomic_read(&cmi->value);
+	confmirror_print_attr_access(cmi, func, value);
+	return snprintf(buf, PAGE_SIZE, "%u\n", value);
+}
+
 static ssize_t attr_show(struct kobject *kobj, struct kobj_attribute *attr,
 		char *buf)
 {
-	struct confmirror_item *cmi = kobj_to_confmirror_item(kobj);
-	pr_info("<%s> %s %lu\n", __func__, kobject_name(kobj), cmi->value);
-	return snprintf(buf, PAGE_SIZE, "%lu\n", cmi->value);
+	return confmirror_attr_show(kobj_to_confmirror_item(kobj), buf,
+			__func__);
 }
 
 static struct kobj_attribute confmirror_kobj_attribute = __ATTR_RO(attr);
@@ -57,6 +70,35 @@ static inline struct confmirror_item *to_confmirror_item(
 CONFIGFS_ATTR_STRUCT(confmirror_item);
 CONFIGFS_ATTR_OPS(confmirror_item);
 
+#define CONFMIRROR_ATTR(_name, _mode, _show, _store) \
+	struct confmirror_item_attribute confmirror_attr_##_name = \
+			__CONFIGFS_ATTR(_name, _mode, _show, _store)
+
+static ssize_t confmirror_configfs_attr_show(struct confmirror_item *cmi,
+		char *page)
+{
+	return confmirror_attr_show(cmi, page, __func__);
+}
+
+static ssize_t confmirror_configfs_attr_store(struct confmirror_item *cmi,
+		const char *page, size_t count)
+{
+	unsigned long value;
+	if (sscanf(page, "%lu", &value) != 1)
+		return -EINVAL;
+	atomic_set(&cmi->value, value);
+	confmirror_print_attr_access(cmi, __func__, value);
+	return count;
+}
+
+static CONFMIRROR_ATTR(attr, S_IRUGO | S_IWUSR, confmirror_configfs_attr_show,
+		confmirror_configfs_attr_store);
+
+static struct configfs_attribute *confmirror_configfs_attrs[] = {
+	&confmirror_attr_attr.attr,
+	NULL,
+};
+
 static void confmirror_item_release(struct config_item *item)
 {
 	kfree(to_confmirror_item(item));
@@ -70,7 +112,7 @@ static struct configfs_item_operations confmirror_item_ops = {
 
 static struct config_item_type confmirror_item_type = {
 	.ct_item_ops = &confmirror_item_ops,
-	/* .ct_attrs    = confmirror_item_attrs, */
+	.ct_attrs    = confmirror_configfs_attrs,
 	.ct_owner    = THIS_MODULE,
 };
 
@@ -97,6 +139,8 @@ static struct config_item *confmirror_make_item(struct config_group *group,
 		goto fail_kobject_add;
 	}
 	config_item_get(&cmi->item); /* dropped by the kobj's release */
+
+	atomic_set(&cmi->value, 0);
 
 	return &cmi->item;
 
@@ -176,4 +220,4 @@ module_exit(confmirror_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("configfs subsystem that mirrors items to sysfs kobjects");
-MODULE_VERSION("0.1.1");
+MODULE_VERSION("1.0.0");

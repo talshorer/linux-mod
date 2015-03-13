@@ -1,11 +1,10 @@
 #! /bin/bash
 
 MODULE=$(basename $(dirname $(realpath $0)))
-NOBJS=1
+NOBJS=8
 MODULE_CONFIGFS=/sys/kernel/config/$MODULE
 MODULE_SYSFS=/sys/kernel/$MODULE
-# $(( 0x1000 - 1 )))
-VALUES=$(seq 0 0x80 $(( 0x100 - 1 )))
+VALUES=$(seq 0 0x80 $(( 0x1000 - 1 )))
 NVALUES=$(echo $VALUES | wc -w)
 ATTR=attr
 
@@ -30,7 +29,7 @@ readback_test()
 	expected=$2
 	lerr=0
 	for fs in configfs sysfs; do
-		attr_file=$(__obj_$fs $obj)/$ATTR
+		local attr_file=$(__obj_$fs $obj)/$ATTR
 		actual=$(cat $attr_file)
 		if [[ "$actual" != "$expected" ]]; then
 			echo -n "$0: failed readback test on $attr_file " 1>&2
@@ -67,7 +66,7 @@ for i in $(seq 0 $(( $NOBJS - 1 ))); do
 	obj=$(__objname $i)
 	obj_configfs=$(__obj_configfs $obj)
 	obj_sysfs=$(__obj_sysfs $obj)
-	rm -rf $obj_configfs
+	rmdir $obj_configfs
 	if [[ -e $obj_sysfs ]]; then
 		echo "$0: $obj still in sysfs" 1>&2
 		err=1
