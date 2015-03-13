@@ -176,7 +176,7 @@ static int virtnet_chr_xmit(struct net_device *dev,
 
 	packet = kzalloc(sizeof(*packet) + len, GFP_ATOMIC);
 	if (!packet) {
-		printk(KERN_ERR "%s: <%s> failed to allocate packet\n",
+		pr_err("%s: <%s> failed to allocate packet\n",
 				DRIVER_NAME, __func__);
 		return -ENOMEM;
 	}
@@ -209,7 +209,7 @@ static int virtnet_chr_dev_init(void *priv, unsigned int minor)
 			"%s%d", DRIVER_NAME, minor);
 	if (IS_ERR(vcdev->dev)) {
 		err = PTR_ERR(vcdev->dev);
-		printk(KERN_ERR "%s: device_create failed minor=%d err=%d\n",
+		pr_err("%s: device_create failed minor=%d err=%d\n",
 				DRIVER_NAME, minor, err);
 		goto fail_device_create;
 	}
@@ -242,7 +242,7 @@ static int virtnet_chr_init(unsigned int nifaces)
 			DRIVER_NAME, &virtnet_chr_fops);
 	if (virtnet_chr_major < 0) {
 		err = virtnet_chr_major;
-		printk(KERN_ERR "%s: __register_chrdev failed. err = %d\n",
+		pr_err("%s: __register_chrdev failed. err = %d\n",
 				DRIVER_NAME, err);
 		goto fail_register_chrdev;
 	}
@@ -250,7 +250,7 @@ static int virtnet_chr_init(unsigned int nifaces)
 	virtnet_chr_class = class_create(THIS_MODULE, DRIVER_NAME);
 	if (IS_ERR(virtnet_chr_class)) {
 		err = PTR_ERR(virtnet_chr_class);
-		printk(KERN_ERR "%s: class_create failed. err = %d\n",
+		pr_err("%s: class_create failed. err = %d\n",
 				DRIVER_NAME, err);
 		goto fail_class_create;
 	}

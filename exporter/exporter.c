@@ -7,11 +7,11 @@
 
 void exporter_fn(void)
 {
-	printk(KERN_INFO "%s: <%s> was invoked\n", MODULE_NAME, __func__);
+	pr_info("%s: <%s> was invoked\n", MODULE_NAME, __func__);
 }
 EXPORT_SYMBOL_GPL(exporter_fn);
 
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A module that exports a function");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");

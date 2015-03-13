@@ -16,7 +16,7 @@ static int simplat_device_check_module_params(void) {
 	int err = 0;
 
 	if (simplat_ndevices < 0) {
-		printk(KERN_ERR "%s: simplat_ndevices < 0. value = %d\n",
+		pr_err("%s: simplat_ndevices < 0. value = %d\n",
 				DRIVER_NAME, simplat_ndevices);
 		err = -EINVAL;
 	}
@@ -39,7 +39,7 @@ static int __init simplat_device_init(void)
 			sizeof(simplat_devices[0]) * simplat_ndevices);
 	if (!simplat_devices) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: failed to allocate simplat_devices",
+		pr_err("%s: failed to allocate simplat_devices",
 				DRIVER_NAME);
 		goto fail_vmalloc_simplat_devices;
 	}
@@ -50,14 +50,14 @@ static int __init simplat_device_init(void)
 				SIMPLAT_PLATFORM_NAME, i);
 		if (!simplat_devices[i]) {
 			err = -ENOMEM;
-			printk(KERN_ERR "%s: platform_device_alloc failed, "
+			pr_err("%s: platform_device_alloc failed, "
 					"i = %d\n", DRIVER_NAME, i);
 			goto fail_platform_device_loop_alloc;
 		}
 
 		err = platform_device_add(simplat_devices[i]);
 		if (err) {
-			printk(KERN_ERR "%s: platform_device_add failed, "
+			pr_err("%s: platform_device_add failed, "
 					"i = %d, err = %d\n",
 					DRIVER_NAME, i, err);
 			goto fail_platform_device_loop_add;
@@ -89,4 +89,4 @@ module_exit(simplat_device_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Spawns devices for the simplat platform driver");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");

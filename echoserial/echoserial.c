@@ -56,36 +56,36 @@ MODULE_PARM_DESC(defbaud, "default baudrate for ports");
 static int __init echoserial_check_module_params(void) {
 	int err = 0;
 	if (echoserial_nports < 0) {
-		printk(KERN_ERR "%s: echoserial_nports < 0. value = %d\n",
+		pr_err("%s: echoserial_nports < 0. value = %d\n",
 				DRIVER_NAME, echoserial_nports);
 		err = -EINVAL;
 	}
 	if (echoserial_bsize < 0) {
-		printk(KERN_ERR "%s: echoserial_bsize < 0. value = 0x%x\n",
+		pr_err("%s: echoserial_bsize < 0. value = 0x%x\n",
 				DRIVER_NAME, echoserial_bsize);
 		err = -EINVAL;
 	}
 	/* echoserial_bsize must be a power of two */
 	if (echoserial_bsize & (echoserial_bsize -1)) {
-		printk(KERN_ERR "%s: echoserial_bsize is not a power of two. "
+		pr_err("%s: echoserial_bsize is not a power of two. "
 				"value = %d\n", DRIVER_NAME, echoserial_bsize);
 		err = -EINVAL;
 	}
 	if (echoserial_interval <= 0) {
-		printk(KERN_ERR "%s: echoserial_interval <= 0. value = %d\n",
+		pr_err("%s: echoserial_interval <= 0. value = %d\n",
 				DRIVER_NAME, echoserial_interval);
 		err = -EINVAL;
 	}
 	/* echoserial_interval must be a multiple of 20 */
 	if (echoserial_interval % 20) {
-		printk(KERN_ERR "%s: echoserial_interval is not a multiple of "
+		pr_err("%s: echoserial_interval is not a multiple of "
 				"20. value = %d\n", DRIVER_NAME,
 				echoserial_interval);
 		err = -EINVAL;
 	}
 	/* echoserial_defbaud must be a multiple of 9600 */
 	if (echoserial_defbaud % 9600) {
-		printk(KERN_ERR "%s: echoserial_defbaud is not a multiple of "
+		pr_err("%s: echoserial_defbaud is not a multiple of "
 				"9600. value = %d\n",
 				DRIVER_NAME, echoserial_defbaud);
 		err = -EINVAL;
@@ -109,7 +109,7 @@ static unsigned int echoserial_tx_empty(struct uart_port *port)
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned int ret;
 	unsigned long flags;
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	spin_lock_irqsave(&port->lock, flags);
 	ret = kfifo_is_empty(&esp->fifo) ? TIOCSER_TEMT : 0;
 	spin_unlock_irqrestore(&port->lock, flags);
@@ -121,7 +121,7 @@ static void echoserial_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned char new_mcr, old_mcr;
-	printk(KERN_INFO "%s %s: %s, mctrl=0x%x\n", DRIVER_NAME, esp->name,
+	pr_info("%s %s: %s, mctrl=0x%x\n", DRIVER_NAME, esp->name,
 			__func__, mctrl);
 	new_mcr = 0;
 	if (mctrl & TIOCM_RTS)
@@ -156,7 +156,7 @@ static unsigned int echoserial_get_mctrl(struct uart_port *port)
 		mctrl |= TIOCM_DSR;
 	if (msr & UART_MSR_CTS)
 		mctrl |= TIOCM_CTS;
-	printk(KERN_INFO "%s %s: %s, mctrl=0x%x\n", DRIVER_NAME, esp->name,
+	pr_info("%s %s: %s, mctrl=0x%x\n", DRIVER_NAME, esp->name,
 			__func__, mctrl);
 	return mctrl;
 }
@@ -172,7 +172,7 @@ static void echoserial_do_stop_tx(struct echoserial_port *esp)
 static void echoserial_stop_tx(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	echoserial_do_stop_tx(esp);
 }
 
@@ -183,7 +183,7 @@ static void echoserial_stop_tx(struct uart_port *port)
 static void echoserial_start_tx(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	esp->tx_active = true;
 	mod_timer(&esp->tx_timer, jiffies + echoserial_interval_jiffies);
 }
@@ -199,7 +199,7 @@ static void echoserial_do_stop_rx(struct echoserial_port *esp)
 static void echoserial_stop_rx(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	echoserial_do_stop_rx(esp);
 }
 
@@ -207,14 +207,14 @@ static void echoserial_stop_rx(struct uart_port *port)
 static void echoserial_enable_ms(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 }
 
 static int echoserial_startup(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned long flags;
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	spin_lock_irqsave(&port->lock, flags);
 	esp->baud = echoserial_defbaud;
 	esp->msr |= UART_MSR_CTS;
@@ -229,7 +229,7 @@ static void echoserial_shutdown(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned long flags;
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	spin_lock_irqsave(&port->lock, flags);
 	echoserial_do_stop_rx(esp);
 	echoserial_do_stop_tx(esp);
@@ -267,7 +267,7 @@ static void echoserial_set_termios(struct uart_port *port,
 	flow = (cflag & CRTSCTS) ? "r" : "";
 	baud = uart_get_baud_rate(port, termios, old, 0, UINT_MAX);
 	/* example: 115200n8r */
-	printk(KERN_INFO "%s %s: %s, %d%c%d%s\n", DRIVER_NAME, esp->name,
+	pr_info("%s %s: %s, %d%c%d%s\n", DRIVER_NAME, esp->name,
 			__func__, baud, parity, bits, flow);
 	spin_lock_irqsave(&port->lock, flags);
 	esp->baud = baud;
@@ -280,20 +280,20 @@ static void echoserial_set_termios(struct uart_port *port,
 static const char *echoserial_type(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	return echoserial_driver.driver_name;
 }
 
 static void echoserial_release_port(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 }
 
 static int echoserial_request_port(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
-	printk(KERN_INFO "%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
+	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	return 0;
 }
 
@@ -347,7 +347,7 @@ static void echoserial_rx_timer_func(unsigned long data)
 		echoserial_baud_to_bufsize(esp->baud)
 	);
 	if (count)
-		printk(KERN_INFO "%s %s: %s, count=%u\n", DRIVER_NAME,
+		pr_info("%s %s: %s, count=%u\n", DRIVER_NAME,
 				esp->name, __func__, (unsigned int)count);
 	lsr = esp->lsr;
 	while (count--) {
@@ -383,7 +383,7 @@ static void echoserial_tx_timer_func(unsigned long data)
 		echoserial_baud_to_bufsize(esp->baud)
 	);
 	if (count)
-		printk(KERN_INFO "%s %s: %s, count=%u\n", DRIVER_NAME,
+		pr_info("%s %s: %s, count=%u\n", DRIVER_NAME,
 				esp->name, __func__, (unsigned int)count);
 	while (count--) {
 		kfifo_in(fifo, &xmit->buf[xmit->tail], 1);
@@ -419,7 +419,7 @@ static int __init echoserial_port_setup(struct echoserial_port *esp, int i)
 
 	err = kfifo_alloc(&esp->fifo, echoserial_bsize, GFP_KERNEL);
 	if (err) {
-		printk(KERN_ERR "%s: kfifo_alloc failed i=%d err=%d\n",
+		pr_err("%s: kfifo_alloc failed i=%d err=%d\n",
 				DRIVER_NAME, i, err);
 		goto fail_kfifo_alloc;
 	}
@@ -429,12 +429,12 @@ static int __init echoserial_port_setup(struct echoserial_port *esp, int i)
 	port->type = PORT_ECHOSERIAL;
 	err = uart_add_one_port(&echoserial_driver, port);
 	if (err) {
-		printk(KERN_ERR "%s: uart_add_one_port failed i=%d err=%d\n",
+		pr_err("%s: uart_add_one_port failed i=%d err=%d\n",
 				DRIVER_NAME, i, err);
 		goto fail_uart_add_one_port;
 	}
 
-	printk(KERN_INFO "%s: created port %s successfully\n",
+	pr_info("%s: created port %s successfully\n",
 			DRIVER_NAME, esp->name);
 
 	return 0;
@@ -446,7 +446,7 @@ fail_kfifo_alloc:
 
 static void echoserial_port_cleanup(struct echoserial_port *esp)
 {
-	printk(KERN_INFO "%s: destroying port %s\n", DRIVER_NAME, esp->name);
+	pr_info("%s: destroying port %s\n", DRIVER_NAME, esp->name);
 	uart_remove_one_port(&echoserial_driver, &esp->port);
 	kfifo_free(&esp->fifo);
 }
@@ -464,7 +464,7 @@ static int __init echoserial_init(void)
 			sizeof(echoserial_ports[0]) * echoserial_nports);
 	if (!echoserial_ports) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: failed to allocate echoserial_ports\n",
+		pr_err("%s: failed to allocate echoserial_ports\n",
 				DRIVER_NAME);
 		goto fail_vmalloc_echoserial_ports;
 	}
@@ -474,7 +474,7 @@ static int __init echoserial_init(void)
 	echoserial_driver.nr = echoserial_nports;
 	err = uart_register_driver(&echoserial_driver);
 	if (err) {
-		printk(KERN_ERR "%s: uart_register_driver failed. err = %d\n",
+		pr_err("%s: uart_register_driver failed. err = %d\n",
 				DRIVER_NAME, err);
 		goto fail_uart_register_driver;
 	}
@@ -484,14 +484,14 @@ static int __init echoserial_init(void)
 	for (i = 0; i < echoserial_nports; i++) {
 		err = echoserial_port_setup(&echoserial_ports[i], i);
 		if (err) {
-			printk(KERN_ERR "%s: echoserial_port_setup failed. "
+			pr_err("%s: echoserial_port_setup failed. "
 					"i = %d, err = %d\n",
 					DRIVER_NAME, i, err);
 			goto fail_echoserial_port_setup_loop;
 		}
 	}
 
-	printk(KERN_INFO "%s: initializated successfully\n", DRIVER_NAME);
+	pr_info("%s: initializated successfully\n", DRIVER_NAME);
 	return 0;
 
 fail_echoserial_port_setup_loop:
@@ -512,11 +512,11 @@ static void __exit echoserial_exit(void)
 		echoserial_port_cleanup(&echoserial_ports[i]);
 	uart_unregister_driver(&echoserial_driver);
 	vfree(echoserial_ports);
-	printk(KERN_INFO "%s: exited successfully\n", DRIVER_NAME);
+	pr_info("%s: exited successfully\n", DRIVER_NAME);
 }
 module_exit(echoserial_exit);
 
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("1.0.3");
+MODULE_VERSION("1.0.4");

@@ -27,7 +27,7 @@ MODULE_PARM_DESC(bcap, "capacity for clipboard buffers");
 static int __init bufhub_check_module_params(void) {
 	int err = 0;
 	if (bufhub_max_clipboards <= 0) {
-		printk(KERN_ERR "%s: bufhub_max_clipboards <= 0. value = %d\n",
+		pr_err("%s: bufhub_max_clipboards <= 0. value = %d\n",
 				MODULE_NAME, bufhub_max_clipboards);
 		err = -EINVAL;
 	}
@@ -123,7 +123,7 @@ static int bufhub_clipboard_open(struct inode *inode, struct file *filp)
 	unsigned int minor = iminor(inode);
 	struct bufhub_clipboard_dev *dev = bufhub_clipboard_ptrs[minor];
 	if (!bufhub_clipboard_get(dev)) {
-		printk("%s: <%s> bufhub_clipboard_get failed\n",
+		pr_err("%s: <%s> bufhub_clipboard_get failed\n",
 				MODULE_NAME, __func__);
 		return -ENODEV;
 	}
@@ -170,7 +170,7 @@ static struct bufhub_clipboard_dev *bufhub_clipboard_create(
 	dev = kzalloc(sizeof(*dev) + bufhub_clipboard_bcap, GFP_KERNEL);
 	if (!dev) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: <%s> failed to allocate dev\n",
+		pr_err("%s: <%s> failed to allocate dev\n",
 				MODULE_NAME, __func__);
 		goto fail_kzalloc_dev;
 		return ERR_PTR(-ENODEV);
@@ -181,7 +181,7 @@ static struct bufhub_clipboard_dev *bufhub_clipboard_create(
 		;
 	if (i == bufhub_max_clipboards) {
 		err = -ENODEV;
-		printk(KERN_ERR "%s: <%s> all clipboards are occupied\n",
+		pr_err("%s: <%s> all clipboards are occupied\n",
 				MODULE_NAME, __func__);
 		spin_unlock_irqrestore(&bufhub_clipboard_ptrs_lock, flags);
 		goto fail_find_minor;
@@ -203,7 +203,7 @@ static struct bufhub_clipboard_dev *bufhub_clipboard_create(
 			"%s%d", bufhub_clipboard_devname, i);
 	if (IS_ERR(dev->dev)) {
 		err = PTR_ERR(dev->dev);
-		printk(KERN_ERR "%s: <%s> device_create failed err=%d\n",
+		pr_err("%s: <%s> device_create failed err=%d\n",
 				MODULE_NAME, __func__, err);
 		goto fail_device_create;
 	}
@@ -213,7 +213,7 @@ static struct bufhub_clipboard_dev *bufhub_clipboard_create(
 	spin_unlock_irqrestore(&dev->master->slaves_list_lock, flags);
 
 	mutex_unlock(&dev->buf_mutex);
-	printk(KERN_INFO "%s: created clipboard %s successfully\n",
+	pr_info("%s: created clipboard %s successfully\n",
 			MODULE_NAME, dev_name(dev->dev));
 	return dev;
 
@@ -239,7 +239,7 @@ static void bufhub_clipboard_destroy(struct bufhub_clipboard_dev *dev)
 	unsigned long flags, flags2;
 
 	dev_t devno = bufhub_clipboard_dev_devt(dev);
-	printk(KERN_INFO "%s: destroying clipboard %s\n",
+	pr_info("%s: destroying clipboard %s\n",
 			MODULE_NAME, dev_name(dev->dev));
 
 	spin_lock_irqsave(&dev->master_lock, flags);
@@ -286,7 +286,7 @@ static int bufhub_miscdev_open(struct inode *inode, struct file *filp)
 	struct bufhub_master *master;
 	master = kmalloc(sizeof(*master), GFP_KERNEL);
 	if (!master) {
-		printk(KERN_ERR "%s: <%s> failed to allocate master\n",
+		pr_err("%s: <%s> failed to allocate master\n",
 				MODULE_NAME, __func__);
 		return -ENOMEM;
 	}
@@ -361,7 +361,7 @@ static int bufhub_miscdev_ioctl_destroy(
 			bufhub_clipboard_match);
 	if (!match.dev) {
 		err = -EINVAL;
-		printk(KERN_ERR "%s: <%s> cannot destroy nonexisting "
+		pr_err("%s: <%s> cannot destroy nonexisting "
 				"clipboard %s%d\n", MODULE_NAME, __func__,
 				bufhub_clipboard_devname, match.minor);
 		return err;
@@ -371,7 +371,7 @@ static int bufhub_miscdev_ioctl_destroy(
 		err = -EPERM;
 	spin_unlock_irqrestore(&match.dev->master_lock, flags);
 	if (err) {
-		printk(KERN_ERR "%s: <%s> invalid master to destroy "
+		pr_err("%s: <%s> invalid master to destroy "
 				"clipboard %s\n", MODULE_NAME, __func__,
 				dev_name(match.dev->dev));
 		return err;
@@ -431,7 +431,7 @@ static int __init bufhub_init(void)
 			sizeof(bufhub_clipboard_ptrs[0]) *
 					bufhub_max_clipboards);
 	if (!bufhub_clipboard_ptrs) {
-		printk(KERN_ERR "%s: failed to allocate "
+		pr_err("%s: failed to allocate "
 				"bufhub_clipboard_ptrs\n", MODULE_NAME);
 		goto fail_vmalloc_bufhub_clipboard_ptrs;
 	}
@@ -443,7 +443,7 @@ static int __init bufhub_init(void)
 			MODULE_NAME, &bufhub_clipboard_fops);
 	if (bufhub_clipboard_major < 0) {
 		err = bufhub_clipboard_major;
-		printk(KERN_ERR "%s: __register_chrdev failed. err = %d\n",
+		pr_err("%s: __register_chrdev failed. err = %d\n",
 				MODULE_NAME, err);
 		goto fail_register_chrdev;
 	}
@@ -452,19 +452,19 @@ static int __init bufhub_init(void)
 			bufhub_clipboard_devname);
 	if (IS_ERR(bufhub_clipboard_class)) {
 		err = PTR_ERR(bufhub_clipboard_class);
-		printk(KERN_ERR "%s: class_create failed. err = %d\n",
+		pr_err("%s: class_create failed. err = %d\n",
 				MODULE_NAME, err);
 		goto fail_class_create;
 	}
 
 	err = misc_register(&bufhub_miscdev);
 	if (err) {
-		printk(KERN_ERR "%s: misc_register failed. err = %d\n",
+		pr_err("%s: misc_register failed. err = %d\n",
 				MODULE_NAME, err);
 		goto fail_misc_register;
 	}
 
-	printk(KERN_INFO "%s: initializated successfully\n", MODULE_NAME);
+	pr_info("%s: initializated successfully\n", MODULE_NAME);
 	return 0;
 
 
@@ -487,11 +487,11 @@ static void __exit bufhub_exit(void)
 	__unregister_chrdev(bufhub_clipboard_major, 0, bufhub_max_clipboards,
 			MODULE_NAME);
 	vfree(bufhub_clipboard_ptrs);
-	printk(KERN_INFO "%s: exited successfully\n", MODULE_NAME);
+	pr_info("%s: exited successfully\n", MODULE_NAME);
 }
 module_exit(bufhub_exit);
 
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A misc device that allows the creation of clipboards");
-MODULE_VERSION("1.0.2");
+MODULE_VERSION("1.0.3");

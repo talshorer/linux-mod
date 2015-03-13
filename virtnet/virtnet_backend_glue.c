@@ -33,6 +33,6 @@ struct virtnet_backend_ops *virtnet_get_backend(const char *name)
 	for (i = 0; i < ARRAY_SIZE(virtnet_backends); i++)
 		if (!strcmp(name, virtnet_backends[i].name))
 			return virtnet_backends[i].ops;
-	printk(KERN_ERR "%s: unknown backend %s\n", MODULE_NAME, name);
+	pr_err("%s: unknown backend %s\n", MODULE_NAME, name);
 	return NULL;
 }

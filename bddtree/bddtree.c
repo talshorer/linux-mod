@@ -53,7 +53,7 @@ static char *bddtree_buf_to_name(const char *buf, size_t count)
 		memcpy(name, buf, count);
 		name[count] = 0;
 	} else
-		printk(KERN_ERR "%s: <%s> kmalloc failed\n", MODULE_NAME,
+		pr_err("%s: <%s> kmalloc failed\n", MODULE_NAME,
 				__func__);
 	return name;
 }
@@ -89,7 +89,7 @@ static struct bddtree_device *bddtree_device_create(
 			bddtree_device_match);
 	if (match.dev) {
 		err = -EINVAL;
-		printk(KERN_ERR "%s: <%s> device with id %lu already bound " \
+		pr_err("%s: <%s> device with id %lu already bound " \
 				"to driver %s\n",
 				MODULE_NAME, __func__, id, drv->name);
 		goto fail_device_exists;
@@ -98,7 +98,7 @@ static struct bddtree_device *bddtree_device_create(
 	dev = kzalloc(sizeof(*dev), GFP_KERNEL);
 	if (!dev) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: <%s> failed to allocate device\n",
+		pr_err("%s: <%s> failed to allocate device\n",
 				MODULE_NAME, __func__);
 		goto fail_kzalloc_dev;
 	}
@@ -112,7 +112,7 @@ static struct bddtree_device *bddtree_device_create(
 
 	err = device_add(&dev->dev);
 	if (err) {
-		printk(KERN_ERR "%s: <%s> device_add failed, err = %d\n",
+		pr_err("%s: <%s> device_add failed, err = %d\n",
 				MODULE_NAME, __func__, err);
 		goto fail_device_add;
 	}
@@ -121,7 +121,7 @@ static struct bddtree_device *bddtree_device_create(
 	list_add(&dev->link, &drv->devices);
 	spin_unlock_irqrestore(&drv->devices_lock, flags);
 
-	printk(KERN_INFO "%s: created device %s\n",
+	pr_info("%s: created device %s\n",
 			MODULE_NAME, dev_name(&dev->dev));
 	return 0;
 
@@ -137,7 +137,7 @@ static void bddtree_device_destroy(struct bddtree_device *dev)
 	unsigned long flags;
 	struct bddtree_driver *drv = dev->drv;
 
-	printk(KERN_INFO "%s: destroying device %s\n",
+	pr_info("%s: destroying device %s\n",
 			MODULE_NAME, dev_name(&dev->dev));
 
 	spin_lock_irqsave(&drv->devices_lock, flags);
@@ -179,7 +179,7 @@ static ssize_t bddtree_drv_del_store(struct device_driver *drv,
 
 	driver_for_each_device(drv, NULL, &match, bddtree_device_match);
 	if (!match.dev) {
-		printk(KERN_ERR "%s: <%s> device %s.%lu not found\n",
+		pr_err("%s: <%s> device %s.%lu not found\n",
 				MODULE_NAME, __func__,
 				bddtree_driver_from_device_driver(drv)->name,
 						match.id);
@@ -222,7 +222,7 @@ static struct bddtree_driver *bddtree_driver_create(struct bddtree_bus *bus,
 
 	if (strlen(name) >= BDDTREE_DRIVER_NAME_LEN) {
 		err = -EINVAL;
-		printk(KERN_ERR "%s: <%s> name too long. max length is %d\n",
+		pr_err("%s: <%s> name too long. max length is %d\n",
 				MODULE_NAME, __func__,
 				BDDTREE_DRIVER_NAME_LEN);
 		goto fail_name_len_check;
@@ -231,7 +231,7 @@ static struct bddtree_driver *bddtree_driver_create(struct bddtree_bus *bus,
 	drv = kzalloc(sizeof(*drv), GFP_KERNEL);
 	if (!drv) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: <%s> failed to allocate driver\n",
+		pr_err("%s: <%s> failed to allocate driver\n",
 				MODULE_NAME, __func__);
 		goto fail_kzalloc_drv;
 	}
@@ -248,7 +248,7 @@ static struct bddtree_driver *bddtree_driver_create(struct bddtree_bus *bus,
 
 	err = driver_register(&drv->driver);
 	if (err) {
-		printk(KERN_ERR "%s: <%s> driver_register failed, err = %d\n",
+		pr_err("%s: <%s> driver_register failed, err = %d\n",
 				MODULE_NAME, __func__, err);
 		goto fail_driver_register;
 	}
@@ -257,7 +257,7 @@ static struct bddtree_driver *bddtree_driver_create(struct bddtree_bus *bus,
 	list_add(&drv->link, &bus->drivers);
 	spin_unlock_irqrestore(&bus->drivers_lock, flags);
 
-	printk(KERN_INFO "%s: created driver %s\n", MODULE_NAME, drv->name);
+	pr_info("%s: created driver %s\n", MODULE_NAME, drv->name);
 	return drv;
 
 fail_driver_register:
@@ -273,7 +273,7 @@ static void bddtree_driver_destroy(struct bddtree_driver *drv)
 	struct bddtree_device *dev, *tmp;
 	unsigned long flags;
 
-	printk(KERN_INFO "%s: destroying driver %s\n", MODULE_NAME, drv->name);
+	pr_info("%s: destroying driver %s\n", MODULE_NAME, drv->name);
 
 	spin_lock_irqsave(&bus->drivers_lock, flags);
 	list_del(&drv->link);
@@ -321,7 +321,7 @@ static ssize_t bddtree_bus_del_store(struct bus_type *bus,
 	drv = driver_find(name, bus);
 	if (!drv) {
 		ret = -EINVAL;
-		printk(KERN_ERR "%s: <%s> driver %s not found\n",
+		pr_err("%s: <%s> driver %s not found\n",
 				MODULE_NAME, __func__, name);
 		goto out;
 	}
@@ -379,7 +379,7 @@ static __init int bddtree_bus_register(struct bddtree_bus *bus)
 	spin_lock_init(&bus->drivers_lock);
 	err = bus_register(&bddtree_bus.bus_type);
 	if (err) {
-		printk(KERN_ERR "%s: bus_register failed. err = %d\n",
+		pr_err("%s: bus_register failed. err = %d\n",
 				MODULE_NAME, err);
 		goto fail_bus_register;
 	}
@@ -414,7 +414,7 @@ static int __init bddtree_init(void)
 	if (err)
 		return err;
 
-	printk(KERN_INFO "%s: initializated successfully\n", MODULE_NAME);
+	pr_info("%s: initializated successfully\n", MODULE_NAME);
 	return 0;
 }
 module_init(bddtree_init);
@@ -423,11 +423,11 @@ static void __exit bddtree_exit(void)
 {
 	bddtree_bus_unregister(&bddtree_bus);
 
-	printk(KERN_INFO "%s: exited successfully\n", MODULE_NAME);
+	pr_info("%s: exited successfully\n", MODULE_NAME);
 }
 module_exit(bddtree_exit);
 
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A bus-driver-device tree");
-MODULE_VERSION("1.1.1");
+MODULE_VERSION("1.1.2");

@@ -40,7 +40,7 @@ static int virtnet_lb_xmit(struct net_device *dev, const char *buf, size_t len)
 
 	entry = kzalloc(sizeof(*entry) + len, GFP_ATOMIC);
 	if (!entry) {
-		printk(KERN_ERR "%s: <%s> failed to allocate entry\n",
+		pr_err("%s: <%s> failed to allocate entry\n",
 				DRIVER_NAME, __func__);
 		return -ENOMEM;
 	}

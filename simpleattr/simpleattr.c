@@ -31,11 +31,11 @@ static void simpleattr_print_sys_attr_access(struct device *dev,
 		struct device_attribute *attr, unsigned long val,
 		const char *func)
 {
-	printk(KERN_INFO "%s: sysfs access: %s", DRIVER_NAME, func);
-	printk(KERN_INFO "%s: \tdevice %s\n", DRIVER_NAME, dev->kobj.name);
-	printk(KERN_INFO "%s: \tattribute %s\n", DRIVER_NAME, attr->attr.name);
-	printk(KERN_INFO "%s: \tprocess %d\n", DRIVER_NAME, current->pid);
-	printk(KERN_INFO "%s: \tvalue %lu\n", DRIVER_NAME, val);
+	pr_info("%s: sysfs access: %s", DRIVER_NAME, func);
+	pr_info("%s: \tdevice %s\n", DRIVER_NAME, dev->kobj.name);
+	pr_info("%s: \tattribute %s\n", DRIVER_NAME, attr->attr.name);
+	pr_info("%s: \tprocess %d\n", DRIVER_NAME, current->pid);
+	pr_info("%s: \tvalue %lu\n", DRIVER_NAME, val);
 }
 
 static ssize_t simpleattr_sys_attr_show(struct device *dev,
@@ -66,17 +66,17 @@ static struct device __init *simpleattr_device_create(int i) {
 			"%s%d", DRIVER_NAME, i);
 	if (IS_ERR(dev)) {
 		err = PTR_ERR(dev);
-		printk(KERN_ERR "%s: device_create failed. i = %d, "
+		pr_err("%s: device_create failed. i = %d, "
 			"err = %d\n", DRIVER_NAME, i, err);
 		goto fail_device_create;
 	}
 	err = device_create_file(dev, &dev_attr_attr);
 	if (err) {
-		printk(KERN_ERR "%s: device_create_file failed. i = %d, "
+		pr_err("%s: device_create_file failed. i = %d, "
 			"err = %d\n", DRIVER_NAME, i, err);
 		goto fail_device_create_file;
 	}
-	printk(KERN_INFO "%s: created device %s successfully\n",
+	pr_info("%s: created device %s successfully\n",
 			DRIVER_NAME, dev->kobj.name);
 	return dev;
 fail_device_create_file:
@@ -87,7 +87,7 @@ fail_device_create:
 
 static void simpleattr_device_destroy(int i) {
 	struct device *dev = simpleattr_devices[i];
-	printk(KERN_INFO "%s: destroying device %s\n",
+	pr_info("%s: destroying device %s\n",
 			DRIVER_NAME, dev->kobj.name);
 	device_remove_file(dev, &dev_attr_attr);
 	device_destroy(simpleattr_class, simpleattr_MKDEV(i));
@@ -98,9 +98,9 @@ static int __init simpleattr_init(void)
 	int err;
 	int i;
 	struct device *dev;
-	printk(KERN_INFO "%s: in %s\n", DRIVER_NAME, __func__);
+	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	if (simpleattr_ndevices < 0) {
-		printk(KERN_ERR "%s: simpleattr_ndevices < 0. value = %d\n",
+		pr_err("%s: simpleattr_ndevices < 0. value = %d\n",
 				DRIVER_NAME, simpleattr_ndevices);
 		return -EINVAL;
 	}
@@ -108,7 +108,7 @@ static int __init simpleattr_init(void)
 			sizeof(simpleattr_devices[0]) * simpleattr_ndevices,
 			GFP_KERNEL);
 	if (!simpleattr_devices) {
-		printk(KERN_ERR "%s: failed to allocate simpleattr_devices\n",
+		pr_err("%s: failed to allocate simpleattr_devices\n",
 				DRIVER_NAME);
 		err = -ENOMEM;
 		goto fail_kmalloc_simpleattr_devices;
@@ -116,7 +116,7 @@ static int __init simpleattr_init(void)
 	simpleattr_class = class_create(THIS_MODULE, DRIVER_NAME);
 	if (IS_ERR(simpleattr_class)) {
 		err = PTR_ERR(simpleattr_class);
-		printk(KERN_ERR "%s: class_create failed. err = %d\n",
+		pr_err("%s: class_create failed. err = %d\n",
 				DRIVER_NAME, err);
 		goto fail_class_create;
 	}
@@ -124,12 +124,12 @@ static int __init simpleattr_init(void)
 		dev = simpleattr_device_create(i);
 		if (IS_ERR(dev)) {
 			err = PTR_ERR(dev);
-			printk(KERN_ERR "%s: unwinding\n", DRIVER_NAME);
+			pr_err("%s: unwinding\n", DRIVER_NAME);
 			goto fail_simpleattr_device_create_loop;
 		}
 		simpleattr_devices[i] = dev;
 	}
-	printk(KERN_INFO "%s: initialized successfully\n", DRIVER_NAME);
+	pr_info("%s: initialized successfully\n", DRIVER_NAME);
 	return 0;
 fail_simpleattr_device_create_loop:
 	/* device at [i] isn't created */
@@ -146,15 +146,15 @@ module_init(simpleattr_init);
 static void __exit simpleattr_exit(void)
 {
 	int i;
-	printk(KERN_INFO "%s: in %s\n", DRIVER_NAME, __func__);
+	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	for (i = 0; i < simpleattr_ndevices; i++)
 		simpleattr_device_destroy(i);
 	class_destroy(simpleattr_class);
 	kfree(simpleattr_devices);
-	printk(KERN_INFO "%s: exited successfully\n", DRIVER_NAME);
+	pr_info("%s: exited successfully\n", DRIVER_NAME);
 }
 module_exit(simpleattr_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A simple dummy device with a sysfs attribute");
-MODULE_VERSION("1.2.1");
+MODULE_VERSION("1.2.2");

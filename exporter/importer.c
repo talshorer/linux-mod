@@ -9,7 +9,7 @@
 
 static int __init importer_init(void)
 {
-	printk(KERN_INFO "%s: invoking exported symbol %pf\n", MODULE_NAME,
+	pr_info("%s: invoking exported symbol %pf\n", MODULE_NAME,
 			exporter_fn);
 	exporter_fn();
 	return 0;
@@ -24,4 +24,4 @@ module_exit(importer_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A module that uses a symbol exported by another module");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");

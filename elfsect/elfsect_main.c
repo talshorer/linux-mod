@@ -45,7 +45,7 @@ static int __init elfsect_create_debugfs(void)
 	elfsect_debugfs = debugfs_create_dir(MODULE_NAME, NULL);
 	if (!elfsect_debugfs) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: debugfs_create_dir failed\n",
+		pr_err("%s: debugfs_create_dir failed\n",
 				MODULE_NAME);
 		goto fail_debugfs_create_dir;
 	}
@@ -54,7 +54,7 @@ static int __init elfsect_create_debugfs(void)
 			elfsect_debugfs, NULL, &elfsect_debugfs_stat_fops);
 	if (!file) {
 		err = -ENOMEM;
-		printk(KERN_ERR "%s: debugfs_create_file for %s\n",
+		pr_err("%s: debugfs_create_file for %s\n",
 				MODULE_NAME, elfsect_debugfs_dummies_fname);
 		goto fail_debugfs_create_file;
 	}
@@ -93,4 +93,4 @@ module_exit(elfsect_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A module with a section of dummy function pointers");
-MODULE_VERSION("1.2.0");
+MODULE_VERSION("1.2.1");

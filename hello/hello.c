@@ -8,7 +8,7 @@
 
 int init_module(void)
 {
-	printk(KERN_INFO "Hello, World!\n");
+	pr_info("Hello, World!\n");
 
 	/*
 	 * A non 0 return means init_module failed; module can't be loaded.
@@ -18,9 +18,9 @@ int init_module(void)
 
 void cleanup_module(void)
 {
-	printk(KERN_INFO "Goodbye, World!\n");
+	pr_info("Goodbye, World!\n");
 }
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A simple module that prints to log upon init and exit");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
