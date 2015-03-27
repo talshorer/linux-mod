@@ -7,6 +7,7 @@
 #include <linux/slab.h>
 #include <linux/mutex.h>
 #include <linux/uaccess.h>
+#include <linux/vmalloc.h>
 
 #include <lmod/meta.h>
 

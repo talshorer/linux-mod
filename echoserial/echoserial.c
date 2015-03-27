@@ -53,8 +53,10 @@ static int echoserial_defbaud = 9600;
 module_param_named(defbaud, echoserial_defbaud, int, 0444);
 MODULE_PARM_DESC(defbaud, "default baudrate for ports");
 
-static int __init echoserial_check_module_params(void) {
+static int __init echoserial_check_module_params(void)
+{
 	int err = 0;
+
 	if (echoserial_nports < 0) {
 		pr_err("%s: echoserial_nports < 0. value = %d\n",
 				DRIVER_NAME, echoserial_nports);
@@ -66,7 +68,7 @@ static int __init echoserial_check_module_params(void) {
 		err = -EINVAL;
 	}
 	/* echoserial_bsize must be a power of two */
-	if (echoserial_bsize & (echoserial_bsize -1)) {
+	if (echoserial_bsize & (echoserial_bsize - 1)) {
 		pr_err("%s: echoserial_bsize is not a power of two. "
 				"value = %d\n", DRIVER_NAME, echoserial_bsize);
 		err = -EINVAL;
@@ -109,6 +111,7 @@ static unsigned int echoserial_tx_empty(struct uart_port *port)
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned int ret;
 	unsigned long flags;
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	spin_lock_irqsave(&port->lock, flags);
 	ret = kfifo_is_empty(&esp->fifo) ? TIOCSER_TEMT : 0;
@@ -121,6 +124,7 @@ static void echoserial_set_mctrl(struct uart_port *port, unsigned int mctrl)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned char new_mcr, old_mcr;
+
 	pr_info("%s %s: %s, mctrl=0x%x\n", DRIVER_NAME, esp->name,
 			__func__, mctrl);
 	new_mcr = 0;
@@ -146,6 +150,7 @@ static unsigned int echoserial_get_mctrl(struct uart_port *port)
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned int mctrl;
 	unsigned char msr;
+
 	msr = esp->msr;
 	mctrl = 0;
 	if (msr & UART_MSR_DCD)
@@ -172,6 +177,7 @@ static void echoserial_do_stop_tx(struct echoserial_port *esp)
 static void echoserial_stop_tx(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	echoserial_do_stop_tx(esp);
 }
@@ -183,6 +189,7 @@ static void echoserial_stop_tx(struct uart_port *port)
 static void echoserial_start_tx(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	esp->tx_active = true;
 	mod_timer(&esp->tx_timer, jiffies + echoserial_interval_jiffies);
@@ -199,6 +206,7 @@ static void echoserial_do_stop_rx(struct echoserial_port *esp)
 static void echoserial_stop_rx(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	echoserial_do_stop_rx(esp);
 }
@@ -207,6 +215,7 @@ static void echoserial_stop_rx(struct uart_port *port)
 static void echoserial_enable_ms(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 }
 
@@ -214,6 +223,7 @@ static int echoserial_startup(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned long flags;
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	spin_lock_irqsave(&port->lock, flags);
 	esp->baud = echoserial_defbaud;
@@ -229,6 +239,7 @@ static void echoserial_shutdown(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
 	unsigned long flags;
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	spin_lock_irqsave(&port->lock, flags);
 	echoserial_do_stop_rx(esp);
@@ -245,25 +256,28 @@ static void echoserial_set_termios(struct uart_port *port,
 	char parity;
 	const char *flow;
 	unsigned long flags;
+
 	switch (cflag & CSIZE) {
-		case CS5:
-			bits = 5;
-			break;
-		case CS6:
-			bits = 6;
-			break;
-		case CS7:
-			bits = 7;
-			break;
-		default: /* case CS8: */
-			bits = 8;
-			break;
+	case CS5:
+		bits = 5;
+		break;
+	case CS6:
+		bits = 6;
+		break;
+	case CS7:
+		bits = 7;
+		break;
+	default: /* case CS8: */
+		bits = 8;
+		break;
 	}
 	if (cflag & PARENB) {
 		if (cflag & PARODD)
 			parity = 'o';
-		else parity = 'e';
-	} else parity = 'n';
+		else
+			parity = 'e';
+	} else
+		parity = 'n';
 	flow = (cflag & CRTSCTS) ? "r" : "";
 	baud = uart_get_baud_rate(port, termios, old, 0, UINT_MAX);
 	/* example: 115200n8r */
@@ -280,6 +294,7 @@ static void echoserial_set_termios(struct uart_port *port,
 static const char *echoserial_type(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	return echoserial_driver.driver_name;
 }
@@ -287,12 +302,14 @@ static const char *echoserial_type(struct uart_port *port)
 static void echoserial_release_port(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 }
 
 static int echoserial_request_port(struct uart_port *port)
 {
 	struct echoserial_port *esp = uart_port_to_echoserial_port(port);
+
 	pr_info("%s %s: %s\n", DRIVER_NAME, esp->name, __func__);
 	return 0;
 }
@@ -337,6 +354,7 @@ static void echoserial_rx_timer_func(unsigned long data)
 	unsigned char lsr;
 	unsigned char ch;
 	unsigned long flags;
+
 	spin_lock_irqsave(&port->lock, flags);
 	/* rts is not set, port doesn't want to receive data */
 	if (!(esp->mcr & UART_MCR_RTS) && esp->rtscts)
@@ -376,6 +394,7 @@ static void echoserial_tx_timer_func(unsigned long data)
 	echoserial_fifo_t *fifo = &esp->fifo;
 	size_t count;
 	unsigned long flags;
+
 	spin_lock_irqsave(&port->lock, flags);
 	count = min3(
 		(size_t)uart_circ_chars_pending(xmit),
@@ -394,9 +413,9 @@ static void echoserial_tx_timer_func(unsigned long data)
 	if (kfifo_is_full(fifo) && esp->msr & UART_MSR_CTS) {
 		esp->msr &= ~UART_MSR_CTS;
 		uart_handle_cts_change(port, 0);
-	}
-	else if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS)
+	} else if (uart_circ_chars_pending(xmit) < WAKEUP_CHARS) {
 		uart_write_wakeup(port);
+	}
 	if (esp->tx_active)
 		mod_timer(&esp->tx_timer,
 				jiffies + echoserial_interval_jiffies);
@@ -508,6 +527,7 @@ module_init(echoserial_init);
 static void __exit echoserial_exit(void)
 {
 	int i;
+
 	for (i = 0; i < echoserial_nports; i++)
 		echoserial_port_cleanup(&echoserial_ports[i]);
 	uart_unregister_driver(&echoserial_driver);

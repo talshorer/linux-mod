@@ -5,6 +5,7 @@
 #include <linux/device.h>
 #include <linux/fs.h>
 #include <linux/firmware.h>
+#include <linux/vmalloc.h>
 
 #include <lmod/meta.h>
 

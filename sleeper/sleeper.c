@@ -5,6 +5,7 @@
 #include <linux/uaccess.h>
 #include <linux/kthread.h>
 #include <linux/freezer.h>
+#include <linux/vmalloc.h>
 
 #include <lmod/meta.h>
 

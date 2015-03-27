@@ -22,7 +22,8 @@ static sys_call_ptr_t interceptor_orig_syscall_ptr;
  * being intercepted
  */
 #define INTERCEPTOR_SYSCALL_NR __NR_open
-asmlinkage int interceptor_syscall(const char *pathname, int flags, int mode)
+asmlinkage int interceptor_syscall(const char *pathname, int flags,
+		umode_t mode)
 {
 	int ret;
 	if (flags & INTERCEPTOR_O_STRLEN) {
