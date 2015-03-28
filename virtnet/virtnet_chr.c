@@ -157,7 +157,7 @@ static int virtnet_chr_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-static struct file_operations virtnet_chr_fops = {
+static const struct file_operations virtnet_chr_fops = {
 	.owner = THIS_MODULE,
 	.llseek = no_llseek,
 	.read = virtnet_chr_read,

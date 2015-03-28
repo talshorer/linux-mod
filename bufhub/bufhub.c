@@ -150,7 +150,7 @@ static int bufhub_clipboard_release(struct inode *inode, struct file *filp)
 	return 0;
 }
 
-static struct file_operations bufhub_clipboard_fops = {
+static const struct file_operations bufhub_clipboard_fops = {
 	.owner = THIS_MODULE,
 	.llseek = default_llseek,
 	.read = bufhub_clipboard_read,
@@ -407,7 +407,7 @@ static long bufhub_miscdev_ioctl(struct file *filp,
 	return ret;
 }
 
-static struct file_operations bufhub_miscdev_fops = {
+static const struct file_operations bufhub_miscdev_fops = {
 	.owner = THIS_MODULE,
 	.open = bufhub_miscdev_open,
 	.release = bufhub_miscdev_release,
@@ -495,4 +495,4 @@ module_exit(bufhub_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A misc device that allows the creation of clipboards");
-MODULE_VERSION("1.0.3");
+MODULE_VERSION("1.0.4");

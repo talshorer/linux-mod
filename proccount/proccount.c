@@ -37,7 +37,7 @@ static int proccount_open(struct inode *inode, struct file *filp)
 }
 
 
-static struct file_operations proccount_fops = {
+static const struct file_operations proccount_fops = {
 	.owner = THIS_MODULE,
 	.llseek = seq_lseek,
 	.read = seq_read,
