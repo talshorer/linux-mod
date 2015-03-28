@@ -13,6 +13,10 @@ __devname()
 err=0
 cd $(dirname $0)
 tmpdir=$(mktemp -d)
+if [[ ! -e $GLOBAL_FIRMWARE_DIR ]]; then
+	mkdir -p $GLOBAL_FIRMWARE_DIR
+	mkdir_GFD=1
+fi
 fwlnk=$GLOBAL_FIRMWARE_DIR/$MODULE
 ln -sfn $tmpdir $fwlnk
 for i in $(seq 0 $(( $NDEVICES - 1 ))); do
@@ -38,4 +42,5 @@ for i in $(seq 0 $(( $NDEVICES - 1 ))); do
 	fi
 done
 rmmod $MODULE
+[[ "$mkdir_GFD" == "1" ]] && rmdir $GLOBAL_FIRMWARE_DIR
 exit $err
