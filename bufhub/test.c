@@ -44,7 +44,7 @@ static int open_miscdev(int *mfd)
 
 static int close_miscdev(int mfd)
 {
-	if(close(mfd)) {
+	if (close(mfd)) {
 		bufhub_test_perror("Failed to close miscdev");
 		return 1;
 	}
@@ -54,7 +54,7 @@ static int close_miscdev(int mfd)
 
 static int create_clipboard(int mfd, unsigned int *cid)
 {
-	if(ioctl(mfd, BUFHUB_IOCCREATE, cid) < 0) {
+	if (ioctl(mfd, BUFHUB_IOCCREATE, cid) < 0) {
 		bufhub_test_perror("Failed to create clipboard");
 		return 1;
 	}
@@ -63,7 +63,7 @@ static int create_clipboard(int mfd, unsigned int *cid)
 
 static int destroy_clipboard(int mfd, unsigned int cid)
 {
-	if(ioctl(mfd, BUFHUB_IOCDESTROY, &cid) < 0) {
+	if (ioctl(mfd, BUFHUB_IOCDESTROY, &cid) < 0) {
 		bufhub_test_perror("Failed to destroy clipboard");
 		return 1;
 	}
@@ -108,7 +108,7 @@ out_none:
 
 static int close_clipboard(int cfd)
 {
-	if(close(cfd)) {
+	if (close(cfd)) {
 		bufhub_test_perror("Failed to close clipboard");
 		return 1;
 	}

@@ -45,7 +45,7 @@ static int test_lb(int sfd, unsigned int iface_id)
 	write(sfd, packet, TOTAL_PACKET_SIZE);
 	read(sfd, readback, TOTAL_PACKET_SIZE);
 	gettimeofday(&t_end, NULL);
-	if(memcmp(packet, readback, TOTAL_PACKET_SIZE)) {
+	if (memcmp(packet, readback, TOTAL_PACKET_SIZE)) {
 		dprintf(2, "%s: failed loopback test\n", prog);
 		return 1;
 	}
@@ -82,7 +82,7 @@ static int test_chr(int sfd, unsigned int iface_id)
 	write(cfd, readback, TOTAL_PACKET_SIZE);
 	memset(readback, 0, TOTAL_PACKET_SIZE);
 	read(sfd, readback, TOTAL_PACKET_SIZE);
-	if(memcmp(packet, readback, TOTAL_PACKET_SIZE)) {
+	if (memcmp(packet, readback, TOTAL_PACKET_SIZE)) {
 		dprintf(2, "%s: failed readback test\n", prog);
 		ret = 1;
 		goto close_chrdev;

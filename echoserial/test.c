@@ -165,7 +165,7 @@ static int test_one_port(unsigned int id)
 		return 1;
 	for (i = 0; i < nspeeds; i++)
 		err |= test_one_speed(fd, &all_speeds[i]);
-	if(close(fd)) {
+	if (close(fd)) {
 		perror("Failed to close port");
 		err = 1;
 	}
