@@ -16,7 +16,7 @@ function local_ls {
 ssh ${TARGET%:*} "mkdir -p ${TARGET_DIR#*:}"
 
 for pattern in "*.ko" "test.sh" "*.out" "*.pyc"; do
-	for f in $(local_ls $pattern); do upload $f; done
+	for f in $(local_ls "$pattern"); do upload $f; done
 done
 
 TESTDEP=$LOCAL_DIR/testdep
