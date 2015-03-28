@@ -35,13 +35,15 @@ test_one_clock()
 	local rtc=$(basename $clock_sysfs/rtc*)
 	local rtcdev=/dev/$rtc
 	__echo "$0: beginning test on clock $clock ($rtc)"
-	hwclock -f $rtcdev -w
-	for sleeptime in 0 2 4; do
-		sleep $sleeptime
-		check_diff $rtc || lerr=1
-	done
+	hwclock -f $rtcdev -w || lerr=1
+	if [[ $lerr == 0 ]]; then
+		for sleeptime in 0 2 4; do
+			sleep $sleeptime
+			check_diff $rtc || lerr=1
+		done
+	fi
 	__echo "$0: finished test on clock $clock, err=$lerr"
-	[[ $lerr != 0 ]] && err=$lerr
+	return $lerr
 }
 
 err=0
@@ -53,7 +55,7 @@ for i in $(seq 0 $(( $NCLOCKS - 1 ))); do
 	test_one_clock ${KBUILD_MODNAME}$i &
 	children="$children $!"
 done
-wait $children
+wait $children || err=1
 rmmod $MODULE
 rm $LOCKFILE
 exit $err
