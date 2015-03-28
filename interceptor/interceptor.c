@@ -26,6 +26,7 @@ asmlinkage int interceptor_syscall(const char *pathname, int flags,
 		umode_t mode)
 {
 	int ret;
+
 	if (flags & INTERCEPTOR_O_STRLEN) {
 		ret = strlen(pathname);
 		pr_info("%s: intercepted open() call! "

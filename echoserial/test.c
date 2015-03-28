@@ -52,6 +52,7 @@ static int echoserial_tcsetattr(int fd, int optional_actions,
 static int readloop(int fd, char *buf, size_t size)
 {
 	size_t count;
+
 	while (size) {
 		count = read(fd, buf, size);
 		if (count < 0) {
@@ -71,8 +72,10 @@ static int readloop(int fd, char *buf, size_t size)
 static void randomize_buffer(char *buf, size_t size)
 {
 	int fd = open("/dev/urandom", O_RDONLY);
+
 	if (fd < 0) {
 		unsigned char c = 0;
+
 		while (size--)
 			buf[size] = c++;
 	} else
@@ -86,6 +89,7 @@ static int test_one_speed(int fd, struct echoserial_baud *baud)
 	int err = 0;
 	struct timeval t_start, t_end;
 	unsigned long actual_time, expected_time;
+
 	if (echoserial_tcgetattr(fd, &tty))
 		return 1;
 	cfsetispeed(&tty, baud->speed);
@@ -138,6 +142,7 @@ static int test_one_port(unsigned int id)
 	unsigned int i;
 	char portname[PORTNAME_LEN];
 	struct termios tty;
+
 	sprintf(portname, "%s%u", ECHOSERIAL_PORTNAME, id);
 	dprintf(2, "%s: running test on port %s with %u speeds\n",
 			prog, portname, (unsigned int)nspeeds);
@@ -176,6 +181,7 @@ int main(int argc, char *argv[])
 {
 	unsigned int id;
 	int ret = 0;
+
 	prog = argv[0];
 	if (argc != 3)
 		goto usage;

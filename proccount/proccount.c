@@ -17,6 +17,7 @@ static atomic_t proccount_counter;
 static int proccount_show(struct seq_file *m, void *v)
 {
 	long count = (long)(m->private);
+
 	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	seq_printf(m, "%ld\n", count);
 	return 0;
@@ -27,6 +28,7 @@ static int proccount_open(struct inode *inode, struct file *filp)
 	atomic_t *a = PDE_DATA(inode);
 	int ret;
 	long count;
+
 	count = atomic_read(a);
 	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	pr_info("%s: count = %ld\n", DRIVER_NAME, count);
@@ -48,6 +50,7 @@ static const struct file_operations proccount_fops = {
 static int __init proccount_init(void)
 {
 	struct proc_dir_entry *pde;
+
 	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	atomic_set(&proccount_counter, 0);
 	pde = proc_create_data(proccount_file_name, PROCCOUNT_MODE, NULL,

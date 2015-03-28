@@ -100,6 +100,7 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 		u8 epnum = usb_pipeendpoint(urb->pipe);
 		struct usblb_gadget_ep *ep = &bus->gadget.ep[epnum];
 		int do_transfer = 1;
+
 		if (!epnum) {
 			struct usb_ctrlrequest *setup = \
 				(void *)urb->setup_packet;
@@ -125,6 +126,7 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 			void *hbuf, *gbuf;
 			size_t hlen, glen, len;
 			u8 to_host = usb_pipein(urb->pipe);
+
 			if (list_empty(&ep->requests))
 				continue;
 			req = list_first_entry(&ep->requests,
@@ -170,6 +172,7 @@ void usblb_glue_cleanup_queues(struct usblb_bus *bus)
 	struct usblb_host_urb_node *node, *tmp;
 	struct urb *urb;
 	unsigned long flags;
+
 	usblb_bus_lock_irqsave(bus, flags);
 	list_for_each_entry_safe(node, tmp, &bus->host.urb_queue, link) {
 		urb = node->urb;

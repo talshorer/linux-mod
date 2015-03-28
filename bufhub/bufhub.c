@@ -27,6 +27,7 @@ MODULE_PARM_DESC(bcap, "capacity for clipboard buffers");
 
 static int __init bufhub_check_module_params(void) {
 	int err = 0;
+
 	if (bufhub_max_clipboards <= 0) {
 		pr_err("%s: bufhub_max_clipboards <= 0. value = %d\n",
 				MODULE_NAME, bufhub_max_clipboards);
@@ -83,6 +84,7 @@ static ssize_t bufhub_clipboard_read(struct file *filp,
 {
 	struct bufhub_clipboard_dev *dev = filp->private_data;
 	ssize_t ret;
+
 	ret = bufhub_clipboard_mutex_lock(&dev->buf_mutex, filp->f_flags);
 	if (ret)
 		return ret;
@@ -102,6 +104,7 @@ static ssize_t bufhub_clipboard_write(struct file *filp,
 {
 	struct bufhub_clipboard_dev *dev = filp->private_data;
 	ssize_t ret;
+
 	if (*ppos >= bufhub_clipboard_bcap)
 		return -ENOSPC;
 	ret = bufhub_clipboard_mutex_lock(&dev->buf_mutex, filp->f_flags);
@@ -123,6 +126,7 @@ static int bufhub_clipboard_open(struct inode *inode, struct file *filp)
 {
 	unsigned int minor = iminor(inode);
 	struct bufhub_clipboard_dev *dev = bufhub_clipboard_ptrs[minor];
+
 	if (!bufhub_clipboard_get(dev)) {
 		pr_err("%s: <%s> bufhub_clipboard_get failed\n",
 				MODULE_NAME, __func__);
@@ -145,6 +149,7 @@ static int bufhub_clipboard_open(struct inode *inode, struct file *filp)
 static int bufhub_clipboard_release(struct inode *inode, struct file *filp)
 {
 	struct bufhub_clipboard_dev *dev = filp->private_data;
+
 	filp->private_data = NULL;
 	bufhub_clipboard_put(dev);
 	return 0;
@@ -240,6 +245,7 @@ static void bufhub_clipboard_destroy(struct bufhub_clipboard_dev *dev)
 	unsigned long flags, flags2;
 
 	dev_t devno = bufhub_clipboard_dev_devt(dev);
+
 	pr_info("%s: destroying clipboard %s\n",
 			MODULE_NAME, dev_name(dev->dev));
 
@@ -273,6 +279,7 @@ static inline void bufhub_clipboard_put(struct bufhub_clipboard_dev *dev)
 static void bufhub_clipboard_master_put(struct bufhub_clipboard_dev *dev)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&dev->master->slaves_list_lock, flags);
 	list_del(&dev->slave_link);
 	spin_unlock_irqrestore(&dev->master->slaves_list_lock, flags);
@@ -285,6 +292,7 @@ static void bufhub_clipboard_master_put(struct bufhub_clipboard_dev *dev)
 static int bufhub_miscdev_open(struct inode *inode, struct file *filp)
 {
 	struct bufhub_master *master;
+
 	master = kmalloc(sizeof(*master), GFP_KERNEL);
 	if (!master) {
 		pr_err("%s: <%s> failed to allocate master\n",
@@ -302,6 +310,7 @@ static int bufhub_miscdev_release(struct inode *inode, struct file *filp)
 	struct bufhub_master *master = filp->private_data;
 	struct bufhub_clipboard_dev *dev, *tmp;
 	unsigned long flags;
+
 	spin_lock_irqsave(&master->slaves_list_lock, flags);
 	list_for_each_entry_safe(dev, tmp, &master->slaves_list, slave_link) {
 		spin_unlock_irqrestore(&master->slaves_list_lock, flags);
@@ -320,6 +329,7 @@ static struct bufhub_clipboard_dev *bufhub_miscdev_ioctl_create(
 	int err;
 	struct bufhub_clipboard_dev *dev;
 	unsigned int minor;
+
 	dev = bufhub_clipboard_create(master);
 	if (IS_ERR(dev)) {
 		err = PTR_ERR(dev);
@@ -341,6 +351,7 @@ struct bufhub_clipboard_match {
 static int bufhub_clipboard_match(struct device *dev, void *data)
 {
 	struct bufhub_clipboard_match *match = data;
+
 	if (MINOR(dev->devt) == match->minor) {
 		match->dev = dev_get_drvdata(dev);
 		return -1;
@@ -354,6 +365,7 @@ static int bufhub_miscdev_ioctl_destroy(
 	struct bufhub_clipboard_match match;
 	int err;
 	unsigned long flags;
+
 	err = get_user(match.minor, uptr);
 	if (err)
 		return err;
@@ -387,6 +399,7 @@ static long bufhub_miscdev_ioctl(struct file *filp,
 	struct bufhub_master *master = filp->private_data;
 	long ret = 0;
 	struct bufhub_clipboard_dev *dev;
+
 	if ((_IOC_TYPE(cmd) != BUFHUB_IOC_MAGIC) ||
 			(_IOC_NR(cmd) > BUFHUB_IOC_MAXNR))
 		return -ENOTTY;

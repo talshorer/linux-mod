@@ -40,6 +40,7 @@ static int test_lb(int sfd, unsigned int iface_id)
 	char readback[TOTAL_PACKET_SIZE];
 	struct timeval t_start, t_end;
 	unsigned long actual_time;
+
 	populate_packet(packet);
 	gettimeofday(&t_start, NULL);
 	write(sfd, packet, TOTAL_PACKET_SIZE);
@@ -69,6 +70,7 @@ static int test_chr(int sfd, unsigned int iface_id)
 	char chrdev_name[CHRDEV_NAME_LEN];
 	char packet[TOTAL_PACKET_SIZE];
 	char readback[TOTAL_PACKET_SIZE];
+
 	populate_packet(packet);
 	sprintf(chrdev_name, CHRDEV_BASE "%u", iface_id);
 	cfd = open(chrdev_name, O_RDWR | O_NONBLOCK);
@@ -121,6 +123,7 @@ int main(int argc, char *argv[])
 	const char *backend;
 	struct sockaddr_ll sock_address;
 	virtnet_test_fn test_fn = NULL;
+
 	prog = argv[0];
 	if (argc != 3)
 		goto usage;

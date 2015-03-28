@@ -124,6 +124,7 @@ static ssize_t deepfs_depth_file_read(struct file *filp, char __user *buf,
 		size_t count, loff_t *ppos)
 {
 	struct deepfs_depth_file *f = filp->private_data;
+
 	pr_info("<%s>\n", __func__);
 	return simple_read_from_buffer(buf, count, ppos, f->buf,
 			DEEPFS_DEPTH_FILE_BUF_LEN);
@@ -202,6 +203,7 @@ static void *deepfs_symlink_follow_link(struct dentry *dentry,
 		struct nameidata *nd)
 {
 	struct deepfs_symlink *l = to_deepfs_symlink(dentry->d_inode);
+
 	pr_info("<%s>\n", __func__);
 	nd_set_link(nd, l->buf);
 	return NULL;
@@ -389,6 +391,7 @@ static struct deepfs_dir *deepfs_dir_create(struct super_block *sb,
 	if (parent) { /* not mount point */
 		char name[DEEPFS_DIRNAME_LEN];
 		struct qstr qname;
+
 		deepfs_fill_dirname(name, priv);
 		qname.name = name;
 		qname.len = strlen(name);
@@ -424,6 +427,7 @@ static struct deepfs_dir *deepfs_dir_create(struct super_block *sb,
 		unsigned int i;
 		struct deepfs_dir *subdir;
 		unsigned int children_depth = depth + 1;
+
 		for (i = 0; i < opts->max_depth - priv->depth; i++) {
 			subdir = deepfs_dir_create(sb, priv,
 					children_depth, i);
@@ -457,6 +461,7 @@ static struct inode *deepfs_alloc_inode(struct super_block *sb)
 {
 	struct deepfs_fs_info *fsi = sb->s_fs_info;
 	struct inode *ret;
+
 	ret = kzalloc(sizeof(*ret), GFP_KERNEL);
 	if (ret) {
 		inode_init_once(ret);

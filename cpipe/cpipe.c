@@ -44,6 +44,7 @@ MODULE_PARM_DESC(bsize, "size (in bytes) of each buffer");
 
 static int __init cpipe_check_module_params(void) {
 	int err = 0;
+
 	if (cpipe_npipes < 0) {
 		pr_err("%s: cpipe_npipes < 0. value = %d\n",
 				DRIVER_NAME, cpipe_npipes);
@@ -216,6 +217,7 @@ static int cpipe_ioctl_IOCGAVAILXX(struct mutex *mutex, cpipe_fifo_t *fifo,
 	int (*get_availxx)(cpipe_fifo_t *), int f_flags, int __user *ret)
 {
 	int err;
+
 	err = cpipe_mutex_lock(mutex, f_flags);
 	if (err)
 		return err;
@@ -229,6 +231,7 @@ static long cpipe_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	struct cpipe_dev *dev = filp->private_data;
 	long ret = 0;
+
 	if ((_IOC_TYPE(cmd) != CPIPE_IOC_MAGIC) ||
 			(_IOC_NR(cmd) > CPIPE_IOC_MAXNR))
 		return -ENOTTY;
@@ -253,6 +256,7 @@ static int cpipe_open(struct inode *inode, struct file *filp)
 {
 	unsigned int minor = iminor(inode);
 	struct cpipe_dev *dev = &cpipe_pairs[minor >> 1].devices[minor & 1];
+
 	filp->private_data = dev;
 	return 0;
 }
@@ -278,6 +282,7 @@ static int __init cpipe_dev_init(struct cpipe_dev *dev, int i, int j)
 {
 	int err;
 	dev_t devno = MKDEV(cpipe_major, i * 2 + j);
+
 	err = kfifo_alloc(&dev->rfifo, cpipe_bsize, GFP_KERNEL);
 	if (err) {
 		pr_err("%s: kfifo_alloc failed i=%d j=%d err=%d\n",
@@ -316,6 +321,7 @@ static int __init cpipe_pair_init(struct cpipe_pair *pair, int i)
 {
 	int err;
 	int j;
+
 	for (j = 0; j < ARRAY_SIZE(pair->devices); j++) {
 		err = cpipe_dev_init(&pair->devices[j], i, j);
 		if (err) {
@@ -355,6 +361,7 @@ fail_cpipe_dev_init:
 static void cpipe_pair_destroy(struct cpipe_pair *pair)
 {
 	int i, j;
+
 	i = MINOR(cpipe_dev_devt(&pair->devices[0])) / 2;
 	pr_info("%s: destroying pair %s%d\n",
 			DRIVER_NAME, DRIVER_NAME, i);
@@ -369,6 +376,7 @@ static int __init cpipe_init(void)
 {
 	int err;
 	int i;
+
 	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	err = cpipe_check_module_params();
 	if (err)
@@ -422,6 +430,7 @@ module_init(cpipe_init);
 static void __exit cpipe_exit(void)
 {
 	int i;
+
 	for (i = 0; i < cpipe_npipes; i++)
 		cpipe_pair_destroy(&cpipe_pairs[i]);
 	class_destroy(cpipe_class);

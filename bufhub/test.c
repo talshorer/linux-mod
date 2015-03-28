@@ -81,6 +81,7 @@ static inline void clipboard_name(clipboard_name_t *buf, int cid)
 static int open_clipboard(unsigned int cid, int *cfd, int flags)
 {
 	clipboard_name_t buf;
+
 	clipboard_name(&buf, cid);
 	*cfd = open(buf, flags);
 	if (*cfd < 0) {
@@ -118,6 +119,7 @@ static int close_clipboard(int cfd)
 static int write_clipboard(int cfd, const char *buf, size_t count)
 {
 	off_t start;
+
 	start = lseek(cfd, 0, SEEK_CUR);
 	if (write(cfd, buf, count) != count) {
 		bufhub_test_perror("Failed to write to clipboard");
@@ -133,6 +135,7 @@ static int write_clipboard(int cfd, const char *buf, size_t count)
 static int read_clipboard(int cfd, char *buf, size_t count)
 {
 	off_t start;
+
 	start = lseek(cfd, 0, SEEK_CUR);
 	if (read(cfd, buf, count) != count) {
 		bufhub_test_perror("Failed to read from clipboard");
@@ -148,6 +151,7 @@ static int read_clipboard(int cfd, char *buf, size_t count)
 static int clipboard_exists(int cid)
 {
 	clipboard_name_t buf;
+
 	clipboard_name(&buf, cid);
 	if (access(buf, F_OK) < 0)
 		return 0;
@@ -159,6 +163,7 @@ static unsigned int get_max_clipboards(void)
 	char buf[8];
 	int pfd;
 	unsigned int max_clipboards;
+
 	pfd = open("/sys/module/" MODULE_NAME "/parameters/max_clipboards",
 			O_RDONLY);
 	if (pfd < 0)
@@ -179,6 +184,7 @@ static int test_readback(void)
 	char data[] = "hello, world!\n";
 	char readback[sizeof(data)];
 	int ret = 1;
+
 	if (full_open_clibpoard(&mfd, &cfd, &cid, O_WRONLY))
 		goto out_none;
 	count = strlen(data);
@@ -208,6 +214,7 @@ static int test_open_WRONLY_deletes_clipboard_buffer(void)
 	char data[] = "hello, world!\n";
 	int ret = 1;
 	char dummy;
+
 	if (full_open_clibpoard(&mfd, &cfd, &cid, O_WRONLY))
 		goto out_none;
 	if (write_clipboard(cfd, data, strlen(data)))
@@ -236,6 +243,7 @@ static int test_create_destroy_clipboard(void)
 	int mfd;
 	unsigned int cid;
 	int ret = 1;
+
 	if (open_miscdev(&mfd))
 		goto out_none;
 	if (create_clipboard(mfd, &cid))
@@ -258,6 +266,7 @@ static int test_closing_miscdev_destroys_clipboards(void)
 	int mfd;
 	unsigned int cid;
 	int ret = 1;
+
 	if (open_miscdev(&mfd))
 		goto out_none;
 	if (create_clipboard(mfd, &cid))
@@ -275,6 +284,7 @@ static int test_closing_miscdev_does_not_destroy_open_clipbaord(void)
 {
 	int mfd, cfd = -1;
 	unsigned int cid;
+
 	if (full_open_clibpoard(&mfd, &cfd, &cid, O_RDONLY))
 		goto out_none;
 	if (close_miscdev(mfd))
@@ -298,6 +308,7 @@ static int test_clipboard_destruction_fails_with_wrong_master(void)
 	int mfd0, mfd1;
 	unsigned int cid;
 	int ret = 1;
+
 	if (open_miscdev(&mfd0))
 		goto out_none;
 	if (open_miscdev(&mfd1))
@@ -324,6 +335,7 @@ static int test_creation_fails_with_too_many_clipboards(void)
 	unsigned int cid;
 	unsigned int max;
 	int ret = 1;
+
 	max = get_max_clipboards();
 	if (open_miscdev(&mfd))
 		goto out_none;
@@ -364,6 +376,7 @@ int main(int argc, char *argv[])
 {
 	struct single_test *active;
 	int i, err, ret = 0;
+
 	for (i = 0; i < sizeof(all_tests) / sizeof(all_tests[0]); i++) {
 		active = &all_tests[i];
 		dprintf(2, "%s: running test %s\n", argv[0], active->name);

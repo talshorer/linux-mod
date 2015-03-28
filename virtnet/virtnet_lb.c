@@ -24,6 +24,7 @@ static void virtnet_lb_timer_func(unsigned long data)
 	struct virtnet_lb_entry *entry = (struct virtnet_lb_entry *)data;
 	struct virtnet_lb_dev *lbdev = netdev_priv(entry->dev);
 	unsigned long flags;
+
 	virtnet_recv(entry->dev, entry->data, entry->len);
 	spin_lock_irqsave(&lbdev->lock, flags);
 	list_del(&entry->link);
@@ -66,6 +67,7 @@ static int virtnet_lb_xmit(struct net_device *dev, const char *buf, size_t len)
 static int virtnet_lb_dev_init(void *priv, unsigned int minor)
 {
 	struct virtnet_lb_dev *lbdev = priv;
+
 	spin_lock_init(&lbdev->lock);
 	INIT_LIST_HEAD(&lbdev->entries);
 	atomic_set(&lbdev->allocated, 0);
@@ -77,6 +79,7 @@ static void virtnet_lb_dev_uninit(void *priv)
 	struct virtnet_lb_dev *lbdev = priv;
 	struct virtnet_lb_entry *entry, *tmp;
 	unsigned long flags;
+
 	spin_lock_irqsave(&lbdev->lock, flags);
 	list_for_each_entry_safe(entry, tmp, &lbdev->entries, link) {
 		spin_unlock_irqrestore(&lbdev->lock, flags);

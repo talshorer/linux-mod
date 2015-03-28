@@ -12,6 +12,7 @@ MODULE_PARM_DESC(nclocks, "number of virtual clocks to create");
 
 static int __init jrtc_check_module_params(void) {
 	int err = 0;
+
 	if (jrtc_nclocks <= 0) {
 		pr_err("jrtc_nclocks <= 0. value = %d\n", jrtc_nclocks);
 		err = -EINVAL;
@@ -173,6 +174,7 @@ module_init(jrtc_init);
 static void __exit jrtc_exit(void)
 {
 	int i;
+
 	for (i = 0; i < jrtc_nclocks; i++)
 		jrtc_clock_cleanup(&jrtc_clocks[i]);
 	class_destroy(jrtc_class);

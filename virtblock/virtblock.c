@@ -72,6 +72,7 @@ static struct block_device_operations virtblock_ops = {
 
 static int virtblock_check_module_params(void) {
 	int err = 0;
+
 	if (virtblock_ndevices < 0) {
 		pr_err("%s: virtblock_ndevices < 0. value = %d\n",
 				DRIVER_NAME, virtblock_ndevices);
@@ -108,6 +109,7 @@ static void virtblock_request(struct request_queue *q) {
 	size_t count;
 	void *blkbuf; /* buffer received from the block layer */
 	void *devbuf; /* buffer received from our own device */
+
 	while ((req = blk_fetch_request(q)) != NULL) {
 		dev = req->rq_disk->private_data;
 		if (req->cmd_type != REQ_TYPE_FS) {
@@ -162,6 +164,7 @@ static int __init virtblock_dev_setup(struct virtblock_dev *dev,
 		int index)
 {
 	int err;
+
 	dev->size = virtblock_nsectors * virtblock_hardsect_size;
 	dev->data = vmalloc(dev->size);
 	if (!dev->data) {
@@ -217,6 +220,7 @@ static int __init virtblock_init(void)
 {
 	int err;
 	int i;
+
 	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	err = virtblock_check_module_params();
 	if (err)
@@ -270,6 +274,7 @@ module_init(virtblock_init)
 static void __exit virtblock_exit(void)
 {
 	int i;
+
 	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	for (i = 0; i < virtblock_ndevices; i++)
 		virtblock_dev_cleanup(&virtblock_devices[i]);

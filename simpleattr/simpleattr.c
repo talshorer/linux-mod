@@ -42,6 +42,7 @@ static ssize_t simpleattr_sys_attr_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	unsigned long val = (unsigned long)dev_get_drvdata(dev);
+
 	simpleattr_print_sys_attr_access(dev, attr, val, __func__);
 	return snprintf(buf, PAGE_SIZE, "%lu\n", val);
 }
@@ -50,6 +51,7 @@ static ssize_t simpleattr_sys_attr_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	unsigned long val;
+
 	if (sscanf(buf, "%lu", &val) != 1)
 		return -EINVAL;
 	simpleattr_print_sys_attr_access(dev, attr, val, __func__);
@@ -62,6 +64,7 @@ static ssize_t simpleattr_sys_attr_store(struct device *dev,
 static struct device __init *simpleattr_device_create(int i) {
 	struct device *dev;
 	int err;
+
 	dev = device_create(simpleattr_class, NULL, simpleattr_MKDEV(i), NULL,
 			"%s%d", DRIVER_NAME, i);
 	if (IS_ERR(dev)) {
@@ -87,6 +90,7 @@ fail_device_create:
 
 static void simpleattr_device_destroy(int i) {
 	struct device *dev = simpleattr_devices[i];
+
 	pr_info("%s: destroying device %s\n",
 			DRIVER_NAME, dev->kobj.name);
 	device_remove_file(dev, &dev_attr_attr);
@@ -98,6 +102,7 @@ static int __init simpleattr_init(void)
 	int err;
 	int i;
 	struct device *dev;
+
 	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	if (simpleattr_ndevices < 0) {
 		pr_err("%s: simpleattr_ndevices < 0. value = %d\n",
@@ -146,6 +151,7 @@ module_init(simpleattr_init);
 static void __exit simpleattr_exit(void)
 {
 	int i;
+
 	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
 	for (i = 0; i < simpleattr_ndevices; i++)
 		simpleattr_device_destroy(i);

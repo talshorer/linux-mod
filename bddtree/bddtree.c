@@ -41,6 +41,7 @@ struct bddtree_device {
 static char *bddtree_buf_to_name(const char *buf, size_t count)
 {
 	char *name;
+
 	if (buf[count - 1] == '\n')
 		count--;
 	name = kmalloc(count + 1, GFP_KERNEL);

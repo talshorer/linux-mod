@@ -16,6 +16,7 @@ static __elfsect_dummy_symbol struct { } __elfsect_dummies_empty;
 static int elfsect_debugfs_dummies_show(struct seq_file *m, void *v)
 {
 	elfsect_dummy *fp;
+
 	for (fp = &__start_dummies; fp < &__stop_dummies; fp++)
 		seq_printf(m, "%s\n", (*fp)());
 	return 0;

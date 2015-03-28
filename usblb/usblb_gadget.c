@@ -19,6 +19,7 @@ int usblb_gadget_init(void)
 	usblb_gadget_class = class_create(THIS_MODULE, MODULE_NAME);
 	if (IS_ERR(usblb_gadget_class)) {
 		int err = PTR_ERR(usblb_gadget_class);
+
 		pr_err("class_create failed. err = %d\n", err);
 		return err;
 	}
@@ -98,6 +99,7 @@ static struct usb_request *usblb_gadget_alloc_request(struct usb_ep *ep,
 		gfp_t gfp_flags)
 {
 	struct usblb_gadget_request *req;
+
 	dev_info(to_usblb_gadget_ep(ep)->g->dev,
 			"<%s> on %s\n", __func__, ep->name);
 	req = kzalloc(sizeof(*req), gfp_flags);
@@ -110,6 +112,7 @@ static void usblb_gadget_free_request(struct usb_ep *ep,
 		struct usb_request *_req)
 {
 	struct usblb_gadget_request *req;
+
 	dev_info(to_usblb_gadget_ep(ep)->g->dev,
 			"<%s> on %s\n", __func__, ep->name);
 	req = to_usblb_gadget_request(_req);
@@ -153,6 +156,7 @@ static int usblb_gadget_start(struct usb_gadget *g,
 		struct usb_gadget_driver *drv)
 {
 	struct usblb_gadget *gadget = to_usblb_gadget(g);
+
 	dev_info(gadget->dev, "<%s> with driver \"%s\"\n",
 			__func__, drv->function);
 	gadget->driver = drv;
@@ -221,6 +225,7 @@ int usblb_gadget_device_setup(struct usblb_gadget *gadget, int i)
 	INIT_LIST_HEAD(&gadget->g.ep_list);
 	for (j = 0; j < USBLB_GADGET_EP_NUM; j++) {
 		struct usblb_gadget_ep *ep = &gadget->ep[j];
+
 		ep->g = gadget;
 		ep->epnum = j;
 		usblb_gadget_ep_init(ep, j);

@@ -11,6 +11,7 @@ char *prog;
 static struct nlmsghdr *nldummy_create_header(size_t len)
 {
 	struct nlmsghdr *nlh;
+
 	nlh = malloc(NLMSG_SPACE(len));
 	if (!nlh) {
 		dprintf(2, "%s: failed to allocate netlink header\n", prog);
@@ -107,6 +108,7 @@ out_none:
 static void printbuf(const char *prefix, const char *buf, size_t len)
 {
 	int i;
+
 	dprintf(2, "%s", prefix);
 	for (i = 0; i < len; i++)
 		dprintf(2, "%02x ", (unsigned char)buf[i]);

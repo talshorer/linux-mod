@@ -225,6 +225,7 @@ static void virtnet_chr_dev_uninit(void *priv)
 	struct virtnet_chr_dev *vcdev = (struct virtnet_chr_dev *)priv;
 	struct virtnet_chr_packet *packet, *tmp;
 	unsigned long flags;
+
 	spin_lock_irqsave(&vcdev->lock, flags);
 	list_for_each_entry_safe(packet, tmp, &vcdev->packets, link)
 		kfree(packet);

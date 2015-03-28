@@ -175,6 +175,7 @@ static void ticker_unbind(struct usb_configuration *c, struct usb_function *f)
 static void ticker_free_func(struct usb_function *f)
 {
 	struct f_ticker *ticker = func_to_ticker(f);
+
 	pr_debug("<%s>\n", __func__);
 	kfree(ticker);
 }
@@ -272,6 +273,7 @@ static void f_ticker_disable(struct f_ticker *ticker)
 static void ticker_disable(struct usb_function *f)
 {
 	struct f_ticker *ticker = func_to_ticker(f);
+
 	pr_debug("<%s>\n", __func__);
 	f_ticker_disable(ticker);
 }
@@ -280,6 +282,7 @@ static int ticker_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 {
 	struct f_ticker *ticker = func_to_ticker(f);
 	struct usb_composite_dev *cdev = f->config->cdev;
+
 	pr_debug("<%s>\n", __func__);
 	/* we know alt is zero */
 	if (ticker->ep->driver_data)
@@ -352,6 +355,7 @@ static ssize_t f_ticker_opts_interval_store(struct f_ticker_opts *opts,
 {
 	int ret;
 	u32 num;
+
 	ret = kstrtou32(page, 0, &num);
 	if (ret)
 		return ret;

@@ -90,6 +90,7 @@ static int startloop(struct bf_ctx *ctx)
 	} else {
 		unsigned count = 1;
 		char cmd;
+
 		while (1) {
 			if (readone(ctx, &cmd) != sizeof(cmd)) {
 				puts("unbalanced loops");

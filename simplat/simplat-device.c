@@ -81,6 +81,7 @@ module_init(simplat_device_init);
 static void __exit simplat_device_exit(void)
 {
 	int i;
+
 	for (i = 0; i < simplat_ndevices; i++)
 		platform_device_unregister(simplat_devices[i]);
 	vfree(simplat_devices);

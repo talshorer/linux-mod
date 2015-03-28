@@ -35,6 +35,7 @@ static struct platform_driver usblb_host_platform_driver = {
 int usblb_host_init(void)
 {
 	int err;
+
 	err = platform_driver_register(&usblb_host_platform_driver);
 	if (err) {
 		pr_err("platform_driver_register failed. err = %d\n", err);
@@ -190,6 +191,7 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 		{
 		/* based on drivers/usb/musb/musb_virthub.c */
 		struct usb_hub_descriptor *desc = (void *)buf;
+
 		desc->bDescLength = 9;
 		desc->bDescriptorType = USB_DT_HUB;
 		desc->bNbrPorts = 1;
@@ -234,6 +236,7 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 	case GetPortStatus:
 		{
 		struct usb_port_status *port_status = (void *)buf;
+
 		if ((wIndex & 0xff) != 1)
 			goto error;
 		port_status->wPortStatus = cpu_to_le16(

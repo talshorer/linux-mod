@@ -37,6 +37,7 @@ static struct virtnet_backend_ops *virtnet_backend_ops;
 
 static int __init virtnet_check_module_params(void) {
 	int err = 0;
+
 	if (virtnet_nifaces < 0) {
 		pr_err("%s: virtnet_nifaces < 0. value = %d\n",
 				DRIVER_NAME, virtnet_nifaces);

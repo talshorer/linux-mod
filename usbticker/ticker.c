@@ -26,6 +26,7 @@ static ssize_t ticks_show(struct device *dev, struct device_attribute *attr,
 		char *buf)
 {
 	struct usbticker *ticker;
+
 	ticker = usb_get_intfdata(to_usb_interface(dev));
 	pr_debug("<%s>\n", __func__);
 	return sprintf(buf, "%u\n", atomic_read(&ticker->ticks));
@@ -122,6 +123,7 @@ fail_kzalloc_ticker:
 static void ticker_disconnect(struct usb_interface *interface)
 {
 	struct usbticker *ticker = usb_get_intfdata(interface);
+
 	pr_debug("<%s>\n", __func__);
 	usb_kill_urb(ticker->urb);
 	usb_free_urb(ticker->urb);

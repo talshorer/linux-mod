@@ -30,6 +30,7 @@ static struct virtnet_backend_entry virtnet_backends[] = {
 struct virtnet_backend_ops *virtnet_get_backend(const char *name)
 {
 	int i;
+
 	for (i = 0; i < ARRAY_SIZE(virtnet_backends); i++)
 		if (!strcmp(name, virtnet_backends[i].name))
 			return virtnet_backends[i].ops;

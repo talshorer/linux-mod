@@ -13,6 +13,7 @@ MODULE_PARM_DESC(nbuses, "number of usblb buses to create");
 
 static int __init usblb_check_module_params(void) {
 	int err = 0;
+
 	if (usblb_nbuses <= 0) {
 		pr_err("usblb_nbuses <= 0. value = %d\n", usblb_nbuses);
 		err = -EINVAL;
@@ -67,6 +68,7 @@ fail_g_setup:
 static void usblb_bus_cleanup(struct usblb_bus *bus)
 {
 	unsigned long flags;
+
 	pr_info("destroying %s%d\n",
 			KBUILD_MODNAME, (int)(bus - usblb_buses));
 	usblb_bus_lock_irqsave(bus, flags);
@@ -130,6 +132,7 @@ module_init(usblb_init);
 static void __exit usblb_exit(void)
 {
 	int i;
+
 	for (i = 0; i < usblb_nbuses; i++)
 		usblb_bus_cleanup(&usblb_buses[i]);
 	vfree(usblb_buses);

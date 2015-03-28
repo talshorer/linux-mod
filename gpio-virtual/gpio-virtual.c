@@ -20,6 +20,7 @@ MODULE_PARM_DESC(chip_npins, "number of gpio pins per controller chip");
 
 static int __init vgpio_module_params(void) {
 	int err = 0;
+
 	if (vgpio_nchips <= 0) {
 		pr_err("%s: vgpio_nchips <= 0. value = %d\n",
 				MODULE_NAME, vgpio_nchips);
@@ -67,6 +68,7 @@ static inline int vgpio_get_bit(struct vgpio_chip *vchip,
 	unsigned boffset = bit & 0x7;
 	unsigned long flags;
 	int ret;
+
 	spin_lock_irqsave(&vchip->lock, flags);
 	ret = (vchip->regs[regtype][bit >> 3] & (1 << boffset)) >> boffset;
 	spin_unlock_irqrestore(&vchip->lock, flags);
@@ -95,6 +97,7 @@ static inline void vgpio_set_bit_hi(struct vgpio_chip *vchip,
 		enum vgpio_reg_type regtype, unsigned bit)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&vchip->lock, flags);
 	__vgpio_set_bit_hi(vchip, regtype, bit);
 	spin_unlock_irqrestore(&vchip->lock, flags);
@@ -104,6 +107,7 @@ static inline void vgpio_set_bit_lo(struct vgpio_chip *vchip,
 		enum vgpio_reg_type regtype, unsigned bit)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&vchip->lock, flags);
 	__vgpio_set_bit_lo(vchip, regtype, bit);
 	spin_unlock_irqrestore(&vchip->lock, flags);
@@ -119,6 +123,7 @@ static inline void vgpio_set_bit(struct vgpio_chip *vchip,
 		enum vgpio_reg_type regtype, unsigned bit, int value)
 {
 	unsigned long flags;
+
 	spin_lock_irqsave(&vchip->lock, flags);
 	__vgpio_set_bit(vchip, regtype, bit, value);
 	spin_unlock_irqrestore(&vchip->lock, flags);
@@ -143,6 +148,7 @@ static int vgpio_get_direction(struct gpio_chip *chip, unsigned offset)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	int ret = vgpio_get_bit(vchip, VGPIO_REG_DIRECTIONS, offset);
+
 	dev_info(chip->dev, "<%s> offset = %u, ret = %d\n",
 			__func__, offset, ret);
 	return ret;
@@ -152,6 +158,7 @@ static int vgpio_direction_input(struct gpio_chip *chip, unsigned offset)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	unsigned long flags;
+
 	dev_info(chip->dev, "<%s> offset = %u\n", __func__, offset);
 	spin_lock_irqsave(&vchip->lock, flags);
 	__vgpio_set_bit_hi(vchip, VGPIO_REG_DIRECTIONS, offset);
@@ -165,6 +172,7 @@ static int vgpio_direction_output(struct gpio_chip *chip, unsigned offset,
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	unsigned long flags;
+
 	dev_info(chip->dev, "<%s> offset = %u, value = %d\n",
 			__func__, offset, value);
 	spin_lock_irqsave(&vchip->lock, flags);
@@ -178,6 +186,7 @@ static int vgpio_get(struct gpio_chip *chip, unsigned offset)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	int ret = vgpio_get_bit(vchip, VGPIO_REG_VALUES, offset);
+
 	dev_info(chip->dev, "<%s> offset = %u, ret = %d\n",
 			__func__, offset, ret);
 	return ret;
@@ -186,6 +195,7 @@ static int vgpio_get(struct gpio_chip *chip, unsigned offset)
 static void vgpio_set(struct gpio_chip *chip, unsigned offset, int value)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
+
 	dev_info(chip->dev, "<%s> offset = %u, value = %d\n",
 			__func__, offset, value);
 	vgpio_set_bit(vchip, VGPIO_REG_VALUES, offset, value);
@@ -280,6 +290,7 @@ fail_kzalloc_vchip_mem:
 static void vgpio_chip_cleanup(struct vgpio_chip *vchip)
 {
 	dev_t devt = vchip->chip.dev->devt;
+
 	gpiochip_remove(&vchip->chip);
 	device_destroy(&vgpio_class, devt);
 	kfree(vchip->mem);
@@ -335,6 +346,7 @@ module_init(vgpio_init);
 static void __exit vgpio_exit(void)
 {
 	int i;
+
 	for (i = 0; i < vgpio_nchips; i++)
 		vgpio_chip_cleanup(&vgpio_chips[i]);
 	class_unregister(&vgpio_class);

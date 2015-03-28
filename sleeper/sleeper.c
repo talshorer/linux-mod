@@ -148,8 +148,10 @@ fail_debugfs_create_dir:
 static int sleeper_thread_func(void *data)
 {
 	struct sleeper_thread *st = data;
+
 	do {
 		DEFINE_WAIT(wait);
+
 		pr_info("%s: %s was disturbed %d times\n", DRIVER_NAME,
 				st->task->comm, atomic_read(&st->disturbs));
 		prepare_to_wait(&st->wq, &wait, TASK_UNINTERRUPTIBLE);

@@ -15,6 +15,7 @@ MODULE_PARM_DESC(ndevices, "number of virtual devices to create");
 
 static int __init firmreq_check_module_params(void) {
 	int err = 0;
+
 	if (firmreq_ndevices <= 0) {
 		pr_err("firmreq_ndevices <= 0. value = %d\n",
 				firmreq_ndevices);
@@ -27,6 +28,7 @@ static ssize_t firmware_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	struct firmware *fw = dev_get_drvdata(dev);
+
 	memcpy(buf, fw->data, fw->size);
 	buf[fw->size] = '\n';
 	buf[fw->size + 1] = '\0';
@@ -79,6 +81,7 @@ fail_device_create:
 static void firmreq_device_destroy(struct device *dev)
 {
 	struct firmware *fw = dev_get_drvdata(dev);
+
 	dev_info(dev, "destroying\n");
 	release_firmware(fw);
 	device_unregister(dev);
@@ -138,6 +141,7 @@ module_init(firmreq_init);
 static void __exit firmreq_exit(void)
 {
 	int i;
+
 	for (i = 0; i < firmreq_ndevices; i++)
 		firmreq_device_destroy(firmreq_devices[i]);
 	class_destroy(firmreq_class);

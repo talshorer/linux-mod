@@ -36,6 +36,7 @@ static ssize_t confmirror_attr_show(struct confmirror_item *cmi, char *buf,
 		const char *func)
 {
 	unsigned value = atomic_read(&cmi->value);
+
 	confmirror_print_attr_access(cmi, func, value);
 	return snprintf(buf, PAGE_SIZE, "%u\n", value);
 }
@@ -84,6 +85,7 @@ static ssize_t confmirror_configfs_attr_store(struct confmirror_item *cmi,
 		const char *page, size_t count)
 {
 	unsigned long value;
+
 	if (sscanf(page, "%lu", &value) != 1)
 		return -EINVAL;
 	atomic_set(&cmi->value, value);
