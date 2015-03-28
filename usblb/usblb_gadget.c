@@ -144,8 +144,7 @@ static void usblb_gadget_ep_init(struct usblb_gadget_ep *ep, int epnum)
 	if (epnum) {
 		usb_ep_set_maxpacket_limit(&ep->ep, USBLB_GADGET_MAXPACKET);
 		list_add_tail(&ep->ep.ep_list, &ep->g->g.ep_list);
-	}
-	else {
+	} else {
 		usb_ep_set_maxpacket_limit(&ep->ep, 64);
 		ep->g->g.ep0 = &ep->ep;
 	}
