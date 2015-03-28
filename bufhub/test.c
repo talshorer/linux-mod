@@ -12,7 +12,7 @@
 #define BUFHUB_MISCDEV "/dev/" MODULE_NAME
 #define BUFHUB_CLIPBOARD BUFHUB_MISCDEV "_clipboard"
 
-static int _silent = 0;
+static int _silent;
 static inline void bufhub_test_perror(char *msg)
 {
 	if (!_silent)

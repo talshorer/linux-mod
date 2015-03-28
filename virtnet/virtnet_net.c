@@ -25,7 +25,7 @@ static int virtnet_nifaces = 1;
 module_param_named(nifaces, virtnet_nifaces, int, 0444);
 MODULE_PARM_DESC(nifaces, "number of ifaces to create");
 
-static bool virtnet_packetdump = false;
+static bool virtnet_packetdump;
 module_param_named(packetdump, virtnet_packetdump, bool, 0644);
 MODULE_PARM_DESC(packetdump, "print incoming and outgoing packets to log");
 

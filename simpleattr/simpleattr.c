@@ -24,7 +24,7 @@ static ssize_t simpleattr_sys_attr_store(struct device *dev,
 static DEVICE_ATTR(attr, SIMPLEATTR_SYSFS_PERM,
 		simpleattr_sys_attr_show, simpleattr_sys_attr_store);
 
-static struct class *simpleattr_class = NULL;
+static struct class *simpleattr_class;
 static struct device **simpleattr_devices;
 
 static void simpleattr_print_sys_attr_access(struct device *dev,
