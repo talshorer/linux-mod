@@ -369,7 +369,12 @@ static void echoserial_rx_timer_func(unsigned long data)
 				esp->name, __func__, (unsigned int)count);
 	lsr = esp->lsr;
 	while (count--) {
-		kfifo_out(fifo, &ch, 1);
+		/*
+		 * port is locked and kfifo length was checked, so this call is
+		 * guaranteed to succeed. however, it's declared with
+		 * warn_unused_result, so we have to _pretend_ to use it.
+		 */
+		if (kfifo_out(fifo, &ch, 1));
 		uart_insert_char(port, lsr, UART_LSR_OE, ch, TTY_NORMAL);
 	}
 	if (count) { /* receiving side should allow cts */
@@ -539,4 +544,4 @@ module_exit(echoserial_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("1.0.4");
+MODULE_VERSION("1.0.5");
