@@ -68,7 +68,7 @@ static struct device *firmreq_device_create(int i)
 				i, err);
 		goto fail_request_firmware;
 	}
-	dev_set_drvdata(dev, (void*)fw);
+	dev_set_drvdata(dev, (void *)fw);
 
 	dev_info(dev, "created successfully\n");
 	return dev;
