@@ -38,11 +38,6 @@ struct bddtree_device {
 #define bddtree_device_from_device(_dev) \
 	container_of((_dev), struct bddtree_device, dev)
 
-struct bddtree_device_match {
-	unsigned long id;
-	struct bddtree_device *dev;
-};
-
 static char *bddtree_buf_to_name(const char *buf, size_t count)
 {
 	char *name;
@@ -58,36 +53,38 @@ static char *bddtree_buf_to_name(const char *buf, size_t count)
 	return name;
 }
 
-static int bddtree_device_match(struct device *_dev, void *data)
-{
-	struct bddtree_device *dev = bddtree_device_from_device(_dev);
-	struct bddtree_device_match *match = data;
-
-	if (dev->id == match->id) {
-		match->dev = dev;
-		return -1;
-	} else
-		return 0;
-}
-
 static void bddtree_device_release(struct device *dev)
 {
 	kfree(bddtree_device_from_device(dev));
+}
+
+static int bddtree_device_match(struct device *dev, void *data)
+{
+	return *(unsigned long *)data == bddtree_device_from_device(dev)->id;
+}
+
+static struct bddtree_device *bddtree_device_find(struct bddtree_driver *drv,
+		unsigned long id)
+{
+	struct device *dev;
+
+	dev = driver_find_device(&drv->driver, NULL, &id,
+			bddtree_device_match);
+	if (!dev)
+		return NULL;
+	put_device(dev); /* put away ref from driver_find_device */
+	return bddtree_device_from_device(dev);
 }
 
 static struct bddtree_device *bddtree_device_create(
 		struct bddtree_driver *drv, unsigned long id)
 {
 	struct bddtree_device *dev;
-	struct bddtree_device_match match;
 	int err;
 	unsigned long flags;
 
-	match.id = id;
-	match.dev = NULL;
-	driver_for_each_device(&drv->driver, NULL, &match,
-			bddtree_device_match);
-	if (match.dev) {
+	dev = bddtree_device_find(drv, id);
+	if (dev) {
 		err = -EINVAL;
 		pr_err("%s: <%s> device with id %lu already bound " \
 				"to driver %s\n",
@@ -167,26 +164,26 @@ static ssize_t bddtree_drv_add_store(struct device_driver *drv,
 	return count;
 }
 
-static ssize_t bddtree_drv_del_store(struct device_driver *drv,
+static ssize_t bddtree_drv_del_store(struct device_driver *_drv,
 		const char *buf, size_t count)
 {
-	struct bddtree_device_match match;
+	struct bddtree_driver *drv = bddtree_driver_from_device_driver(_drv);
+	struct bddtree_device *dev;
+	unsigned long id;
 	ssize_t ret;
 
-	ret = kstrtoul(buf, 0, &match.id);
+	ret = kstrtoul(buf, 0, &id);
 	if (ret)
 		return ret;
 
-	driver_for_each_device(drv, NULL, &match, bddtree_device_match);
-	if (!match.dev) {
+	dev = bddtree_device_find(drv, id);
+	if (!dev) {
 		pr_err("%s: <%s> device %s.%lu not found\n",
-				MODULE_NAME, __func__,
-				bddtree_driver_from_device_driver(drv)->name,
-						match.id);
+				MODULE_NAME, __func__, drv->name, id);
 		return -EINVAL;
 	}
 
-	bddtree_device_destroy(match.dev);
+	bddtree_device_destroy(dev);
 
 	return count;
 }
@@ -430,4 +427,4 @@ module_exit(bddtree_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("A bus-driver-device tree");
-MODULE_VERSION("1.1.2");
+MODULE_VERSION("1.2.0");
