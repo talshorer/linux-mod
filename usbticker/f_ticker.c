@@ -180,7 +180,8 @@ static void ticker_free_func(struct usb_function *f)
 	kfree(ticker);
 }
 
-static inline void f_ticker_fire_timer(struct f_ticker *ticker) {
+static inline void f_ticker_fire_timer(struct f_ticker *ticker)
+{
 	mod_timer(
 		&ticker->timer,
 		jiffies +msecs_to_jiffies(ticker->interval)

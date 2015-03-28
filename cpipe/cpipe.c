@@ -42,7 +42,8 @@ static int cpipe_bsize = PAGE_SIZE;
 module_param_named(bsize, cpipe_bsize, int, 0444);
 MODULE_PARM_DESC(bsize, "size (in bytes) of each buffer");
 
-static int __init cpipe_check_module_params(void) {
+static int __init cpipe_check_module_params(void)
+{
 	int err = 0;
 
 	if (cpipe_npipes < 0) {

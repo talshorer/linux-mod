@@ -18,7 +18,8 @@ static int vgpio_chip_npins = 32;
 module_param_named(chip_npins, vgpio_chip_npins, int, 0444);
 MODULE_PARM_DESC(chip_npins, "number of gpio pins per controller chip");
 
-static int __init vgpio_module_params(void) {
+static int __init vgpio_module_params(void)
+{
 	int err = 0;
 
 	if (vgpio_nchips <= 0) {

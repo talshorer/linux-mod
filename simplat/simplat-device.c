@@ -13,7 +13,8 @@ static int simplat_ndevices = 1;
 module_param_named(ndevices, simplat_ndevices, int, 0444);
 MODULE_PARM_DESC(ndevices, "number of simplat devices to create");
 
-static int simplat_device_check_module_params(void) {
+static int simplat_device_check_module_params(void)
+{
 	int err = 0;
 
 	if (simplat_ndevices < 0) {

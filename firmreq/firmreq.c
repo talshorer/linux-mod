@@ -13,7 +13,8 @@ static int firmreq_ndevices = 1;
 module_param_named(ndevices, firmreq_ndevices, int, 0444);
 MODULE_PARM_DESC(ndevices, "number of virtual devices to create");
 
-static int __init firmreq_check_module_params(void) {
+static int __init firmreq_check_module_params(void)
+{
 	int err = 0;
 
 	if (firmreq_ndevices <= 0) {

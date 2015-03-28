@@ -70,7 +70,8 @@ static struct block_device_operations virtblock_ops = {
 };
 
 
-static int virtblock_check_module_params(void) {
+static int virtblock_check_module_params(void)
+{
 	int err = 0;
 
 	if (virtblock_ndevices < 0) {
@@ -99,7 +100,8 @@ static int virtblock_check_module_params(void) {
 	return err;
 }
 
-static void virtblock_request(struct request_queue *q) {
+static void virtblock_request(struct request_queue *q)
+{
 	struct request *req;
 	struct bio_vec bv;
 	struct req_iterator iter;

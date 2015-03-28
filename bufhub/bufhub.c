@@ -25,7 +25,8 @@ static int bufhub_clipboard_bcap = PAGE_SIZE;
 module_param_named(bcap, bufhub_clipboard_bcap, int, 0444);
 MODULE_PARM_DESC(bcap, "capacity for clipboard buffers");
 
-static int __init bufhub_check_module_params(void) {
+static int __init bufhub_check_module_params(void)
+{
 	int err = 0;
 
 	if (bufhub_max_clipboards <= 0) {

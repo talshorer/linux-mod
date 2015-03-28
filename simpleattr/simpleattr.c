@@ -61,7 +61,8 @@ static ssize_t simpleattr_sys_attr_store(struct device *dev,
 
 #define simpleattr_MKDEV(i) MKDEV(0, i)
 
-static struct device __init *simpleattr_device_create(int i) {
+static struct device __init *simpleattr_device_create(int i)
+{
 	struct device *dev;
 	int err;
 
@@ -88,7 +89,8 @@ fail_device_create:
 	return ERR_PTR(err);
 }
 
-static void simpleattr_device_destroy(int i) {
+static void simpleattr_device_destroy(int i)
+{
 	struct device *dev = simpleattr_devices[i];
 
 	pr_info("%s: destroying device %s\n",

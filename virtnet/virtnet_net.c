@@ -35,7 +35,8 @@ MODULE_PARM_DESC(backend, "backend to use");
 
 static struct virtnet_backend_ops *virtnet_backend_ops;
 
-static int __init virtnet_check_module_params(void) {
+static int __init virtnet_check_module_params(void)
+{
 	int err = 0;
 
 	if (virtnet_nifaces < 0) {

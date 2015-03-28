@@ -15,7 +15,8 @@ static int sleeper_nthreads = 1;
 module_param_named(nthreads, sleeper_nthreads, int, 0444);
 MODULE_PARM_DESC(nthreads, "number of sleeper threads to create");
 
-static int sleeper_check_module_params(void) {
+static int sleeper_check_module_params(void)
+{
 	int err = 0;
 
 	if (sleeper_nthreads < 0) {

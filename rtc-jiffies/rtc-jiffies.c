@@ -10,7 +10,8 @@ static int jrtc_nclocks = 1;
 module_param_named(nclocks, jrtc_nclocks, int, 0444);
 MODULE_PARM_DESC(nclocks, "number of virtual clocks to create");
 
-static int __init jrtc_check_module_params(void) {
+static int __init jrtc_check_module_params(void)
+{
 	int err = 0;
 
 	if (jrtc_nclocks <= 0) {

@@ -11,7 +11,8 @@ static int usblb_nbuses = 1;
 module_param_named(nbuses, usblb_nbuses, int, 0);
 MODULE_PARM_DESC(nbuses, "number of usblb buses to create");
 
-static int __init usblb_check_module_params(void) {
+static int __init usblb_check_module_params(void)
+{
 	int err = 0;
 
 	if (usblb_nbuses <= 0) {
