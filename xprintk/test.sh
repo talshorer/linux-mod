@@ -14,16 +14,13 @@ insmod $MODULE.ko
 sleep 1
 kill $childpid
 wait $childpid 2> /dev/null
-kern_output=$(cat $tmp)
-i=0
-while read line; do
-	level=$(echo $LEVELS | awk "{print \$$(( $i + 1 ))}")
-	echo "$0: looking for message with level $level" 1>&2
+for level in $LEVELS; do
+	echo "$0: looking for message with level $level"
+	read line || err=1
 	if ! $(echo $line | grep "$MODULE: $level" > /dev/null); then
 		echo "$0: did not find message with level $level" 1>&2
 		err=1
 	fi
-	let i++
 done < $tmp
 rm $tmp
 rmmod $MODULE
