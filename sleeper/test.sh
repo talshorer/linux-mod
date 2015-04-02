@@ -16,6 +16,7 @@ wake_thread()
 	thread=$DRIVER$1
 	echo "$0: waking thread $thread" 1>&2
 	echo $1 > $DEBUGFS/wake
+	return $?
 }
 
 err=0
@@ -24,7 +25,10 @@ insmod $DRIVER.ko nthreads=$NTHREADS
 sleep 1
 for i in $(seq 0 $(( $NWAKES - 1 ))); do
 	for j in $(seq 0 $(( $NTHREADS - 1 ))); do
-		wake_thread $j
+		if ! wake_thread $j; then
+			echo "$0: failed to wake $DRIVER$j" 1>&2
+			err=1
+		fi
 		for k in $(seq 0 $(( $NTHREADS - 1 ))); do
 			if [[ $k -gt $j ]]; then
 				expected_stat=$i
