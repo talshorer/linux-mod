@@ -38,7 +38,7 @@ for i in $(seq 0 $(( $NCHIPS - 1 ))); do
 	gpiochip=$(ls -1 $MODULE_SYSFS/$chip | grep gpiochip)
 	echo "$0: running test on chip $chip ($gpiochip)" 1>&2
 	gpiochip_sysfs=$GPIO_SYSFS/$gpiochip
-	if [[ ! -e gpiochip_sysfs ]]; then
+	if [[ ! -e $gpiochip_sysfs ]]; then
 		echo "$0: sysfs dir for $chip not found" 1>&2
 		err=1
 		continue

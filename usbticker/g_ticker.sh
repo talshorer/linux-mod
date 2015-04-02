@@ -23,8 +23,7 @@ echo $idProduct > $GADGET/idProduct
 mkdir $STRINGSDIR
 echo $manufacturer > $STRINGSDIR/manufacturer
 echo $product > $STRINGSDIR/product
-mkdir $FUNCTIONDIR
-if ! mkdir $GADGET 2>/dev/null; then
+if ! mkdir $FUNCTIONDIR 2>/dev/null; then
 	echo "$0: failed to create function $FUNCTION" 1>&2
 	rm -rf $GADGET 2> /dev/null
 	exit 1
