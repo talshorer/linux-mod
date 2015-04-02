@@ -7,6 +7,10 @@ NITERS=0x100
 err=0
 cd $(dirname $0)
 insmod $MODULE.ko
+if [[ ! -e $PROCFILE ]]; then
+	echo "$0: $PROCFILE doesn't exist after loading $MODULE"
+	err=1
+fi
 for i in $(seq 0 $(( $NITERS - 1 ))); do
 	value=$(cat $PROCFILE)
 	if test $value != $i; then
