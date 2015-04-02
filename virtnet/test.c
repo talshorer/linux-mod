@@ -148,6 +148,11 @@ int main(int argc, char *argv[])
 	sock_address.sll_family = PF_PACKET;
 	sock_address.sll_protocol = htons(VIRTNET_ETHTYPE);
 	sock_address.sll_ifindex = if_nametoindex(iface_name);
+	if (!sock_address.sll_ifindex) {
+		perror("if_nametoindex");
+		ret = 1;
+		goto close_sock;
+	}
 	if (bind(sfd, (struct sockaddr *)&sock_address,
 			sizeof(sock_address)) < 0) {
 		perror("Failed to bind socket");
