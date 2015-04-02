@@ -38,6 +38,11 @@ for i in $(seq 0 $(( $NCHIPS - 1 ))); do
 	gpiochip=$(ls -1 $MODULE_SYSFS/$chip | grep gpiochip)
 	echo "$0: running test on chip $chip ($gpiochip)" 1>&2
 	gpiochip_sysfs=$GPIO_SYSFS/$gpiochip
+	if [[ ! -e gpiochip_sysfs ]]; then
+		echo "$0: sysfs dir for $chip not found" 1>&2
+		err=1
+		continue
+	fi
 	base=$(cat $gpiochip_sysfs/base)
 	ngpio=$(cat $gpiochip_sysfs/ngpio)
 	if [[ $ngpio != $CHIP_NPINS ]]; then
@@ -50,7 +55,7 @@ for i in $(seq 0 $(( $NCHIPS - 1 ))); do
 		gpioname=gpio$gpio
 		echo $gpio > $GPIO_SYSFS/export
 		gpio_sysfs=$(get_gpio_sysfs $gpioname)
-		if [[ "$(cat $gpio_sysfs/$DIRECTION)" != $IN ]]; then
+		if [[ "$(cat $gpio_sysfs/$DIRECTION)" != "$IN" ]]; then
 			echo -n "$0: $gpioname was not initializated " 1>&2
 			echo "as input" 1>&2
 			err=1
