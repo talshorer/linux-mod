@@ -15,7 +15,7 @@ sleep 1
 kill $childpid
 wait $childpid 2> /dev/null
 for level in $LEVELS; do
-	echo "$0: looking for message with level $level"
+	echo "$0: looking for message with level $level" 1>&2
 	read line || err=1
 	if ! $(echo $line | grep "$MODULE: $level" > /dev/null); then
 		echo "$0: did not find message with level $level" 1>&2

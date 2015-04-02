@@ -8,7 +8,7 @@ err=0
 cd $(dirname $0)
 insmod $MODULE.ko
 if [[ ! -e $PROCFILE ]]; then
-	echo "$0: $PROCFILE doesn't exist after loading $MODULE"
+	echo "$0: $PROCFILE doesn't exist after loading $MODULE" 1>&2
 	err=1
 fi
 for i in $(seq 0 $(( $NITERS - 1 ))); do
