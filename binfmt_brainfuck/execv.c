@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
 	/* should never get here. replacing program suposedly calls exit() */
 	dprintf(
 		2,
-		"execv() succeeded yet flow continues! should never happen!\n",
+		"execv() succeeded yet flow continues! should never happen!\n"
 	);
 	return 1;
 }
