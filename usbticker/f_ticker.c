@@ -147,10 +147,10 @@ static int ticker_bind(struct usb_configuration *c, struct usb_function *f)
 		return -ENODEV;
 	}
 	/* support high speed hardware */
-	ticker_hs_int_desc.bEndpointAddress = \
+	ticker_hs_int_desc.bEndpointAddress =
 		ticker_fs_int_desc.bEndpointAddress;
 	/* support super speed hardware */
-	ticker_ss_int_desc.bEndpointAddress = \
+	ticker_ss_int_desc.bEndpointAddress =
 		ticker_ss_int_desc.bEndpointAddress;
 
 	status = usb_assign_descriptors(f, ticker_fs_descs, ticker_hs_descs,
@@ -294,7 +294,7 @@ static int ticker_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
 static struct usb_function *ticker_alloc_func(struct usb_function_instance *fi)
 {
 	struct f_ticker *ticker;
-	struct f_ticker_opts *opts = \
+	struct f_ticker_opts *opts =
 		container_of(fi, typeof(*opts), func_inst);
 	struct usb_function *func;
 	int err;
@@ -388,7 +388,7 @@ static struct config_item_type ticker_func_type = {
 
 static void ticker_free_instance(struct usb_function_instance *fi)
 {
-	struct f_ticker_opts *opts = \
+	struct f_ticker_opts *opts =
 		container_of(fi, typeof(*opts), func_inst);
 	pr_debug("<%s>\n", __func__);
 	kfree(opts);

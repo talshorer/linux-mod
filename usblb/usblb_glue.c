@@ -102,7 +102,7 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 		int do_transfer = 1;
 
 		if (!epnum) {
-			struct usb_ctrlrequest *setup = \
+			struct usb_ctrlrequest *setup =
 				(void *)urb->setup_packet;
 			if (setup->bRequest == USB_REQ_SET_ADDRESS) {
 				usblb_bus_info(bus, "<%s> set address %d\n",
