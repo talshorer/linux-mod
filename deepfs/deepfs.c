@@ -161,7 +161,6 @@ static int deepfs_depth_file_create(struct super_block *sb,
 
 	f = kzalloc(sizeof(*f), GFP_KERNEL);
 	if (!f) {
-		pr_err("failed to allocate depth file private data\n");
 		err = -ENOMEM;
 		goto fail_kzalloc_private;
 	}
@@ -237,7 +236,6 @@ static int deepfs_symlink_create(struct super_block *sb,
 
 	l = kzalloc(sizeof(*l), GFP_KERNEL);
 	if (!l) {
-		pr_err("failed to allocate symlink private data\n");
 		err = -ENOMEM;
 		goto fail_kzalloc_private;
 	}
@@ -377,7 +375,6 @@ static struct deepfs_dir *deepfs_dir_create(struct super_block *sb,
 
 	priv = kzalloc(sizeof(struct deepfs_dir), GFP_KERNEL);
 	if (!priv) {
-		pr_err("failed to allocate directory private data\n");
 		err = -ENOMEM;
 		goto fail_kzalloc_private;
 	}
@@ -511,7 +508,6 @@ static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	fsi = kzalloc(sizeof(*fsi), GFP_KERNEL);
 	if (!fsi) {
-		pr_err("failed to allocate fs info\n");
 		err = -ENOMEM;
 		goto fail_kzalloc_fsi;
 	}

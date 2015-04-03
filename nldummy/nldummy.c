@@ -78,10 +78,8 @@ static int nldummy_net_init(struct net *net)
 	pr_info("<%s> net=%p\n", __func__, net);
 
 	nd_sk = kzalloc(sizeof(*nd_sk), GFP_KERNEL);
-	if (!nd_sk) {
-		pr_err("<%s> failed to allocate nd_sk\n", __func__);
+	if (!nd_sk)
 		return -ENOMEM;
-	}
 
 	nd_sk->sk = netlink_kernel_create(net, NETLINK_DUMMY, &cfg);
 	if (!nd_sk->sk) {

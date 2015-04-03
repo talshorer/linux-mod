@@ -295,11 +295,8 @@ static int bufhub_miscdev_open(struct inode *inode, struct file *filp)
 	struct bufhub_master *master;
 
 	master = kmalloc(sizeof(*master), GFP_KERNEL);
-	if (!master) {
-		pr_err("%s: <%s> failed to allocate master\n",
-				MODULE_NAME, __func__);
+	if (!master)
 		return -ENOMEM;
-	}
 	INIT_LIST_HEAD(&master->slaves_list);
 	spin_lock_init(&master->slaves_list_lock);
 	filp->private_data = master;

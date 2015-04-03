@@ -40,11 +40,8 @@ static int virtnet_lb_xmit(struct net_device *dev, const char *buf, size_t len)
 	unsigned long flags;
 
 	entry = kzalloc(sizeof(*entry) + len, GFP_ATOMIC);
-	if (!entry) {
-		pr_err("%s: <%s> failed to allocate entry\n",
-				DRIVER_NAME, __func__);
+	if (!entry)
 		return -ENOMEM;
-	}
 	atomic_inc(&lbdev->allocated);
 
 	entry->dev = dev;

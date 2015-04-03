@@ -177,11 +177,8 @@ static int virtnet_chr_xmit(struct net_device *dev,
 	unsigned long flags;
 
 	packet = kzalloc(sizeof(*packet) + len, GFP_ATOMIC);
-	if (!packet) {
-		pr_err("%s: <%s> failed to allocate packet\n",
-				DRIVER_NAME, __func__);
+	if (!packet)
 		return -ENOMEM;
-	}
 
 	INIT_LIST_HEAD(&packet->link);
 	packet->data = (void *)(packet + 1);
