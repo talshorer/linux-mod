@@ -184,7 +184,7 @@ static inline void f_ticker_fire_timer(struct f_ticker *ticker)
 {
 	mod_timer(
 		&ticker->timer,
-		jiffies +msecs_to_jiffies(ticker->interval)
+		jiffies + msecs_to_jiffies(ticker->interval)
 	);
 }
 
