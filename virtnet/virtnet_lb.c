@@ -99,7 +99,8 @@ static void virtnet_lb_dev_uninit(void *priv)
 	 * else, wait for any that are still running to finish on other
 	 * processors.
 	 */
-	while (atomic_read(&lbdev->allocated)) /* do nothing */;
+	while (atomic_read(&lbdev->allocated))
+		/* do nothing */;
 }
 
 struct virtnet_backend_ops virtnet_lb_backend_ops = {

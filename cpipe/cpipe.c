@@ -104,20 +104,21 @@ static int cpipe_fifo_avail(cpipe_fifo_t *fifo)
  * it's assumed the mutex is needed for the condition.
  * release it either way to simplify code.
  */
-#define cpipe_wait(waitq, mutex, sleep_cond)             \
-({                                                       \
-	int __ret = 0;                                       \
-	wait_queue_head_t *__waitq = (waitq);                \
-	DEFINE_WAIT(wait);                                   \
+#define cpipe_wait(waitq, mutex, sleep_cond) \
+({ \
+	int __ret = 0; \
+	wait_queue_head_t *__waitq = (waitq); \
+	DEFINE_WAIT(wait); \
 	prepare_to_wait(__waitq, &wait, TASK_INTERRUPTIBLE); \
-	if (sleep_cond) {                                    \
-		mutex_unlock(mutex);                             \
-		schedule();                                      \
-	} else mutex_unlock(mutex);                          \
-	finish_wait(__waitq, &wait);                         \
-	if (signal_pending(current))                         \
-		__ret = -ERESTARTSYS;                            \
-	__ret;                                               \
+	if (sleep_cond) { \
+		mutex_unlock(mutex); \
+		schedule(); \
+	} else \
+		mutex_unlock(mutex); \
+	finish_wait(__waitq, &wait); \
+	if (signal_pending(current)) \
+		__ret = -ERESTARTSYS; \
+	__ret; \
 })
 
 static ssize_t cpipe_read(struct file *filp, char __user *buf,

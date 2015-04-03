@@ -374,7 +374,8 @@ static void echoserial_rx_timer_func(unsigned long data)
 		 * guaranteed to succeed. however, it's declared with
 		 * warn_unused_result, so we have to _pretend_ to use it.
 		 */
-		if (kfifo_out(fifo, &ch, 1));
+		if (kfifo_out(fifo, &ch, 1))
+			/* can't get here */;
 		uart_insert_char(port, lsr, UART_LSR_OE, ch, TTY_NORMAL);
 	}
 	if (count) { /* receiving side should allow cts */

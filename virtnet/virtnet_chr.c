@@ -43,7 +43,9 @@ static struct virtnet_chr_packet *virtnet_chr_get_next_packet(
 				if (signal_pending(current))
 					packet = ERR_PTR(-ERESTARTSYS);
 				spin_lock_irqsave(&vcdev->lock, flags);
-			} else packet = ERR_PTR(-EAGAIN);
+			} else {
+				packet = ERR_PTR(-EAGAIN);
+			}
 		} else {
 			packet = list_first_entry(&vcdev->packets,
 					struct virtnet_chr_packet, link);
