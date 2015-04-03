@@ -21,6 +21,7 @@ void cleanup_module(void)
 	pr_info("Goodbye, World!\n");
 }
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A simple module that prints to log upon init and exit");
 MODULE_VERSION("1.0.1");

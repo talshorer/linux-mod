@@ -90,6 +90,7 @@ static void __exit simplat_device_exit(void)
 module_exit(simplat_device_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Spawns devices for the simplat platform driver");
 MODULE_VERSION("1.0.2");

@@ -36,6 +36,7 @@ static void __exit xprintk_exit(void)
 module_exit(xprintk_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Subsystem-specific printk-like functions");
 MODULE_VERSION("1.0.0");

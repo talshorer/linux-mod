@@ -142,6 +142,7 @@ static struct usb_driver ticker_driver = {
 module_usb_driver(ticker_driver);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("USB ticker host device driver");
 MODULE_VERSION("1.0.0");

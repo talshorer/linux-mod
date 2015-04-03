@@ -543,6 +543,7 @@ static void __exit echoserial_exit(void)
 module_exit(echoserial_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
 MODULE_VERSION("1.0.5");

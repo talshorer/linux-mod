@@ -89,6 +89,7 @@ static void __exit elfsect_exit(void)
 module_exit(elfsect_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A module with a section of dummy function pointers");
 MODULE_VERSION("1.2.1");

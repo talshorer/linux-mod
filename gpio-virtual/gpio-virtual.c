@@ -358,6 +358,7 @@ static void __exit vgpio_exit(void)
 module_exit(vgpio_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virtual gpio controller chips");
 MODULE_VERSION("1.1.1");

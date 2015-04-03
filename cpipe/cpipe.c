@@ -443,6 +443,7 @@ static void __exit cpipe_exit(void)
 module_exit(cpipe_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
 MODULE_VERSION("1.1.3");

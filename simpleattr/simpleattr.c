@@ -165,6 +165,7 @@ static void __exit simpleattr_exit(void)
 }
 module_exit(simpleattr_exit);
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A simple dummy device with a sysfs attribute");
 MODULE_VERSION("1.2.2");

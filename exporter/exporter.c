@@ -12,6 +12,7 @@ void exporter_fn(void)
 EXPORT_SYMBOL_GPL(exporter_fn);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A module that exports a function");
 MODULE_VERSION("1.0.1");

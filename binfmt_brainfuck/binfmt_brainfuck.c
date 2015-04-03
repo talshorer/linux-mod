@@ -95,6 +95,7 @@ static void __exit binfmt_brainfuck_exit(void)
 module_exit(binfmt_brainfuck_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Binary interpreter for brainfuck files");
 MODULE_VERSION("1.0.2");

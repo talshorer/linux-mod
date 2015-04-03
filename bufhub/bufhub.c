@@ -504,6 +504,7 @@ static void __exit bufhub_exit(void)
 module_exit(bufhub_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A misc device that allows the creation of clipboards");
 MODULE_VERSION("1.0.4");

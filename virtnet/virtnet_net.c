@@ -397,6 +397,7 @@ static void __exit virtnet_exit(void)
 module_exit(virtnet_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
 MODULE_VERSION("1.2.7");

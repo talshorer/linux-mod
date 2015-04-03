@@ -426,6 +426,7 @@ static void __exit bddtree_exit(void)
 module_exit(bddtree_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A bus-driver-device tree");
 MODULE_VERSION("1.2.0");

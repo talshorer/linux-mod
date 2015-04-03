@@ -22,6 +22,7 @@ static void __exit importer_exit(void)
 module_exit(importer_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A module that uses a symbol exported by another module");
 MODULE_VERSION("1.0.1");

@@ -126,6 +126,7 @@ module_driver(nldummy_net_ops, register_pernet_subsys,
 		unregister_pernet_subsys);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A netlink server that xors incoming packets");
 MODULE_VERSION("1.0.3");

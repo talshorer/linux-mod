@@ -47,6 +47,7 @@ static struct platform_driver simplat_driver = {
 
 module_platform_driver(simplat_driver);
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A simple platform driver that does nothing");
 MODULE_VERSION("1.1.0");

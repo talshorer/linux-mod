@@ -287,6 +287,7 @@ static void __exit virtblock_exit(void)
 module_exit(virtblock_exit)
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A simple block device residing in ram");
 MODULE_VERSION("1.0.4");

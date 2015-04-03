@@ -73,6 +73,7 @@ static void __exit proccount_exit(void)
 module_exit(proccount_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A file in procfs that returns open count upon read");
 MODULE_VERSION("1.0.3");

@@ -420,6 +420,7 @@ fail_kzalloc_fti:
 DECLARE_USB_FUNCTION_INIT(ticker, ticker_alloc_instance, ticker_alloc_func);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Ticker usb gadget function");
 MODULE_VERSION("1.0.1");

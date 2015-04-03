@@ -254,6 +254,7 @@ static void __exit sleeper_exit(void)
 module_exit(sleeper_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Kernel threads that sleep until woken up by user");
 MODULE_VERSION("1.0.4");

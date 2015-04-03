@@ -222,6 +222,7 @@ static void __exit confmirror_exit(void)
 module_exit(confmirror_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("configfs subsystem that mirrors items to sysfs kobjects");
 MODULE_VERSION("1.0.0");

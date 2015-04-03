@@ -98,6 +98,7 @@ static void __exit interceptor_exit(void)
 module_exit(interceptor_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Intercepts a system call");
 MODULE_VERSION("1.1.1");

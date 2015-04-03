@@ -185,6 +185,7 @@ static void __exit jrtc_exit(void)
 module_exit(jrtc_exit);
 
 
-LMOD_MODULE_META();
+LMOD_MODULE_AUTHOR();
+LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virtual real time clocks that work on system ticks");
 MODULE_VERSION("1.0.0");
