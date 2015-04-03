@@ -205,7 +205,7 @@ static int __init sleeper_init(void)
 
 	sleeper_threads = vmalloc(
 			sizeof(sleeper_threads[0]) * sleeper_nthreads);
-	if (!sleeper_threads){
+	if (!sleeper_threads) {
 		err = -ENOMEM;
 		pr_err("%s: failed to allocate sleeper_threads\n",
 				DRIVER_NAME);
