@@ -57,7 +57,6 @@ static void ticker_interrupt_callback(struct urb *urb)
 	atomic_set(&ticker->ticks, (int)le32_to_cpu(ticker->buf));
 
 resubmit:
-	//return;
 	status = usb_submit_urb(urb, GFP_ATOMIC);
 	if (status)
 		pr_err("<%s> usb_submit_urb failed, status = %d\n",
