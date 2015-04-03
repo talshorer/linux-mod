@@ -117,7 +117,7 @@ static ssize_t bufhub_clipboard_write(struct file *filp,
 		goto out;
 	ret = count;
 	*ppos += count;
-	dev->buf_len = max(dev->buf_len, (size_t)*ppos);
+	dev->buf_len = max_t(size_t, dev->buf_len, *ppos);
 out:
 	mutex_unlock(&dev->buf_mutex);
 	return ret;
