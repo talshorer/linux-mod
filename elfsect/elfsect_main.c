@@ -8,9 +8,6 @@
 
 #define MODULE_NAME "elfsect"
 
-extern elfsect_dummy __start_dummies;
-extern elfsect_dummy __stop_dummies;
-
 static __elfsect_dummy_symbol struct { } __elfsect_dummies_empty;
 
 static int elfsect_debugfs_dummies_show(struct seq_file *m, void *v)
