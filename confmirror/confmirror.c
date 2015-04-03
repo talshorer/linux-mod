@@ -85,9 +85,11 @@ static ssize_t confmirror_configfs_attr_store(struct confmirror_item *cmi,
 		const char *page, size_t count)
 {
 	unsigned long value;
+	int err;
 
-	if (sscanf(page, "%lu", &value) != 1)
-		return -EINVAL;
+	err = kstrtoul(page, 10, &value);
+	if (err)
+		return err;
 	atomic_set(&cmi->value, value);
 	confmirror_print_attr_access(cmi, __func__, value);
 	return count;

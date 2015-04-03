@@ -51,9 +51,11 @@ static ssize_t simpleattr_sys_attr_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	unsigned long val;
+	int err;
 
-	if (sscanf(buf, "%lu", &val) != 1)
-		return -EINVAL;
+	err = kstrtoul(buf, 10, &val);
+	if (err)
+		return err;
 	simpleattr_print_sys_attr_access(dev, attr, val, __func__);
 	dev_set_drvdata(dev, (void *)val);
 	return count;

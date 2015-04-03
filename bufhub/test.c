@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
@@ -162,7 +163,6 @@ static unsigned int get_max_clipboards(void)
 {
 	char buf[8];
 	int pfd;
-	unsigned int max_clipboards;
 
 	pfd = open("/sys/module/" MODULE_NAME "/parameters/max_clipboards",
 			O_RDONLY);
@@ -170,8 +170,7 @@ static unsigned int get_max_clipboards(void)
 		return 0;
 	buf[read(pfd, buf, sizeof(buf) - 1)] = 0;
 	close(pfd);
-	sscanf(buf, "%u", &max_clipboards);
-	return max_clipboards;
+	return (unsigned int)strtoul(buf, NULL, 10);
 }
 
 /* actual tests */
