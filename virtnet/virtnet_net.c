@@ -97,17 +97,25 @@ static int virtnet_dev_init(struct net_device *dev)
 			dev->name, __func__);
 
 	dev->dstats = alloc_percpu(struct pcpu_dstats);
-	if (!dev->dstats)
-		return -ENOMEM;
-
-	sscanf(dev->name, virtnet_iface_fmt, &minor);
-	err = virtnet_backend_dev_init(netdev_priv(dev), minor);
-	if (err) {
-		free_percpu(dev->dstats);
-		return err;
+	if (!dev->dstats) {
+		err = -ENOMEM;
+		goto out_none;
 	}
 
+	if (sscanf(dev->name, virtnet_iface_fmt, &minor) != 1) {
+		err = -EINVAL;
+		goto out_free;
+	}
+	err = virtnet_backend_dev_init(netdev_priv(dev), minor);
+	if (err)
+		goto out_free;
+
 	return 0;
+
+out_free:
+	free_percpu(dev->dstats);
+out_none:
+	return err;
 }
 
 static void virtnet_dev_uninit(struct net_device *dev)
@@ -391,4 +399,4 @@ module_exit(virtnet_exit);
 
 LMOD_MODULE_META();
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.2.6");
+MODULE_VERSION("1.2.7");
