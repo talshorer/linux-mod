@@ -153,16 +153,16 @@ static int test_one_port(unsigned int id)
 	}
 	if (echoserial_tcgetattr(fd, &tty))
 		return 1;
-	tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; // 8-bit chars
-	tty.c_iflag &= ~IGNBRK; // disable break processing
+	tty.c_cflag = (tty.c_cflag & ~CSIZE) | CS8; /* 8-bit chars */
+	tty.c_iflag &= ~IGNBRK; /* disable break processing */
 	/* no signaling chars, no echo, no canonical processing */
 	tty.c_lflag = 0;
-	tty.c_oflag = 0; // no remapping, no delays
-	tty.c_cc[VMIN] = 1; // read blocks
-	tty.c_iflag &= ~(IXON | IXOFF | IXANY); // shut off xon/xoff ctrl
+	tty.c_oflag = 0; /* no remapping, no delays */
+	tty.c_cc[VMIN] = 1; /* read blocks */
+	tty.c_iflag &= ~(IXON | IXOFF | IXANY); /* shut off xon/xoff ctrl */
 	/* ignore modem controls, enable reading */
 	tty.c_cflag |= (CLOCAL | CREAD);
-	tty.c_cflag &= ~(PARENB | PARODD); // shut off parity
+	tty.c_cflag &= ~(PARENB | PARODD); /* shut off parity */
 	tty.c_cflag &= ~CSTOPB;
 	tty.c_cflag &= ~CRTSCTS;
 	cfmakeraw(&tty);
