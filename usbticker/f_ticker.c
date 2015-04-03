@@ -43,7 +43,7 @@ static inline struct f_ticker *func_to_ticker(struct usb_function *f)
 /*-------------------------------------------------------------------------*/
 
 static struct usb_interface_descriptor ticker_intf = {
-	.bLength =		sizeof ticker_intf,
+	.bLength =		sizeof(ticker_intf),
 	.bDescriptorType =	USB_DT_INTERFACE,
 
 	.bNumEndpoints =	1,
