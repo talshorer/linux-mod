@@ -10,7 +10,12 @@
 int main(int argc, char *argv[])
 {
 	#define prog (argv[1])
-	char *prog_argv[] = {
+	char *prog_argv /*
+			 * newline to avoid style checkers from complaining
+			 * about this not being "static const". it won't work
+			 * if it was.
+			 */
+			[] = {
 		prog,
 		NULL,
 	};
@@ -23,7 +28,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	/* should never get here. replacing program suposedly calls exit() */
-	dprintf(2, "execv() succeeded yet flow continues! "
-			"should never happen!\n");
+	dprintf(
+		2,
+		"execv() succeeded yet flow continues! should never happen!\n",
+	);
 	return 1;
 }
