@@ -97,8 +97,9 @@ static int deepfs_parse_options(char *data, struct deepfs_mount_opts *opts)
 			opts->max_depth = option;
 			break;
 		default:
-			pr_err("unrecognized mount option \"%s\" "
-					"or missing value\n", p);
+			pr_err(
+			"unrecognized mount option \"%s\" or missing value\n",
+					p);
 			return -EINVAL;
 		}
 	}

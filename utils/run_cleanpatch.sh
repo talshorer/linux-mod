@@ -19,6 +19,7 @@ function __run_checkpatch {
 if [[ -z "$files" ]]; then files=$($UTILS/all_files.sh); fi
 
 for file in $files; do
+	echo $file
 	__run_checkpatch $file &> $TMPOUTPUT
 	if [[ $? != 0 ]]; then
 		let errors+=1

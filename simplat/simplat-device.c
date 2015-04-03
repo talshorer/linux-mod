@@ -52,15 +52,16 @@ static int __init simplat_device_init(void)
 				SIMPLAT_PLATFORM_NAME, i);
 		if (!simplat_devices[i]) {
 			err = -ENOMEM;
-			pr_err("%s: platform_device_alloc failed, "
-					"i = %d\n", DRIVER_NAME, i);
+			pr_err(
+			"%s: platform_device_alloc failed, i = %d\n",
+					DRIVER_NAME, i);
 			goto fail_platform_device_loop_alloc;
 		}
 
 		err = platform_device_add(simplat_devices[i]);
 		if (err) {
-			pr_err("%s: platform_device_add failed, "
-					"i = %d, err = %d\n",
+			pr_err(
+			"%s: platform_device_add failed, i = %d, err = %d\n",
 					DRIVER_NAME, i, err);
 			goto fail_platform_device_loop_add;
 		}

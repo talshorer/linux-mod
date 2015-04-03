@@ -72,14 +72,16 @@ static struct device __init *simpleattr_device_create(int i)
 			"%s%d", DRIVER_NAME, i);
 	if (IS_ERR(dev)) {
 		err = PTR_ERR(dev);
-		pr_err("%s: device_create failed. i = %d, "
-			"err = %d\n", DRIVER_NAME, i, err);
+		pr_err(
+		"%s: device_create failed. i = %d, err = %d\n",
+				DRIVER_NAME, i, err);
 		goto fail_device_create;
 	}
 	err = device_create_file(dev, &dev_attr_attr);
 	if (err) {
-		pr_err("%s: device_create_file failed. i = %d, "
-			"err = %d\n", DRIVER_NAME, i, err);
+		pr_err(
+		"%s: device_create_file failed. i = %d, err = %d\n",
+				DRIVER_NAME, i, err);
 		goto fail_device_create_file;
 	}
 	pr_info("%s: created device %s successfully\n",

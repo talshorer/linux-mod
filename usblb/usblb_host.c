@@ -164,9 +164,9 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 	unsigned long flags;
 	int event;
 
-	dev_info(host->dev, "<%s> typeReq=0x%04x wValue=0x%04x wIndex=0x%04x "
-			"wLength=0x%04x\n", __func__,
-			typeReq, wValue, wIndex, wLength);
+	dev_info(host->dev,
+	"<%s> typeReq=0x%04x wValue=0x%04x wIndex=0x%04x wLength=0x%04x\n",
+			__func__, typeReq, wValue, wIndex, wLength);
 
 	event = atomic_read(&usblb_host_to_bus(host)->event);
 	if (!event)

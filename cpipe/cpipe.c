@@ -56,8 +56,8 @@ static int __init cpipe_check_module_params(void)
 	}
 	/* cpipe_bsize must be a power of two */
 	if (cpipe_bsize & (cpipe_bsize - 1)) {
-		pr_err("%s: cpipe_bsize is not a power of two. "
-				"value = %d\n", DRIVER_NAME, cpipe_bsize);
+		pr_err("%s: cpipe_bsize is not a power of two. value = %d\n",
+				DRIVER_NAME, cpipe_bsize);
 		err = -EINVAL;
 	}
 	return err;
@@ -325,8 +325,8 @@ static int __init cpipe_pair_init(struct cpipe_pair *pair, int i)
 	for (j = 0; j < ARRAY_SIZE(pair->devices); j++) {
 		err = cpipe_dev_init(&pair->devices[j], i, j);
 		if (err) {
-			pr_err("%s: cpipe_dev_init failed "
-					"i=%d j=%d err=%d\n",
+			pr_err(
+			"%s: cpipe_dev_init failed i=%d j=%d err=%d\n",
 					DRIVER_NAME, i, j, err);
 			goto fail_cpipe_dev_init;
 		}
@@ -338,8 +338,8 @@ static int __init cpipe_pair_init(struct cpipe_pair *pair, int i)
 				cpipe_dev_kobj(pair->devices[j].twin),
 				cpipe_twin_link_name);
 		if (err) {
-			pr_err("%s: sysfs_create_link failed "
-					"i=%d j=%d err=%d\n",
+			pr_err(
+			"%s: sysfs_create_link failed i=%d j=%d err=%d\n",
 					DRIVER_NAME, i, j, err);
 			goto fail_sysfs_create_link;
 		}
@@ -407,8 +407,9 @@ static int __init cpipe_init(void)
 	for (i = 0; i < cpipe_npipes; i++) {
 		err = cpipe_pair_init(&cpipe_pairs[i], i);
 		if (err) {
-			pr_err("%s: cpipe_pair_init failed. i = %d, "
-					"err = %d\n", DRIVER_NAME, i, err);
+			pr_err(
+			"%s: cpipe_pair_init failed. i = %d, err = %d\n",
+					DRIVER_NAME, i, err);
 			goto fail_cpipe_pair_init_loop;
 		}
 	}

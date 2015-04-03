@@ -87,8 +87,8 @@ static struct bddtree_device *bddtree_device_create(
 	dev = bddtree_device_find(drv, id);
 	if (dev) {
 		err = -EINVAL;
-		pr_err("%s: <%s> device with id %lu already bound "
-				"to driver %s\n",
+		pr_err(
+		"%s: <%s> device with id %lu already bound to driver %s\n",
 				MODULE_NAME, __func__, id, drv->name);
 		goto fail_device_exists;
 	}

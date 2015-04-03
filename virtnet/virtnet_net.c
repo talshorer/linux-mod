@@ -278,9 +278,10 @@ int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
 		 * messages.
 		 */
 		if (virtnet_packetdump) {
-			pr_info("%s: interface %s rx packet "
-					"of length %d\n", DRIVER_NAME,
-					dev->name, skb->len + ETH_HLEN);
+			pr_info(
+			"%s: interface %s rx packet of length %d\n",
+					DRIVER_NAME, dev->name,
+					skb->len + ETH_HLEN);
 			print_hex_dump(KERN_INFO, "rx data: ",
 					DUMP_PREFIX_OFFSET, 16, 1,
 					skb->data - ETH_HLEN,
@@ -367,8 +368,8 @@ static int __init virtnet_init(void)
 	for (i = 0; i < virtnet_nifaces; i++) {
 		err = virtnet_init_iface();
 		if (err) {
-			pr_err("%s: virtnet_init_device failed. "
-					"i = %d, err = %d\n",
+			pr_err(
+			"%s: virtnet_init_device failed. i = %d, err = %d\n",
 					DRIVER_NAME, i, err);
 			goto fail_virtnet_init_device_loop;
 		}

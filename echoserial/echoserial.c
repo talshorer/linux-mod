@@ -67,8 +67,9 @@ static int __init echoserial_check_module_params(void)
 	}
 	/* echoserial_bsize must be a power of two */
 	if (echoserial_bsize & (echoserial_bsize - 1)) {
-		pr_err("%s: echoserial_bsize is not a power of two. "
-				"value = %d\n", DRIVER_NAME, echoserial_bsize);
+		pr_err(
+		"%s: echoserial_bsize is not a power of two. value = %d\n",
+				DRIVER_NAME, echoserial_bsize);
 		err = -EINVAL;
 	}
 	if (echoserial_interval <= 0) {
@@ -78,15 +79,15 @@ static int __init echoserial_check_module_params(void)
 	}
 	/* echoserial_interval must be a multiple of 20 */
 	if (echoserial_interval % 20) {
-		pr_err("%s: echoserial_interval is not a multiple of "
-				"20. value = %d\n", DRIVER_NAME,
-				echoserial_interval);
+		pr_err(
+	"%s: echoserial_interval is not a multiple of 20. value = %d\n",
+				DRIVER_NAME, echoserial_interval);
 		err = -EINVAL;
 	}
 	/* echoserial_defbaud must be a multiple of 9600 */
 	if (echoserial_defbaud % 9600) {
-		pr_err("%s: echoserial_defbaud is not a multiple of "
-				"9600. value = %d\n",
+		pr_err(
+	"%s: echoserial_defbaud is not a multiple of 9600. value = %d\n",
 				DRIVER_NAME, echoserial_defbaud);
 		err = -EINVAL;
 	}
@@ -507,8 +508,8 @@ static int __init echoserial_init(void)
 	for (i = 0; i < echoserial_nports; i++) {
 		err = echoserial_port_setup(&echoserial_ports[i], i);
 		if (err) {
-			pr_err("%s: echoserial_port_setup failed. "
-					"i = %d, err = %d\n",
+			pr_err(
+			"%s: echoserial_port_setup failed. i = %d, err = %d\n",
 					DRIVER_NAME, i, err);
 			goto fail_echoserial_port_setup_loop;
 		}

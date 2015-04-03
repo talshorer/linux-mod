@@ -115,8 +115,8 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 					&bus->gadget.g,
 					setup
 				);
-				usblb_bus_info(bus, "<%s> setup. "
-						"status = %d\n",
+				usblb_bus_info(bus,
+						"<%s> setup. status = %d\n",
 						__func__, status);
 				do_transfer = (status >= 0);
 			}
@@ -131,10 +131,10 @@ void usblb_glue_transfer_timer_func(unsigned long data)
 				continue;
 			req = list_first_entry(&ep->requests,
 					typeof(*req), link);
-			usblb_bus_info(bus, "<%s> %s transfer on %s, "
-					"urb @%p\n", __func__,
-					to_host ? "g2h" : "h2g", ep->name,
-					urb);
+			usblb_bus_info(bus,
+					"<%s> %s transfer on %s, urb @%p\n",
+					__func__, to_host ? "g2h" : "h2g",
+					ep->name, urb);
 			hlen = urb->transfer_buffer_length -
 					urb->actual_length;
 			glen = req->req.length - req->req.actual;
