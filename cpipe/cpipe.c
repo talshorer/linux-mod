@@ -13,10 +13,8 @@
 
 static const char DRIVER_NAME[] = "cpipe";
 
-typedef STRUCT_KFIFO_PTR(char) cpipe_fifo_t;
-
 struct cpipe_dev {
-	cpipe_fifo_t rfifo;
+	struct kfifo rfifo;
 	struct mutex rmutex; /* protects rbuf */
 	wait_queue_head_t rq, wq;
 	struct device *dev;
@@ -85,7 +83,7 @@ static int cpipe_mutex_lock(struct mutex *mutex, int f_flags)
  * called with the mutex locked
  * kfifo_len is a macro and can't be addressed
  */
-static int cpipe_fifo_len(cpipe_fifo_t *fifo)
+static int cpipe_fifo_len(struct kfifo *fifo)
 {
 	return kfifo_len(fifo);
 }
@@ -95,7 +93,7 @@ static int cpipe_fifo_len(cpipe_fifo_t *fifo)
  * called with the mutex locked
  * kfifo_avail is a macro and can't be addressed
  */
-static int cpipe_fifo_avail(cpipe_fifo_t *fifo)
+static int cpipe_fifo_avail(struct kfifo *fifo)
 {
 	return kfifo_avail(fifo);
 }
@@ -125,7 +123,7 @@ static ssize_t cpipe_read(struct file *filp, char __user *buf,
 		size_t count, loff_t *ppos)
 {
 	struct cpipe_dev *dev = filp->private_data;
-	cpipe_fifo_t *fifo = &dev->rfifo;
+	struct kfifo *fifo = &dev->rfifo;
 	struct mutex *mutex = &dev->rmutex;
 	ssize_t ret;
 	unsigned int copied;
@@ -162,7 +160,7 @@ static ssize_t cpipe_write(struct file *filp, const char __user *buf,
 		size_t count, loff_t *ppos)
 {
 	struct cpipe_dev *dev = filp->private_data;
-	cpipe_fifo_t *fifo = cpipe_dev_wfifo(dev);
+	struct kfifo *fifo = cpipe_dev_wfifo(dev);
 	struct mutex *mutex = cpipe_dev_wmutex(dev);
 	ssize_t ret;
 	unsigned int copied;
@@ -215,8 +213,8 @@ static unsigned int cpipe_poll(struct file *filp, poll_table *wait)
 	return mask;
 }
 
-static int cpipe_ioctl_IOCGAVAILXX(struct mutex *mutex, cpipe_fifo_t *fifo,
-	int (*get_availxx)(cpipe_fifo_t *), int f_flags, int __user *ret)
+static int cpipe_ioctl_IOCGAVAILXX(struct mutex *mutex, struct kfifo *fifo,
+	int (*get_availxx)(struct kfifo *), int f_flags, int __user *ret)
 {
 	int err;
 
@@ -446,4 +444,4 @@ module_exit(cpipe_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("1.1.3");
+MODULE_VERSION("1.2.0");

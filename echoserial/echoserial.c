@@ -13,13 +13,11 @@
 
 static const char DRIVER_NAME[] = "echoserial";
 
-typedef STRUCT_KFIFO_PTR(char) echoserial_fifo_t;
-
 struct echoserial_port {
 	struct uart_port port;
 	char name[ECHOSERIAL_PORT_NAME_LEN];
 	/* all mutable fields in this struct are protected by port.lock */
-	echoserial_fifo_t fifo;
+	struct kfifo fifo;
 	struct timer_list rx_timer;
 	bool rx_active;
 	struct timer_list tx_timer;
@@ -349,7 +347,7 @@ static void echoserial_rx_timer_func(unsigned long data)
 	struct echoserial_port *esp = (struct echoserial_port *)data;
 	struct uart_port *port = &esp->port;
 	struct circ_buf *xmit = &port->state->xmit;
-	echoserial_fifo_t *fifo = &esp->fifo;
+	struct kfifo *fifo = &esp->fifo;
 	size_t count;
 	unsigned char lsr;
 	unsigned char ch;
@@ -397,7 +395,7 @@ static void echoserial_tx_timer_func(unsigned long data)
 	struct echoserial_port *esp = (struct echoserial_port *)data;
 	struct uart_port *port = &esp->port;
 	struct circ_buf *xmit = &port->state->xmit;
-	echoserial_fifo_t *fifo = &esp->fifo;
+	struct kfifo *fifo = &esp->fifo;
 	size_t count;
 	unsigned long flags;
 
@@ -546,4 +544,4 @@ module_exit(echoserial_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("1.0.5");
+MODULE_VERSION("1.1.0");
