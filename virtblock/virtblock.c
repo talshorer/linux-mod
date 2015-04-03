@@ -91,7 +91,7 @@ static int virtblock_check_module_params(void)
 		err = -EINVAL;
 	}
 	/* virtblock_hardsect_size must be a power of two */
-	if (virtblock_hardsect_size & (virtblock_hardsect_size -1)) {
+	if (virtblock_hardsect_size & (virtblock_hardsect_size - 1)) {
 		pr_err("%s: virtblock_hardsect_size is not a power "
 				"of two. value = %d\n",
 				DRIVER_NAME, virtblock_hardsect_size);

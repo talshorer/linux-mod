@@ -57,7 +57,7 @@ static int __init cpipe_check_module_params(void)
 		err = -EINVAL;
 	}
 	/* cpipe_bsize must be a power of two */
-	if (cpipe_bsize & (cpipe_bsize -1)) {
+	if (cpipe_bsize & (cpipe_bsize - 1)) {
 		pr_err("%s: cpipe_bsize is not a power of two. "
 				"value = %d\n", DRIVER_NAME, cpipe_bsize);
 		err = -EINVAL;
