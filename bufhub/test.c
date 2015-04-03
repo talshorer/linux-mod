@@ -72,18 +72,18 @@ static int destroy_clipboard(int mfd, unsigned int cid)
 	return 0;
 }
 
-typedef char clipboard_name_t[sizeof(BUFHUB_CLIPBOARD) + 8];
+#define CLIPBOARD_NAME_LEN (sizeof(BUFHUB_CLIPBOARD) + 8)
 
-static inline void clipboard_name(clipboard_name_t *buf, int cid)
+static inline void clipboard_name(char *buf, int cid)
 {
-	sprintf(*buf, "%s%d", BUFHUB_CLIPBOARD, cid);
+	sprintf(buf, "%s%d", BUFHUB_CLIPBOARD, cid);
 }
 
 static int open_clipboard(unsigned int cid, int *cfd, int flags)
 {
-	clipboard_name_t buf;
+	char buf[CLIPBOARD_NAME_LEN];
 
-	clipboard_name(&buf, cid);
+	clipboard_name(buf, cid);
 	*cfd = open(buf, flags);
 	if (*cfd < 0) {
 		bufhub_test_perror("Failed to open clipboard");
@@ -151,9 +151,9 @@ static int read_clipboard(int cfd, char *buf, size_t count)
 
 static int clipboard_exists(int cid)
 {
-	clipboard_name_t buf;
+	char buf[CLIPBOARD_NAME_LEN];
 
-	clipboard_name(&buf, cid);
+	clipboard_name(buf, cid);
 	if (access(buf, F_OK) < 0)
 		return 0;
 	return 1;
