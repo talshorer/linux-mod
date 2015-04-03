@@ -29,8 +29,8 @@ asmlinkage int interceptor_syscall(const char *pathname, int flags,
 
 	if (flags & INTERCEPTOR_O_STRLEN) {
 		ret = strlen(pathname);
-		pr_info("%s: intercepted open() call! "
-				"returning strlen(\"%s\")\n",
+		pr_info(
+		"%s: intercepted open() call! returning strlen(\"%s\")\n",
 				MODULE_NAME, pathname);
 	} else {
 		ret = ((typeof(interceptor_syscall) *)

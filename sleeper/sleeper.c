@@ -60,9 +60,8 @@ static ssize_t sleeper_debugfs_wake_write(struct file *filp,
 		return -EINVAL;
 	}
 	if (id >= sleeper_nthreads) {
-		pr_err("%s: <%s> id >= nthreads. id = %d, "
-				"nthreads = %d\n", DRIVER_NAME, __func__, id,
-				sleeper_nthreads);
+		pr_err("%s: <%s> id >= nthreads. id = %d, nthreads = %d\n",
+				DRIVER_NAME, __func__, id, sleeper_nthreads);
 		return -EINVAL;
 	}
 
@@ -219,8 +218,8 @@ static int __init sleeper_init(void)
 	for (i = 0; i < sleeper_nthreads; i++) {
 		err = sleeper_thread_setup(&sleeper_threads[i], i);
 		if (err) {
-			pr_err("%s: sleeper_thread_setup failed. "
-					"i = %d, err = %d\n",
+			pr_err(
+			"%s: sleeper_thread_setup failed. i = %d, err = %d\n",
 					DRIVER_NAME, i, err);
 			goto fail_sleeper_thread_setup_loop;
 		}

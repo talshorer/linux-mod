@@ -17,9 +17,10 @@
 
 static int bufhub_max_clipboards = 16;
 module_param_named(max_clipboards, bufhub_max_clipboards, int, 0444);
-MODULE_PARM_DESC(max_clipboards,
-		"maximum number of clipboards that can exist at the same "
-		"time");
+MODULE_PARM_DESC(
+	max_clipboards,
+	"maximum number of clipboards that can exist at the same time"
+);
 
 static int bufhub_clipboard_bcap = PAGE_SIZE;
 module_param_named(bcap, bufhub_clipboard_bcap, int, 0444);
@@ -372,8 +373,8 @@ static int bufhub_miscdev_ioctl_destroy(
 			bufhub_clipboard_match);
 	if (!match.dev) {
 		err = -EINVAL;
-		pr_err("%s: <%s> cannot destroy nonexisting "
-				"clipboard %s%d\n", MODULE_NAME, __func__,
+		pr_err("%s: <%s> cannot destroy nonexisting clipboard %s%d\n",
+				MODULE_NAME, __func__,
 				bufhub_clipboard_devname, match.minor);
 		return err;
 	}
@@ -382,8 +383,8 @@ static int bufhub_miscdev_ioctl_destroy(
 		err = -EPERM;
 	spin_unlock_irqrestore(&match.dev->master_lock, flags);
 	if (err) {
-		pr_err("%s: <%s> invalid master to destroy "
-				"clipboard %s\n", MODULE_NAME, __func__,
+		pr_err("%s: <%s> invalid master to destroy clipboard %s\n",
+				MODULE_NAME, __func__,
 				dev_name(match.dev->dev));
 		return err;
 	}
@@ -443,8 +444,8 @@ static int __init bufhub_init(void)
 			sizeof(bufhub_clipboard_ptrs[0]) *
 					bufhub_max_clipboards);
 	if (!bufhub_clipboard_ptrs) {
-		pr_err("%s: failed to allocate "
-				"bufhub_clipboard_ptrs\n", MODULE_NAME);
+		pr_err("%s: failed to allocate bufhub_clipboard_ptrs\n",
+				MODULE_NAME);
 		goto fail_vmalloc_bufhub_clipboard_ptrs;
 	}
 	memset(bufhub_clipboard_ptrs, 0,
