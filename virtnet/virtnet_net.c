@@ -256,7 +256,7 @@ int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
 	memcpy(dst, buf, len);
 	skb->protocol = eth_type_trans(skb, dev);
 
-	switch(in_interrupt() ? netif_rx(skb) : netif_rx_ni(skb)) {
+	switch (in_interrupt() ? netif_rx(skb) : netif_rx_ni(skb)) {
 	case NET_RX_DROP:
 		err = -EIO;
 		pr_err("%s: <%s> netif_rx failed\n",
