@@ -62,7 +62,7 @@ static int virtblock_getgeo(struct block_device *bdev, struct hd_geometry *geo)
 	return -ENOTTY;
 }
 
-static struct block_device_operations virtblock_ops = {
+static const struct block_device_operations virtblock_ops = {
 	.owner = THIS_MODULE,
 	.open = virtblock_open,
 	.release = virtblock_release,
