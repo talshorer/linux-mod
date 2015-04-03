@@ -9,7 +9,7 @@
 
 #define SIMPLEATTR_SYSFS_PERM (0644)
 
-static char DRIVER_NAME[] = "simpleattr";
+static const char DRIVER_NAME[] = "simpleattr";
 
 static int simpleattr_ndevices = 1;
 module_param_named(ndevices, simpleattr_ndevices, int, 0);

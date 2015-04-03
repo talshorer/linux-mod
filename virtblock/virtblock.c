@@ -10,7 +10,7 @@
 #define VIRTBLOCK_MAGIC_NMINROS 16
 #define VIRTBLOCK_TO_BLK_LAYER (virtblock_hardsect_size / 512)
 
-static char DRIVER_NAME[] = "virtblock";
+static const char DRIVER_NAME[] = "virtblock";
 
 static int virtblock_ndevices = -1;
 module_param_named(ndevices, virtblock_ndevices, int, 0);

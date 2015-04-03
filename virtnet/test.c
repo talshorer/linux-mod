@@ -20,7 +20,7 @@ static char dummy_macs[] = {
 	0x00, 0x11, 0x22, 0x33, 0x44, 0x55, /* dst */
 	0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, /* src */
 };
-static char dummy_data[] = "Hello, world!";
+static const char dummy_data[] = "Hello, world!";
 
 #define TOTAL_PACKET_SIZE (ETH_HLEN + sizeof(dummy_data) - 1)
 
