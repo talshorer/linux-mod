@@ -81,7 +81,7 @@ static int cpipe_mutex_lock(struct mutex *mutex, int f_flags)
 }
 
 /*
- * get avaliable read size
+ * get available read size
  * called with the mutex locked
  * kfifo_len is a macro and can't be addressed
  */
@@ -91,7 +91,7 @@ static int cpipe_fifo_len(cpipe_fifo_t *fifo)
 }
 
 /*
- * get avaliable write write
+ * get available write write
  * called with the mutex locked
  * kfifo_avail is a macro and can't be addressed
  */

@@ -281,7 +281,7 @@ int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
 		break;
 	}
 
-	/* don't free skb unless an error occured
+	/* don't free skb unless an error occurred
 	 * the higher layers will do that for us
 	 */
 	if (err)
