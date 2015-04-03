@@ -34,8 +34,8 @@ static int __init vgpio_module_params(void)
 	}
 	/* vgpio_chip_npins must be a multiple of 8 */
 	if (vgpio_chip_npins & 0x7) {
-		pr_err("%s: vgpio_chip_npins is not a multiple of 8. "
-				"value = %d\n", MODULE_NAME, vgpio_chip_npins);
+		pr_err("%s: vgpio_chip_npins is not a multiple of 8. got %d\n",
+				MODULE_NAME, vgpio_chip_npins);
 		err = -EINVAL;
 	}
 	return err;
@@ -79,13 +79,14 @@ static inline int vgpio_get_bit(struct vgpio_chip *vchip,
 #define __vgpio_set_bit_op(vchip, regtype, bit, op) \
 do { \
 	unsigned __bit = (bit); \
-	(vchip)->regs[regtype][__bit >> 3] op (1 << (__bit & 0x7)); \
+	(vchip)->regs[regtype][__bit >> 3] op(1 << (__bit & 0x7)); \
 } while (0)
 
 static void __vgpio_set_bit_hi(struct vgpio_chip *vchip,
 		enum vgpio_reg_type regtype, unsigned bit)
 {
-	__vgpio_set_bit_op(vchip, regtype, bit, |=);
+	__vgpio_set_bit_op(vchip, regtype, bit, |=
+			);
 }
 
 static void __vgpio_set_bit_lo(struct vgpio_chip *vchip,
@@ -218,7 +219,7 @@ static int vgpio_runtime_resume(struct device *dev)
 static const struct dev_pm_ops __vgpio_pm_ops = {
 	SET_RUNTIME_PM_OPS(vgpio_runtime_suspend, vgpio_runtime_resume, NULL)
 };
-#define vgpio_pm_ops &__vgpio_pm_ops
+#define vgpio_pm_ops (&__vgpio_pm_ops)
 #else /* CONFIG_PM_RUNTIME */
 #define vgpio_pm_ops NULL
 #endif /* CONFIG_PM_RUNTIME */
@@ -324,8 +325,8 @@ static int __init vgpio_init(void)
 	for (i = 0; i < vgpio_nchips; i++) {
 		err = vgpio_chip_init(&vgpio_chips[i], i);
 		if (err) {
-			pr_err("%s: vgpio_chip_init failed. i = %d, "
-					"err = %d\n", MODULE_NAME, i, err);
+			pr_err("%s: vgpio_chip_init failed. i = %d err = %d\n",
+					MODULE_NAME, i, err);
 			goto fail_vgpio_chip_init_loop;
 		}
 	}
