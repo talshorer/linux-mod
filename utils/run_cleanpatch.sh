@@ -4,7 +4,7 @@ UTILS=$(realpath $(dirname $0))
 CHECKPATCH=$KERNEL/scripts/checkpatch.pl
 TMPOUTPUT=$(mktemp)
 TMPPATCH=$(mktemp)
-files=$@
+files="$@"
 errors=0
 
 function __run_checkpatch {
