@@ -1,4 +1,4 @@
-#include "virtnet_backend_glue.gen.h"
+#include "virtnet.h"
 
 #define MODULE_NAME "virtnet_backend"
 

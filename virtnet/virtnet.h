@@ -3,6 +3,8 @@
 
 #include <linux/netdevice.h>
 
+#include "virtnet_backend_glue.gen.h"
+
 struct virtnet_backend_ops {
 	int (*init)(unsigned int);
 	void (*exit)(void);

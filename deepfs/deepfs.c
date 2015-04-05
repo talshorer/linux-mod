@@ -209,7 +209,7 @@ static void *deepfs_symlink_follow_link(struct dentry *dentry,
 	return NULL;
 }
 
-const struct inode_operations deepfs_symlink_inode_operations = {
+static const struct inode_operations deepfs_symlink_inode_operations = {
 	.readlink    = generic_readlink,
 	.follow_link = deepfs_symlink_follow_link,
 };
@@ -342,14 +342,14 @@ static const struct file_operations deepfs_dir_fops = {
 	.iterate = deepfs_dir_iterate,
 };
 
-struct dentry *deepfs_dir_lookup(struct inode *dir, struct dentry *dentry,
-		unsigned int flags)
+static struct dentry *deepfs_dir_lookup(struct inode *dir,
+		 struct dentry *dentry, unsigned int flags)
 {
 	pr_info("%s\n", __func__);
 	return simple_lookup(dir, dentry, flags);
 }
 
-const struct inode_operations deepfs_dir_inode_operations = {
+static const struct inode_operations deepfs_dir_inode_operations = {
 	.lookup = deepfs_dir_lookup,
 };
 
@@ -487,7 +487,7 @@ static void deepfs_destroy_inode(struct inode *inode)
 	kfree(inode);
 }
 
-struct super_operations deepfs_super_ops = {
+static struct super_operations deepfs_super_ops = {
 	.statfs = simple_statfs,
 	.alloc_inode = deepfs_alloc_inode,
 	.destroy_inode = deepfs_destroy_inode,

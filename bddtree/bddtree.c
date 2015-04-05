@@ -121,7 +121,7 @@ static struct bddtree_device *bddtree_device_create(
 
 	pr_info("%s: created device %s\n",
 			MODULE_NAME, dev_name(&dev->dev));
-	return 0;
+	return dev;
 
 fail_device_add:
 	kfree(dev);

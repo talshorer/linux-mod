@@ -67,7 +67,7 @@ static inline void bufhub_clipboard_put(struct bufhub_clipboard_dev *);
 
 static struct class *bufhub_clipboard_class;
 static int bufhub_clipboard_major;
-static char bufhub_clipboard_devname[] = (MODULE_NAME "_clipboard");
+static char bufhub_clipboard_devname[] = MODULE_NAME "_clipboard";
 static struct bufhub_clipboard_dev **bufhub_clipboard_ptrs;
 static DEFINE_SPINLOCK(bufhub_clipboard_ptrs_lock);
 

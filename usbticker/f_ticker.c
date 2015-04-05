@@ -105,7 +105,7 @@ static struct usb_descriptor_header *ticker_ss_descs[] = {
 /* function-specific strings: */
 
 static struct usb_string strings_ticker[] = {
-	[0].s = "tick every $interval",
+	{ .s = "tick every $interval", },
 	{ } /* end of list */
 };
 

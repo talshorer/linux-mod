@@ -3,6 +3,8 @@
 
 #include <lmod/meta.h>
 
+#include "exporter.h"
+
 #define MODULE_NAME "exporter"
 
 void exporter_fn(void)

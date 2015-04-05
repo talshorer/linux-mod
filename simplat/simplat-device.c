@@ -26,7 +26,7 @@ static int simplat_device_check_module_params(void)
 	return err;
 }
 
-struct platform_device **simplat_devices;
+static struct platform_device **simplat_devices;
 
 static int __init simplat_device_init(void)
 {
