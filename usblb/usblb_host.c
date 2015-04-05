@@ -67,21 +67,16 @@ static int usblb_host_get_frame_number(struct usb_hcd *hcd)
 	return 0;
 }
 
-static int usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
+static int __usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 		gfp_t mem_flags)
 {
 	struct usblb_host *host = to_usblb_host(hcd);
-	struct usblb_host_urb_node *node;
 	int ret;
-	unsigned long flags;
-	int in_transfer;
+	struct usblb_host_urb_node *node;
 
 	dev_info(host->dev, "<%s> urb @%p for ep%u\n",
 			__func__, urb, usb_pipeendpoint(urb->pipe));
 
-	in_transfer = atomic_read(&usblb_host_to_bus(host)->in_transfer);
-	if (!in_transfer)
-		usblb_host_lock_irqsave(host, flags);
 	ret = usb_hcd_link_urb_to_ep(hcd, urb);
 	if (ret)
 		goto out_none;
@@ -98,11 +93,28 @@ static int usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
 	list_add_tail(&node->link, &host->urb_queue);
 	ret = 0;
 	goto out_none;
+
 out_unlink:
 	usb_hcd_unlink_urb_from_ep(hcd, urb);
 out_none:
-	if (!in_transfer)
+	return ret;
+}
+
+static int usblb_host_urb_enqueue(struct usb_hcd *hcd, struct urb *urb,
+		gfp_t mem_flags)
+{
+	struct usblb_host *host = to_usblb_host(hcd);
+	int ret;
+	unsigned long flags;
+
+	if (!atomic_read(&usblb_host_to_bus(host)->in_transfer)) {
+		usblb_host_lock_irqsave(host, flags);
+		ret = __usblb_host_urb_enqueue(hcd, urb, mem_flags);
 		usblb_host_unlock_irqrestore(host, flags);
+	} else {
+		ret = __usblb_host_urb_enqueue(hcd, urb, mem_flags);
+	}
+
 	return ret;
 }
 
@@ -133,44 +145,40 @@ static int usblb_host_urb_dequeue(struct usb_hcd *hcd, struct urb *urb,
 	return ret;
 }
 
-static int usblb_host_hub_status_data(struct usb_hcd *hcd, char *buf)
+static int __usblb_host_hub_status_data(struct usblb_host *host, char *buf)
 {
-	struct usblb_host *host = to_usblb_host(hcd);
-	int ret = 0;
-	unsigned long flags;
-	int event;
-
-	event = atomic_read(&usblb_host_to_bus(host)->event);
-	if (!event)
-		usblb_host_lock_irqsave(host, flags);
 	/* called in_irq() via usb_hcd_poll_rh_status() */
 	if (host->port1_status.wPortChange) {
 		*buf = 0x02;
-		ret = 1;
+		return 1;
 	}
-	if (!event)
+
+	return 0;
+}
+
+static int usblb_host_hub_status_data(struct usb_hcd *hcd, char *buf)
+{
+	struct usblb_host *host = to_usblb_host(hcd);
+	int ret;
+	unsigned long flags;
+
+	if (atomic_read(&usblb_host_to_bus(host)->event)) {
+		usblb_host_lock_irqsave(host, flags);
+		ret = __usblb_host_hub_status_data(host, buf);
 		usblb_host_unlock_irqrestore(host, flags);
+	} else {
+		ret = __usblb_host_hub_status_data(host, buf);
+	}
+
 	if (ret)
 		dev_info(to_usblb_host(hcd)->dev,
 				"<%s> true return value\n", __func__);
 	return ret;
 }
 
-static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
-		u16 wIndex, char *buf, u16 wLength)
+static int __usblb_host_hub_control(struct usblb_host *host, u16 typeReq,
+		u16 wValue, u16 wIndex, char *buf, u16 wLength)
 {
-	struct usblb_host *host = to_usblb_host(hcd);
-	int ret = 0;
-	unsigned long flags;
-	int event;
-
-	dev_info(host->dev,
-	"<%s> typeReq=0x%04x wValue=0x%04x wIndex=0x%04x wLength=0x%04x\n",
-			__func__, typeReq, wValue, wIndex, wLength);
-
-	event = atomic_read(&usblb_host_to_bus(host)->event);
-	if (!event)
-		usblb_host_lock_irqsave(host, flags);
 	switch (typeReq) {
 	case SetHubFeature:
 		/* fallthrough */
@@ -267,10 +275,31 @@ static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
 	default:
 error:
 		/* "stall" on error */
-		ret = -EPIPE;
+		return -EPIPE;
 	}
-	if (!event)
+	return 0;
+}
+
+static int usblb_host_hub_control(struct usb_hcd *hcd, u16 typeReq, u16 wValue,
+		u16 wIndex, char *buf, u16 wLength)
+{
+	struct usblb_host *host = to_usblb_host(hcd);
+	int ret;
+	unsigned long flags;
+
+	dev_info(host->dev,
+	"<%s> typeReq=0x%04x wValue=0x%04x wIndex=0x%04x wLength=0x%04x\n",
+			__func__, typeReq, wValue, wIndex, wLength);
+
+	if (!atomic_read(&usblb_host_to_bus(host)->event)) {
+		usblb_host_lock_irqsave(host, flags);
+		ret = __usblb_host_hub_control(host, typeReq, wValue, wIndex,
+				buf, wLength);
 		usblb_host_unlock_irqrestore(host, flags);
+	} else {
+		ret = __usblb_host_hub_control(host, typeReq, wValue, wIndex,
+				buf, wLength);
+	}
 	return ret;
 }
 

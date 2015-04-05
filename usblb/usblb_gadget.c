@@ -46,6 +46,20 @@ static int usblb_gadget_disable(struct usb_ep *ep)
 	return 0;
 }
 
+static int __usblb_gadget_queue(struct usblb_gadget_ep *ep,
+		struct usblb_gadget_request *req)
+{
+	struct usblb_gadget *gadget = ep->g;
+	int ret = 0;
+
+	if (!atomic_read(&usblb_gadget_to_bus(gadget)->transfer_active))
+		ret = -EPIPE;
+	else
+		list_add_tail(&req->link, &ep->requests);
+
+	return ret;
+}
+
 static int usblb_gadget_queue(struct usb_ep *_ep, struct usb_request *_req,
 		gfp_t gfp_flags)
 {
@@ -53,22 +67,19 @@ static int usblb_gadget_queue(struct usb_ep *_ep, struct usb_request *_req,
 	struct usblb_gadget_ep *ep = to_usblb_gadget_ep(_ep);
 	struct usblb_gadget *gadget = ep->g;
 	unsigned long flags;
-	int ret = 0;
-	int in_transfer;
+	int ret;
 
 	dev_info(gadget->dev, "<%s> on %s\n", __func__, ep->name);
 
 	_req->actual = 0;
 
-	in_transfer = atomic_read(&usblb_gadget_to_bus(gadget)->in_transfer);
-	if (!in_transfer)
+	if (!atomic_read(&usblb_gadget_to_bus(gadget)->in_transfer)) {
 		usblb_gadget_lock_irqsave(gadget, flags);
-	if (!atomic_read(&usblb_gadget_to_bus(gadget)->transfer_active))
-		ret = -EPIPE;
-	else
-		list_add_tail(&req->link, &ep->requests);
-	if (!in_transfer)
+		ret = __usblb_gadget_queue(ep, req);
 		usblb_gadget_unlock_irqrestore(gadget, flags);
+	} else {
+		ret = __usblb_gadget_queue(ep, req);
+	}
 
 	return ret;
 }
