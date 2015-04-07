@@ -8,7 +8,7 @@
 
 char *prog;
 
-static struct nlmsghdr *nldummy_create_header(size_t len)
+static struct nlmsghdr *nldummy_alloc_header(size_t len)
 {
 	struct nlmsghdr *nlh;
 
@@ -18,48 +18,26 @@ static struct nlmsghdr *nldummy_create_header(size_t len)
 		return NULL;
 	}
 	memset(nlh, 0, NLMSG_SPACE(len));
-	nlh->nlmsg_len = NLMSG_SPACE(len);
-	nlh->nlmsg_pid = getpid();
-	/* if (nlmsg_type < NLMSG_MIN_TYPE), the kernel skips the message */
-	nlh->nlmsg_type = NLMSG_MIN_TYPE;
 	return nlh;
-}
-
-static void prepare_message(struct sockaddr_nl *dst, struct msghdr *msg,
-		struct iovec *iov)
-{
-	memset(dst, 0, sizeof(*dst));
-	dst->nl_family = AF_NETLINK;
-	dst->nl_pid = 0; /* For Linux Kernel */
-	memset(iov, 0, sizeof(*iov));
-	memset(msg, 0, sizeof(*msg));
-	msg->msg_iov = iov;
-	msg->msg_iovlen = 1;
 }
 
 static int nldummy_send(int fd, const char *buf, size_t len)
 {
 	int ret;
-	struct sockaddr_nl dst;
-	struct msghdr msg;
-	struct iovec iov;
 	struct nlmsghdr *nlh;
 
-	nlh = nldummy_create_header(len);
+	nlh = nldummy_alloc_header(len);
 	if (!nlh)
 		goto out_none;
+	nlh->nlmsg_len = NLMSG_SPACE(len);
+	nlh->nlmsg_pid = getpid();
+	/* if (nlmsg_type < NLMSG_MIN_TYPE), the kernel skips the message */
+	nlh->nlmsg_type = NLMSG_MIN_TYPE;
 	nlh->nlmsg_flags |= NLM_F_REQUEST;
 	memcpy(NLMSG_DATA(nlh), buf, len);
 
-	prepare_message(&dst, &msg, &iov);
-	dst.nl_groups = 0; /* unicast */
-	iov.iov_base = (void *)nlh;
-	iov.iov_len = nlh->nlmsg_len;
-	msg.msg_name = (void *)&dst;
-	msg.msg_namelen = sizeof(dst);
-
-	if (sendmsg(fd, &msg, 0) < 0) {
-		perror("sendmsg");
+	if (write(fd, nlh, nlh->nlmsg_len) < 0) {
+		perror("write");
 		ret = 1;
 		goto out_free_nlh;
 	}
@@ -74,24 +52,14 @@ out_none:
 static int nldummy_recv(int fd, char *buf, size_t len)
 {
 	int ret;
-	struct sockaddr_nl dst;
-	struct msghdr msg;
-	struct iovec iov;
 	struct nlmsghdr *nlh;
 
-	nlh = nldummy_create_header(len);
+	nlh = nldummy_alloc_header(len);
 	if (!nlh)
 		goto out_none;
 
-	prepare_message(&dst, &msg, &iov);
-	dst.nl_groups = 0; /* unicast */
-	iov.iov_base = (void *)nlh;
-	iov.iov_len = nlh->nlmsg_len;
-	msg.msg_name = (void *)&dst;
-	msg.msg_namelen = sizeof(dst);
-
-	if (recvmsg(fd, &msg, 0) < 0) {
-		perror("recvmsg");
+	if (read(fd, nlh, NLMSG_SPACE(len)) < 0) {
+		perror("read");
 		ret = 1;
 		goto out_free_nlh;
 	}
