@@ -19,6 +19,7 @@ for level in $LEVELS; do
 	read line || err=1
 	if ! $(echo $line | grep "$MODULE: $level" > /dev/null); then
 		echo "$0: did not find message with level $level" 1>&2
+		echo "$0: line was: \"$line\"" 1>&2
 		err=1
 	fi
 done < $tmp
