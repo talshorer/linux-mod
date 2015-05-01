@@ -572,4 +572,5 @@ module_exit(deepfs_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Recursive pseudo file system");
+MODULE_ALIAS_FS("deepfs");
 MODULE_VERSION("1.0.0");
