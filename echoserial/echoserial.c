@@ -7,9 +7,9 @@
 
 #include <lmod/meta.h>
 
+#include "echoserial_uapi.h"
+
 #define ECHOSERIAL_PORT_NAME_LEN 8
-/* one more than the last type @ include/uapi/linux/serial_core.h */
-#define PORT_ECHOSERIAL 109
 
 static const char DRIVER_NAME[] = "echoserial";
 
