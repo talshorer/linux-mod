@@ -376,7 +376,7 @@ int main(int argc, char *argv[])
 	struct single_test *active;
 	int i, err, ret = 0;
 
-	for (i = 0; i < sizeof(all_tests) / sizeof(all_tests[0]); i++) {
+	for (i = 0; i < sizeof(all_tests) / sizeof((all_tests)[0]); i++) {
 		active = &all_tests[i];
 		dprintf(2, "%s: running test %s\n", argv[0], active->name);
 		err = active->test_fn();

@@ -132,7 +132,7 @@ static struct bf_cmd cmds[] = {
 	{ '[', startloop },
 	{ ']', endloop   },
 };
-#define NCMDS (sizeof(cmds) / sizeof(cmds[0]))
+#define NCMDS (sizeof(cmds) / sizeof((cmds)[0]))
 
 static int execute_bf_program(char *filenmae)
 {

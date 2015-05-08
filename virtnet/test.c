@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 	backend = argv[1];
 	iface_id = (unsigned int)strtol(argv[2], NULL, 10);
 	sprintf(iface_name, IFACENAME_BASE "%u", iface_id);
-	for (i = 0; i < sizeof(all_tests) / sizeof(all_tests[0]); i++)
+	for (i = 0; i < sizeof(all_tests) / sizeof((all_tests)[0]); i++)
 		if (!strcmp(backend, all_tests[i].name)) {
 			test_fn = all_tests[i].test_fn;
 			break;

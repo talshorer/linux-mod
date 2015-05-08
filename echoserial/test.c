@@ -23,7 +23,7 @@ static struct echoserial_baud all_speeds[] = {
 	baud_entry(57600),
 	baud_entry(115200),
 };
-#define nspeeds (sizeof(all_speeds) / sizeof(all_speeds[0]))
+#define nspeeds (sizeof(all_speeds) / sizeof((all_speeds)f[0]))
 
 static unsigned int nports;
 static size_t bsize;

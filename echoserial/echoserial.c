@@ -313,7 +313,7 @@ static int echoserial_request_port(struct uart_port *port)
 	return 0;
 }
 
-static struct uart_ops echoserial_uart_ops = {
+static const struct uart_ops echoserial_uart_ops = {
 	.tx_empty = echoserial_tx_empty,
 	.set_mctrl = echoserial_set_mctrl,
 	.get_mctrl = echoserial_get_mctrl,
@@ -545,4 +545,4 @@ module_exit(echoserial_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virt serial ports that echo back what's written to them");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.1.1");
