@@ -71,7 +71,7 @@ static void usblb_bus_cleanup(struct usblb_bus *bus)
 	unsigned long flags;
 
 	pr_info("destroying %s%d\n",
-			KBUILD_MODNAME, (int)(bus - usblb_buses));
+			KBUILD_MODNAME, bus->busnum);
 	usblb_bus_lock_irqsave(bus, flags);
 	atomic_set(&bus->transfer_active, 0);
 	usblb_bus_unlock_irqrestore(bus, flags);
@@ -147,4 +147,4 @@ module_exit(usblb_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Loopback between virtual usb gadget and host controllers");
-MODULE_VERSION("1.0.2");
+MODULE_VERSION("1.0.3");

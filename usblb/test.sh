@@ -1,7 +1,7 @@
 #! /bin/bash
 
 MODULE=$(basename $(dirname $(realpath $0)))
-NBUSES=1
+NBUSES=2
 GADGET=${MODULE}_gadget
 HOST=${MODULE}_host
 GADGET_SYSFS=/sys/class/$GADGET
@@ -30,7 +30,7 @@ modprobe udc_core
 insmod $MODULE.ko nbuses=$NBUSES
 for i in $(seq 0 $(( $NBUSES - 1 ))); do
 	bus=${MODULE}$i
-	echo "$0: running test on bus $bus" 1>&2
+	echo "$0: running general test on bus $bus" 1>&2
 	gadget_sysfs=$GADGET_SYSFS/${GADGET}$i
 	host_sysfs=$HOST_SYSFS/${HOST}.$i
 	__check_sysfs_link gadget host || err=1
@@ -39,6 +39,7 @@ done
 modprobe $HOST_DRIVER
 modprobe $GADGET_DRIVER
 sleep 4
+echo "$0: running loopback test on bus ${MODULE}0" 1>&2
 python test.pyc || err=1
 modprobe -r $GADGET_DRIVER
 modprobe -r $HOST_DRIVER

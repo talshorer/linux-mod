@@ -5,6 +5,8 @@ LMOD_CFLAGS += -Wall -Werror -D_GNU_SOURCE -I$(LMOD_TOP)/utils/include
 LMOD_US_CFLAGS += $(LMOD_CFLAGS) $(TARGET_CFLAGS)
 ccflags-y += $(LMOD_CFLAGS)
 
+CHECKFLAGS += -Wsparse-all -Wsparse-error -Wno-shadow
+
 CC = $(CROSS_COMPILE)gcc
 
 default: all
@@ -19,7 +21,7 @@ lib%.so: %.c
 	pycompile $<
 
 kern_make:
-	$(MAKE) -C $(KERNEL) M=$(M) $(KTARGET)
+	$(MAKE) -C $(KERNEL) M=$(M) $(KTARGET) C=1
 
 modules:
 	$(MAKE) kern_make KTARGET=modules
