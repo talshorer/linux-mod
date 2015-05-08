@@ -27,7 +27,7 @@ static asmlinkage int interceptor_syscall(const char *pathname, int flags,
 {
 	int ret;
 
-	if (flags & INTERCEPTOR_O_STRLEN) {
+	if (flags & O_STRLEN) {
 		ret = strlen(pathname);
 		pr_info(
 		"%s: intercepted open() call! returning strlen(\"%s\")\n",
@@ -101,4 +101,4 @@ module_exit(interceptor_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("1.1.1");
+MODULE_VERSION("1.1.2");
