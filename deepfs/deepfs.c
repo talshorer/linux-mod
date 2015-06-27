@@ -110,6 +110,7 @@ static int deepfs_parse_options(char *data, struct deepfs_mount_opts *opts)
 static void deepfs_trace(const char *func, struct dentry *dentry)
 {
 	char buf[256];
+
 	pr_info("<%s> %s\n", func, dentry_path_raw(dentry, buf, sizeof(buf)));
 }
 
