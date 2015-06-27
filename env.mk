@@ -37,3 +37,9 @@ bin-clean:
 
 py-clean:
 	rm -f *.pyc
+
+backup-clean:
+	rm -f *~
+
+# always clean backup files
+clean: backup-clean
