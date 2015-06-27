@@ -4,6 +4,7 @@ DUMMIES_FILE="dummies.txt"
 MODULE=$(basename $(dirname $(realpath $0)))
 
 cd $(dirname $0)
+source ../env.sh
 dummies=$(cat $DUMMIES_FILE)
 
 function __dummy_file_name {
@@ -30,7 +31,7 @@ END_CAT
 function create_sources {
 	for dummy in $dummies; do
 		filename=$(__dummy_file_name $dummy).c
-		echo "  GEN $filename"
+		report_gen $filename
 		__create_dummy_source $dummy > $filename
 	done
 }

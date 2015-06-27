@@ -34,3 +34,8 @@ function check_uapi_value {
 	[[ $LMOD_VALUE -gt $MAX_KERNEL_VALUE ]]
 	return $?
 }
+
+function report_gen {
+	filename=$1
+	echo "  GEN $filename"
+}
