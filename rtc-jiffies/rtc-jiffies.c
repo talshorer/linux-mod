@@ -2,6 +2,7 @@
 
 #include <linux/module.h>
 #include <linux/kernel.h>
+#include <linux/vmalloc.h>
 #include <linux/rtc.h>
 
 #include <lmod/meta.h>

@@ -4,6 +4,7 @@
 #include <linux/serial_reg.h>
 #include <linux/tty_flip.h>
 #include <linux/kfifo.h>
+#include <linux/vmalloc.h>
 
 #include <lmod/meta.h>
 

@@ -6,6 +6,7 @@
 #include <linux/device.h>
 #include <linux/sched.h>
 #include <linux/poll.h>
+#include <linux/vmalloc.h>
 
 #include <lmod/meta.h>
 

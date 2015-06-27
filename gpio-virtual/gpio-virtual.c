@@ -4,6 +4,7 @@
 #include <linux/fs.h>
 #include <linux/gpio.h>
 #include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <linux/pm_runtime.h>
 
 #include <lmod/meta.h>

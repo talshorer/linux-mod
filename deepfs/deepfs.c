@@ -199,19 +199,25 @@ static inline void deepfs_depth_file_destroy(struct deepfs_depth_file *f)
 	kfree(f);
 }
 
-static void *deepfs_symlink_follow_link(struct dentry *dentry,
-		struct nameidata *nd)
+static const char *deepfs_symlink_follow_link(struct dentry *dentry,
+		void **cookie)
 {
 	struct deepfs_symlink *l = to_deepfs_symlink(dentry->d_inode);
 
 	pr_info("<%s>\n", __func__);
-	nd_set_link(nd, l->buf);
-	return NULL;
+	*cookie = l;
+	return l->buf;
+}
+
+static void deepfs_symlink_put_link(struct inode *inode, void *cookie)
+{
+	pr_info("<%s>\n", __func__);
 }
 
 static const struct inode_operations deepfs_symlink_inode_operations = {
 	.readlink    = generic_readlink,
 	.follow_link = deepfs_symlink_follow_link,
+	.put_link = deepfs_symlink_put_link,
 };
 
 static int deepfs_symlink_create(struct super_block *sb,
@@ -573,4 +579,4 @@ LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Recursive pseudo file system");
 MODULE_ALIAS_FS("deepfs");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.1.0");

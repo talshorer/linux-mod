@@ -2,6 +2,7 @@
 #include <linux/kernel.h>
 #include <linux/fs.h>
 #include <linux/slab.h>
+#include <linux/vmalloc.h>
 #include <linux/genhd.h>
 #include <linux/blkdev.h>
 
