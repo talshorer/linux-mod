@@ -6,7 +6,7 @@
 #include <linux/slab.h>
 #include <linux/parser.h>
 #include <linux/pagemap.h>
-#include <linux/namei.h>
+#include <linux/dcache.h>
 
 #include <lmod/meta.h>
 
@@ -107,16 +107,22 @@ static int deepfs_parse_options(char *data, struct deepfs_mount_opts *opts)
 	return 0;
 }
 
+static void deepfs_trace(const char *func, struct dentry *dentry)
+{
+	char buf[256];
+	pr_info("<%s> %s\n", func, dentry_path_raw(dentry, buf, sizeof(buf)));
+}
+
 static int deepfs_depth_file_open(struct inode *inode, struct file *filp)
 {
-	pr_info("<%s>\n", __func__);
+	deepfs_trace(__func__, filp->f_path.dentry);
 	filp->private_data = to_deepfs_depth_file(inode);
 	return 0;
 }
 
 static int deepfs_depth_file_release(struct inode *inode, struct file *filp)
 {
-	pr_info("<%s>\n", __func__);
+	deepfs_trace(__func__, filp->f_path.dentry);
 	filp->private_data = NULL;
 	return 0;
 }
@@ -126,7 +132,7 @@ static ssize_t deepfs_depth_file_read(struct file *filp, char __user *buf,
 {
 	struct deepfs_depth_file *f = filp->private_data;
 
-	pr_info("<%s>\n", __func__);
+	deepfs_trace(__func__, filp->f_path.dentry);
 	return simple_read_from_buffer(buf, count, ppos, f->buf,
 			DEEPFS_DEPTH_FILE_BUF_LEN);
 }
@@ -204,14 +210,15 @@ static const char *deepfs_symlink_follow_link(struct dentry *dentry,
 {
 	struct deepfs_symlink *l = to_deepfs_symlink(dentry->d_inode);
 
-	pr_info("<%s>\n", __func__);
-	*cookie = l;
+	deepfs_trace(__func__, dentry);
+	/* pass dentry as the cookie for tracing */
+	*cookie = dentry;
 	return l->buf;
 }
 
 static void deepfs_symlink_put_link(struct inode *inode, void *cookie)
 {
-	pr_info("<%s>\n", __func__);
+	deepfs_trace(__func__, cookie);
 }
 
 static const struct inode_operations deepfs_symlink_inode_operations = {
@@ -283,14 +290,14 @@ static int deepfs_fill_dirname(char *buf, struct deepfs_dir *d)
 
 static int deepfs_dir_open(struct inode *inode, struct file *filp)
 {
-	pr_info("<%s>\n", __func__);
+	deepfs_trace(__func__, filp->f_path.dentry);
 	filp->private_data = to_deepfs_dir(inode);
 	return 0;
 }
 
 static int deepfs_dir_release(struct inode *inode, struct file *filp)
 {
-	pr_info("<%s>\n", __func__);
+	deepfs_trace(__func__, filp->f_path.dentry);
 	filp->private_data = NULL;
 	return 0;
 }
@@ -302,7 +309,7 @@ static int deepfs_dir_iterate(struct file *filp, struct dir_context *ctx)
 	char name[DEEPFS_DIRNAME_LEN];
 	unsigned int pos;
 
-	pr_info("<%s>\n", __func__);
+	deepfs_trace(__func__, filp->f_path.dentry);
 
 	if (!dir_emit_dots(filp, ctx))
 		return 0;
@@ -351,7 +358,7 @@ static const struct file_operations deepfs_dir_fops = {
 static struct dentry *deepfs_dir_lookup(struct inode *dir,
 		 struct dentry *dentry, unsigned int flags)
 {
-	pr_info("%s\n", __func__);
+	deepfs_trace(__func__, dentry);
 	return simple_lookup(dir, dentry, flags);
 }
 
@@ -544,7 +551,7 @@ fail_kzalloc_fsi:
 
 static void deepfs_kill_sb(struct super_block *sb)
 {
-	pr_info("<%s>\n", __func__);
+	deepfs_trace(__func__, sb->s_root);
 	kill_litter_super(sb);
 }
 
@@ -579,4 +586,4 @@ LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Recursive pseudo file system");
 MODULE_ALIAS_FS("deepfs");
-MODULE_VERSION("1.1.0");
+MODULE_VERSION("1.2.0");
