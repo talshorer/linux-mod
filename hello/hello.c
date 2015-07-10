@@ -1,27 +1,22 @@
-/*
- *  hello.c - The simplest kernel module.
- */
-#include <linux/module.h>	/* Needed by all modules */
-#include <linux/kernel.h>	/* Needed for KERN_INFO */
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
+#include <linux/module.h>
+#include <linux/kernel.h>
 
 #include <lmod/meta.h>
 
 int init_module(void)
 {
-	pr_info("Hello, World!\n");
-
-	/*
-	 * A non 0 return means init_module failed; module can't be loaded.
-	 */
+	pr_info("hello, world!\n");
 	return 0;
 }
 
 void cleanup_module(void)
 {
-	pr_info("Goodbye, World!\n");
+	pr_info("goodbye, world!\n");
 }
 
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A simple module that prints to log upon init and exit");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.0.2");
