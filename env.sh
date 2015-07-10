@@ -31,8 +31,13 @@ function check_uapi_value {
 	MAX_KERNEL_VALUE=$(max "$KERNEL_VALUES")
 	LMOD_VALUE=$(extract_values "$LMOD_SUFFIX" $LMOD_H_FILE)
 	# assert the custom flag is bigger than the biggest flag
-	[[ $LMOD_VALUE -gt $MAX_KERNEL_VALUE ]]
-	return $?
+	if [[ $LMOD_VALUE -le $MAX_KERNEL_VALUE ]]; then
+		echo -n "$(basename $0): lmod value $PREFIX$LMOD_SUFFIX " 1>&2
+		echo -n "(=$LMOD_VALUE) is not greater than biggest " 1>&2
+		echo "kernel value (=$MAX_KERNEL_VALUE)" 1>&2
+		return 1
+	fi
+	return 0
 }
 
 function report_gen {
