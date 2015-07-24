@@ -11,8 +11,6 @@
 
 #include <lmod/meta.h>
 
-#define DRIVER_NAME "sleeper"
-
 static int sleeper_nthreads = 1;
 module_param_named(nthreads, sleeper_nthreads, int, 0444);
 MODULE_PARM_DESC(nthreads, "number of sleeper threads to create");
@@ -109,7 +107,7 @@ static int __init sleeper_create_debugfs(void)
 	int err;
 	struct dentry *file;
 
-	sleeper_debugfs = debugfs_create_dir(DRIVER_NAME, NULL);
+	sleeper_debugfs = debugfs_create_dir(KBUILD_MODNAME, NULL);
 	if (!sleeper_debugfs) {
 		err = -ENOMEM;
 		pr_err("debugfs_create_dir failed\n");
@@ -172,7 +170,7 @@ static int __init sleeper_thread_setup(struct sleeper_thread *st,
 	atomic_set(&st->disturbs, 0);
 
 	st->task = kthread_run(sleeper_thread_func, st, "%s%d",
-			DRIVER_NAME, i);
+			KBUILD_MODNAME, i);
 	if (IS_ERR(st->task)) {
 		err = PTR_ERR(st->task);
 		pr_err("kthread_run failed, i = %d, err = %d\n", i, err);
