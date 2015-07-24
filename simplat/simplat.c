@@ -6,9 +6,6 @@
 
 #include "simplat.h"
 
-/* not needed */
-/* #define DRIVER_NAME "simplat" */
-
 static void simplat_dummy_release(struct device *dev, void *res)
 {
 	dev_info(dev, "<%s>\n", __func__);
