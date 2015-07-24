@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
@@ -20,8 +22,7 @@ static int sleeper_check_module_params(void)
 	int err = 0;
 
 	if (sleeper_nthreads < 0) {
-		pr_err("%s: sleeper_nthreads < 0. value = %d\n",
-				DRIVER_NAME, sleeper_nthreads);
+		pr_err("sleeper_nthreads < 0. value = %d\n", sleeper_nthreads);
 		err = -EINVAL;
 	}
 
@@ -55,13 +56,12 @@ static ssize_t sleeper_debugfs_wake_write(struct file *filp,
 		return -EFAULT;
 
 	if (sscanf(kbuf, "%u\n", &id) != 1) {
-		pr_err("%s: <%s> expected a number\n",
-				DRIVER_NAME, __func__);
+		pr_err("<%s> expected a number\n", __func__);
 		return -EINVAL;
 	}
 	if (id >= sleeper_nthreads) {
-		pr_err("%s: <%s> id >= nthreads. id = %d, nthreads = %d\n",
-				DRIVER_NAME, __func__, id, sleeper_nthreads);
+		pr_err("<%s> id >= nthreads. id = %d, nthreads = %d\n",
+				__func__, id, sleeper_nthreads);
 		return -EINVAL;
 	}
 
@@ -112,8 +112,7 @@ static int __init sleeper_create_debugfs(void)
 	sleeper_debugfs = debugfs_create_dir(DRIVER_NAME, NULL);
 	if (!sleeper_debugfs) {
 		err = -ENOMEM;
-		pr_err("%s: debugfs_create_dir failed\n",
-				DRIVER_NAME);
+		pr_err("debugfs_create_dir failed\n");
 		goto fail_debugfs_create_dir;
 	}
 
@@ -122,8 +121,8 @@ static int __init sleeper_create_debugfs(void)
 			&sleeper_debugfs_wake_fops);
 	if (!file) {
 		err = -ENOMEM;
-		pr_err("%s: debugfs_create_file failed for %s\n",
-				DRIVER_NAME, sleeper_debugfs_wake_fname);
+		pr_err("debugfs_create_file failed for %s\n",
+				sleeper_debugfs_wake_fname);
 		goto fail_debugfs_create_file;
 	}
 
@@ -132,8 +131,8 @@ static int __init sleeper_create_debugfs(void)
 			&sleeper_debugfs_stat_fops);
 	if (!file) {
 		err = -ENOMEM;
-		pr_err("%s: debugfs_create_file failed for %s\n",
-				DRIVER_NAME, sleeper_debugfs_stat_fname);
+		pr_err("debugfs_create_file failed for %s\n",
+				sleeper_debugfs_stat_fname);
 		goto fail_debugfs_create_file;
 	}
 
@@ -152,16 +151,15 @@ static int sleeper_thread_func(void *data)
 	do {
 		DEFINE_WAIT(wait);
 
-		pr_info("%s: %s was disturbed %d times\n", DRIVER_NAME,
-				st->task->comm, atomic_read(&st->disturbs));
+		pr_info("%s was disturbed %d times\n", st->task->comm,
+				atomic_read(&st->disturbs));
 		prepare_to_wait(&st->wq, &wait, TASK_UNINTERRUPTIBLE);
 		if (!kthread_should_stop())
 			freezable_schedule();
 		finish_wait(&st->wq, &wait);
 		atomic_inc(&st->disturbs);
 	} while (!kthread_should_stop());
-	pr_notice("%s: %s is shutting down\n", DRIVER_NAME,
-				st->task->comm);
+	pr_notice("%s is shutting down\n", st->task->comm);
 	return 0;
 }
 
@@ -177,8 +175,7 @@ static int __init sleeper_thread_setup(struct sleeper_thread *st,
 			DRIVER_NAME, i);
 	if (IS_ERR(st->task)) {
 		err = PTR_ERR(st->task);
-		pr_err("%s: kthread_run failed, i = %d, err = %d\n",
-				DRIVER_NAME, i, err);
+		pr_err("kthread_run failed, i = %d, err = %d\n", i, err);
 		goto fail_kthread_run;
 	}
 
@@ -206,8 +203,7 @@ static int __init sleeper_init(void)
 			sizeof(sleeper_threads[0]) * sleeper_nthreads);
 	if (!sleeper_threads) {
 		err = -ENOMEM;
-		pr_err("%s: failed to allocate sleeper_threads\n",
-				DRIVER_NAME);
+		pr_err("failed to allocate sleeper_threads\n");
 		goto fail_vmalloc_sleeper_threads;
 	}
 
@@ -219,13 +215,13 @@ static int __init sleeper_init(void)
 		err = sleeper_thread_setup(&sleeper_threads[i], i);
 		if (err) {
 			pr_err(
-			"%s: sleeper_thread_setup failed. i = %d, err = %d\n",
-					DRIVER_NAME, i, err);
+			"sleeper_thread_setup failed. i = %d, err = %d\n", i,
+					err);
 			goto fail_sleeper_thread_setup_loop;
 		}
 	}
 
-	pr_info("%s: initializated successfully\n", DRIVER_NAME);
+	pr_info("initializated successfully\n");
 	return 0;
 
 fail_sleeper_thread_setup_loop:
@@ -248,7 +244,7 @@ static void __exit sleeper_exit(void)
 	debugfs_remove_recursive(sleeper_debugfs);
 	vfree(sleeper_threads);
 
-	pr_info("%s: exited successfully\n", DRIVER_NAME);
+	pr_info("exited successfully\n");
 }
 module_exit(sleeper_exit);
 
@@ -256,4 +252,4 @@ module_exit(sleeper_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Kernel threads that sleep until woken up by user");
-MODULE_VERSION("1.0.4");
+MODULE_VERSION("1.0.5");
