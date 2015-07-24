@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -10,8 +12,6 @@
 
 #define VIRTBLOCK_MAGIC_NMINROS 16
 #define VIRTBLOCK_TO_BLK_LAYER (virtblock_hardsect_size / 512)
-
-static const char DRIVER_NAME[] = "virtblock";
 
 static int virtblock_ndevices = -1;
 module_param_named(ndevices, virtblock_ndevices, int, 0);
@@ -39,7 +39,7 @@ static struct virtblock_dev *virtblock_devices;
 static int virtblock_open(struct block_device *bdev, fmode_t mode)
 {
 	/* struct virtblock_dev *dev = bdev->bd_dev->private_data; */
-	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
+	pr_info("in %s\n", __func__);
 	/* nothing to do here */
 	return 0;
 }
@@ -47,7 +47,7 @@ static int virtblock_open(struct block_device *bdev, fmode_t mode)
 static void virtblock_release(struct gendisk *disk, fmode_t mode)
 {
 	/* struct virtblock_dev *dev = disk->private_data; */
-	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
+	pr_info("in %s\n", __func__);
 	/* nothing to do here */
 }
 
@@ -59,7 +59,7 @@ static int virtblock_getgeo(struct block_device *bdev, struct hd_geometry *geo)
 	 * this function exists for the sole pupose of this printk.
 	 * ENOTTY will make it look as if we didn't implement getgeo.
 	 */
-	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
+	pr_info("in %s\n", __func__);
 	return -ENOTTY;
 }
 
@@ -76,25 +76,25 @@ static int virtblock_check_module_params(void)
 	int err = 0;
 
 	if (virtblock_ndevices < 0) {
-		pr_err("%s: virtblock_ndevices < 0. value = %d\n",
-				DRIVER_NAME, virtblock_ndevices);
+		pr_err("virtblock_ndevices < 0. value = %d\n",
+				virtblock_ndevices);
 		err = -EINVAL;
 	}
 	if (virtblock_nsectors <= 0) {
-		pr_err("%s: virtblock_nsectors <= 0. value = %d\n",
-				DRIVER_NAME, virtblock_nsectors);
+		pr_err("virtblock_nsectors <= 0. value = %d\n",
+				virtblock_nsectors);
 		err = -EINVAL;
 	}
 	if (virtblock_hardsect_size < 512) {
-		pr_err("%s: virtblock_hardsect_size < 512. value = %d\n",
-				DRIVER_NAME, virtblock_hardsect_size);
+		pr_err("virtblock_hardsect_size < 512. value = %d\n",
+				virtblock_hardsect_size);
 		err = -EINVAL;
 	}
 	/* virtblock_hardsect_size must be a power of two */
 	if (virtblock_hardsect_size & (virtblock_hardsect_size - 1)) {
 		pr_err(
-	"%s: virtblock_hardsect_size is not a power of two. value = %d\n",
-				DRIVER_NAME, virtblock_hardsect_size);
+	"virtblock_hardsect_size is not a power of two. value = %d\n",
+				virtblock_hardsect_size);
 		err = -EINVAL;
 	}
 	return err;
@@ -115,8 +115,7 @@ static void virtblock_request(struct request_queue *q)
 	while ((req = blk_fetch_request(q)) != NULL) {
 		dev = req->rq_disk->private_data;
 		if (req->cmd_type != REQ_TYPE_FS) {
-			pr_notice("%s: skipping non-fs request\n",
-					DRIVER_NAME);
+			pr_notice("skipping non-fs request\n");
 			__blk_end_request_all(req, -EIO);
 			continue;
 		}
@@ -124,28 +123,22 @@ static void virtblock_request(struct request_queue *q)
 		sector = blk_rq_pos(req);
 		do_div(sector, VIRTBLOCK_TO_BLK_LAYER);
 		nsect = blk_rq_sectors(req) / VIRTBLOCK_TO_BLK_LAYER;
-		pr_info("%s: processing request %p\n",
-				DRIVER_NAME, req);
-		pr_info("%s: \tdevice %s\n",
-				DRIVER_NAME, dev->gd->disk_name);
-		pr_info("%s: \twrite %u\n", DRIVER_NAME, write);
-		pr_info("%s: \tsector %lu\n", DRIVER_NAME,
-				(unsigned long)sector);
-		pr_info("%s: \tnsect %u\n", DRIVER_NAME, nsect);
+		pr_info("processing request %p\n", req);
+		pr_info("\tdevice %s\n", dev->gd->disk_name);
+		pr_info("\twrite %u\n", write);
+		pr_info("\tsector %lu\n", (unsigned long)sector);
+		pr_info("\tnsect %u\n", nsect);
 		offset = sector * virtblock_hardsect_size;
 		count = nsect * virtblock_hardsect_size;
 		if (offset + count > dev->size) {
-			pr_err("%s: @%s offset + count > dev->size",
-					DRIVER_NAME, __func__);
+			pr_err("@%s offset + count > dev->size", __func__);
 			__blk_end_request_all(req, -EIO);
 		}
 		rq_for_each_segment(bv, req, iter) {
 			blkbuf = page_address(bv.bv_page) + bv.bv_offset;
 			devbuf = dev->data + offset;
-			pr_info("%s: \tprocessing segment %p\n",
-					DRIVER_NAME, blkbuf);
-			pr_info("%s: \t\tlen %u\n",
-					DRIVER_NAME, bv.bv_len);
+			pr_info("\tprocessing segment %p\n", blkbuf);
+			pr_info("\t\tlen %u\n", bv.bv_len);
 			if (write) /* write to device */
 				memcpy(devbuf, blkbuf, bv.bv_len);
 			else /* read from device */
@@ -171,8 +164,7 @@ static int __init virtblock_dev_setup(struct virtblock_dev *dev,
 	dev->data = vmalloc(dev->size);
 	if (!dev->data) {
 		err = -ENOMEM;
-		pr_err("%s: failed to allocate data for virtual disk",
-				DRIVER_NAME);
+		pr_err("failed to allocate data for virtual disk");
 		goto fail_vmalloc_devdata;
 	}
 	memset(dev->data, 0, dev->size);
@@ -180,14 +172,14 @@ static int __init virtblock_dev_setup(struct virtblock_dev *dev,
 	dev->queue = blk_init_queue(virtblock_request, &dev->lock);
 	if (!dev->queue) {
 		err = -ENOMEM;
-		pr_err("%s: blk_init_queue failed", DRIVER_NAME);
+		pr_err("blk_init_queue failed");
 		goto fail_blk_init_queue;
 	}
 	blk_queue_logical_block_size(dev->queue, virtblock_hardsect_size);
 	dev->gd = alloc_disk(VIRTBLOCK_MAGIC_NMINROS);
 	if (!dev->gd) {
 		err = -ENOMEM;
-		pr_err("%s: alloc_disk failed", DRIVER_NAME);
+		pr_err("alloc_disk failed");
 		goto fail_alloc_disk;
 	}
 	dev->gd->major = virtblock_major;
@@ -196,10 +188,9 @@ static int __init virtblock_dev_setup(struct virtblock_dev *dev,
 	dev->gd->queue = dev->queue;
 	dev->gd->private_data = dev;
 	snprintf(dev->gd->disk_name, sizeof(dev->gd->disk_name),
-			"%s%c", DRIVER_NAME, index + 'a');
+			"%s%c", KBUILD_MODNAME, index + 'a');
 	set_capacity(dev->gd, virtblock_nsectors * VIRTBLOCK_TO_BLK_LAYER);
-	pr_info("%s: initialized device %s successfully\n",
-			DRIVER_NAME, dev->gd->disk_name);
+	pr_info("initialized device %s successfully\n", dev->gd->disk_name);
 	return 0;
 fail_alloc_disk:
 	blk_cleanup_queue(dev->queue);
@@ -211,8 +202,7 @@ fail_vmalloc_devdata:
 
 static void virtblock_dev_cleanup(struct virtblock_dev *dev)
 {
-	pr_info("%s: cleaning up device %s\n",
-			DRIVER_NAME, dev->gd->disk_name);
+	pr_info("cleaning up device %s\n", dev->gd->disk_name);
 	del_gendisk(dev->gd);
 	blk_cleanup_queue(dev->queue);
 	vfree(dev->data);
@@ -223,7 +213,7 @@ static int __init virtblock_init(void)
 	int err;
 	int i;
 
-	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
+	pr_info("in %s\n", __func__);
 	err = virtblock_check_module_params();
 	if (err)
 		return err;
@@ -232,24 +222,22 @@ static int __init virtblock_init(void)
 			GFP_KERNEL);
 	if (!virtblock_devices) {
 		err = -ENOMEM;
-		pr_err("%s: failed to allocate virtblock_devices\n",
-				DRIVER_NAME);
+		pr_err("failed to allocate virtblock_devices\n");
 		goto fail_kzalloc_virtblock_devices;
 	}
 	/* register_blkdev with 0 allocates a major for us */
-	virtblock_major = register_blkdev(0, DRIVER_NAME);
+	virtblock_major = register_blkdev(0, KBUILD_MODNAME);
 	if (virtblock_major < 0) {
 		err = virtblock_major;
-		pr_err("%s: register_blkdev failed. err = %d\n",
-				DRIVER_NAME, err);
+		pr_err("register_blkdev failed. err = %d\n", err);
 		goto fail_register_blkdev;
 	}
 	for (i = 0; i < virtblock_ndevices; i++) {
 		err = virtblock_dev_setup(&virtblock_devices[i], i);
 		if (err) {
 			pr_err(
-			"%s: virtblock_dev_setup failed. i = %d, err = %d\n",
-					DRIVER_NAME, i, err);
+			"virtblock_dev_setup failed. i = %d, err = %d\n",
+					i, err);
 			goto fail_virtblock_dev_setup_loop;
 		}
 	}
@@ -259,13 +247,13 @@ static int __init virtblock_init(void)
 	 */
 	for (i = 0; i < virtblock_ndevices; i++)
 		add_disk(virtblock_devices[i].gd);
-	pr_info("%s: initialized successfully\n", DRIVER_NAME);
+	pr_info("initialized successfully\n");
 	return 0;
 fail_virtblock_dev_setup_loop:
 	/* device at [i] isn't initialized */
 	while (i--)
 		virtblock_dev_cleanup(&virtblock_devices[i]);
-	unregister_blkdev(virtblock_major, DRIVER_NAME);
+	unregister_blkdev(virtblock_major, KBUILD_MODNAME);
 fail_register_blkdev:
 	kfree(virtblock_devices);
 fail_kzalloc_virtblock_devices:
@@ -277,12 +265,12 @@ static void __exit virtblock_exit(void)
 {
 	int i;
 
-	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
+	pr_info("in %s\n", __func__);
 	for (i = 0; i < virtblock_ndevices; i++)
 		virtblock_dev_cleanup(&virtblock_devices[i]);
-	unregister_blkdev(virtblock_major, DRIVER_NAME);
+	unregister_blkdev(virtblock_major, KBUILD_MODNAME);
 	kfree(virtblock_devices);
-	pr_info("%s: exited successfully\n", DRIVER_NAME);
+	pr_info("exited successfully\n");
 }
 module_exit(virtblock_exit)
 
@@ -290,4 +278,4 @@ module_exit(virtblock_exit)
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A simple block device residing in ram");
-MODULE_VERSION("1.0.4");
+MODULE_VERSION("1.0.5");
