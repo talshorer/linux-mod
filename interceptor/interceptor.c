@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -9,8 +11,6 @@
 #include <lmod/meta.h>
 
 #include "interceptor_uapi.h"
-
-#define MODULE_NAME "interceptor"
 
 #define INTERCEPTOR_SYSCALL_TABLE_SYMBOL "sys_call_table"
 
@@ -29,15 +29,14 @@ static asmlinkage int interceptor_syscall(const char *pathname, int flags,
 
 	if (flags & O_STRLEN) {
 		ret = strlen(pathname);
-		pr_info(
-		"%s: intercepted open() call! returning strlen(\"%s\")\n",
-				MODULE_NAME, pathname);
+		pr_info("intercepted open() call! returning strlen(\"%s\")\n",
+				pathname);
 	} else {
 		ret = ((typeof(interceptor_syscall) *)
 				interceptor_orig_syscall_ptr)(
 						pathname, flags, mode);
-		pr_info("%s: <%s> pid %d, args %s 0x%x 0x%x, ret %d\n",
-				MODULE_NAME, __func__, current->pid, pathname,
+		pr_info("<%s> pid %d, args %s 0x%x 0x%x, ret %d\n",
+				__func__, current->pid, pathname,
 				flags, mode, ret);
 	}
 	return ret;
@@ -72,7 +71,7 @@ static int __init interceptor_init(void)
 	addr = kallsyms_lookup_name(INTERCEPTOR_SYSCALL_TABLE_SYMBOL);
 	if (!addr) {
 		err = -EINVAL;
-		pr_err("%s: kallsyms_lookup_name failed\n", MODULE_NAME);
+		pr_err("kallsyms_lookup_name failed\n");
 		goto fail_get_syscall_table;
 	}
 	interceptor_sys_call_table = (sys_call_ptr_t *)addr;
@@ -81,7 +80,7 @@ static int __init interceptor_init(void)
 			interceptor_sys_call_table, INTERCEPTOR_SYSCALL_NR,
 			(sys_call_ptr_t)interceptor_syscall);
 
-	pr_info("%s: initialized successfully\n", MODULE_NAME);
+	pr_info("initialized successfully\n");
 	return 0;
 
 fail_get_syscall_table:
@@ -93,7 +92,7 @@ static void __exit interceptor_exit(void)
 {
 	interceptor_swap_syscalls(interceptor_sys_call_table,
 			INTERCEPTOR_SYSCALL_NR, interceptor_orig_syscall_ptr);
-	pr_info("%s: exited successfully\n", MODULE_NAME);
+	pr_info("exited successfully\n");
 }
 module_exit(interceptor_exit);
 
@@ -101,4 +100,4 @@ module_exit(interceptor_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Intercepts a system call");
-MODULE_VERSION("1.1.2");
+MODULE_VERSION("1.1.3");
