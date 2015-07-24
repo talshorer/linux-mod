@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -24,19 +26,18 @@ static int __init vgpio_module_params(void)
 	int err = 0;
 
 	if (vgpio_nchips <= 0) {
-		pr_err("%s: vgpio_nchips <= 0. value = %d\n",
-				MODULE_NAME, vgpio_nchips);
+		pr_err("vgpio_nchips <= 0. value = %d\n", vgpio_nchips);
 		err = -EINVAL;
 	}
 	if (vgpio_chip_npins <= 0) {
-		pr_err("%s: vgpio_chip_npins <= 0. value = %d\n",
-				MODULE_NAME, vgpio_chip_npins);
+		pr_err("vgpio_chip_npins <= 0. value = %d\n",
+				vgpio_chip_npins);
 		err = -EINVAL;
 	}
 	/* vgpio_chip_npins must be a multiple of 8 */
 	if (vgpio_chip_npins & 0x7) {
-		pr_err("%s: vgpio_chip_npins is not a multiple of 8. got %d\n",
-				MODULE_NAME, vgpio_chip_npins);
+		pr_err("vgpio_chip_npins is not a multiple of 8. got %d\n",
+				vgpio_chip_npins);
 		err = -EINVAL;
 	}
 	return err;
@@ -251,8 +252,8 @@ static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 			GFP_KERNEL);
 	if (!vchip->mem) {
 		err = -ENOMEM;
-		pr_err("%s: <%s> i = %d, failed to allocate vchip->mem\n",
-				MODULE_NAME, __func__, i);
+		pr_err("<%s> i = %d, failed to allocate vchip->mem\n",
+				__func__, i);
 		goto fail_kzalloc_vchip_mem;
 	}
 	for (j = 0; j < VGPIO_REG_TYPE_MAX; j++)
@@ -264,22 +265,22 @@ static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 			vchip, "%s%d", MODULE_NAME, i);
 	if (IS_ERR(vchip->chip.dev)) {
 		err = PTR_ERR(vchip->chip.dev);
-		pr_err("%s: <%s> i = %d, device_create failed. err = %d\n",
-				MODULE_NAME, __func__, i, err);
+		pr_err("<%s> i = %d, device_create failed. err = %d\n",
+				__func__, i, err);
 		goto fail_device_create;
 	}
 
 	err = gpiochip_add(&vchip->chip);
 	if (err) {
-		pr_err("%s: <%s> i = %d, gpiochip_add failed. err = %d\n",
-				MODULE_NAME, __func__, i, err);
+		pr_err("<%s> i = %d, gpiochip_add failed. err = %d\n",
+				__func__, i, err);
 		goto fail_gipochip_add;
 	}
 
 	pm_runtime_enable(vchip->chip.dev);
 
-	pr_info("%s: created chip %s successfully\n",
-			MODULE_NAME, dev_name(vchip->chip.dev));
+	pr_info("created chip %s successfully\n",
+			dev_name(vchip->chip.dev));
 	return 0;
 
 fail_gipochip_add:
@@ -311,28 +312,27 @@ static int __init vgpio_init(void)
 	vgpio_chips = vmalloc(sizeof(vgpio_chips[0]) * vgpio_nchips);
 	if (!vgpio_chips) {
 		err = -ENOMEM;
-		pr_err("%s: failed to allocate vgpio_chips\n", MODULE_NAME);
+		pr_err("failed to allocate vgpio_chips\n");
 		goto fail_vmalloc_vgpio_chips;
 	}
 	memset(vgpio_chips, 0, sizeof(vgpio_chips[0]) * vgpio_nchips);
 
 	err = class_register(&vgpio_class);
 	if (err) {
-		pr_err("%s: class_create register. err = %d\n",
-				MODULE_NAME, err);
+		pr_err("class_create register. err = %d\n", err);
 		goto fail_class_create;
 	}
 
 	for (i = 0; i < vgpio_nchips; i++) {
 		err = vgpio_chip_init(&vgpio_chips[i], i);
 		if (err) {
-			pr_err("%s: vgpio_chip_init failed. i = %d err = %d\n",
-					MODULE_NAME, i, err);
+			pr_err("vgpio_chip_init failed. i = %d err = %d\n",
+					i, err);
 			goto fail_vgpio_chip_init_loop;
 		}
 	}
 
-	pr_info("%s: initializated successfully\n", MODULE_NAME);
+	pr_info("initializated successfully\n");
 	return 0;
 
 fail_vgpio_chip_init_loop:
@@ -354,7 +354,7 @@ static void __exit vgpio_exit(void)
 		vgpio_chip_cleanup(&vgpio_chips[i]);
 	class_unregister(&vgpio_class);
 	vfree(vgpio_chips);
-	pr_info("%s: exited successfully\n", MODULE_NAME);
+	pr_info("exited successfully\n");
 }
 module_exit(vgpio_exit);
 
@@ -362,4 +362,4 @@ module_exit(vgpio_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virtual gpio controller chips");
-MODULE_VERSION("1.1.1");
+MODULE_VERSION("1.1.2");
