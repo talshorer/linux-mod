@@ -16,6 +16,10 @@ function test_module {
 	SEP="======================================="
 	err=0
 	echo $SEP
+	cmd="$UTILS/run_checkpatch.sh $m"
+	echo $cmd
+	eval $cmd || err=1
+	echo $SEP
 	make -C $m all || err=1
 	echo $SEP
 	if [[ $err == 0 ]]; then
