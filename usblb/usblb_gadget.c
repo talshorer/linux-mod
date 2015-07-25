@@ -1,5 +1,4 @@
-#define MODULE_NAME "usblb_gadget"
-#define pr_fmt(fmt) MODULE_NAME ": " fmt
+#define pr_fmt(fmt) KBUILD_BASENAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -16,7 +15,7 @@ static struct class *usblb_gadget_class;
 
 int usblb_gadget_init(void)
 {
-	usblb_gadget_class = class_create(THIS_MODULE, MODULE_NAME);
+	usblb_gadget_class = class_create(THIS_MODULE, KBUILD_BASENAME);
 	if (IS_ERR(usblb_gadget_class)) {
 		int err = PTR_ERR(usblb_gadget_class);
 

@@ -1,5 +1,4 @@
-#define MODULE_NAME "usblb_glue"
-#define pr_fmt(fmt) MODULE_NAME " " fmt
+#define pr_fmt(fmt) "usblb_glue: " fmt
 
 #include <linux/kernel.h>
 

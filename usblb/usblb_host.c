@@ -1,5 +1,4 @@
-#define MODULE_NAME "usblb_host"
-#define pr_fmt(fmt) MODULE_NAME ": " fmt
+#define pr_fmt(fmt) KBUILD_BASENAME ": " fmt
 
 #include <linux/module.h>
 #include <linux/kernel.h>
@@ -25,7 +24,7 @@ static int usblb_host_platform_remove(struct platform_device *pdev)
 
 static struct platform_driver usblb_host_platform_driver = {
 	.driver = {
-		.name		= MODULE_NAME,
+		.name		= KBUILD_BASENAME,
 		.owner		= THIS_MODULE,
 	},
 	.probe		= usblb_host_platform_probe,
@@ -335,7 +334,7 @@ int usblb_host_device_setup(struct usblb_host *host, int i)
 
 	INIT_LIST_HEAD(&host->urb_queue);
 
-	host->pdev = platform_device_alloc(MODULE_NAME, i);
+	host->pdev = platform_device_alloc(KBUILD_BASENAME, i);
 	if (!host->pdev) {
 		err = -ENOMEM;
 		pr_err("platform_device_alloc. i = %d\n", i);
