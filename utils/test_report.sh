@@ -30,9 +30,8 @@ function test_module {
 	fi
 	make -C $m clean
 	echo $SEP
-	cmd="$UTILS/run_checkpatch.sh $m/*"
-	echo $cmd
-	eval $cmd || err=1
+	echo "running checkpatch"
+	eval "$UTILS/run_checkpatch.sh $m/*" || err=1
 	echo $SEP
 	echo "err=$err"
 	let failure+=$err
