@@ -15,8 +15,6 @@
 
 #include "bufhub_ioctl.h"
 
-#define MODULE_NAME "bufhub"
-
 static int bufhub_max_clipboards = 16;
 module_param_named(max_clipboards, bufhub_max_clipboards, int, 0444);
 MODULE_PARM_DESC(
@@ -69,7 +67,7 @@ static inline void bufhub_clipboard_put(struct bufhub_clipboard_dev *);
 
 static struct class *bufhub_clipboard_class;
 static int bufhub_clipboard_major;
-static char bufhub_clipboard_devname[] = MODULE_NAME "_clipboard";
+static char bufhub_clipboard_devname[] = KBUILD_MODNAME "_clipboard";
 static struct bufhub_clipboard_dev **bufhub_clipboard_ptrs;
 static DEFINE_SPINLOCK(bufhub_clipboard_ptrs_lock);
 
@@ -423,7 +421,7 @@ static const struct file_operations bufhub_miscdev_fops = {
 
 static struct miscdevice bufhub_miscdev = {
 	.minor = MISC_DYNAMIC_MINOR,
-	.name = MODULE_NAME,
+	.name = KBUILD_MODNAME,
 	.fops = &bufhub_miscdev_fops,
 };
 
@@ -447,7 +445,7 @@ static int __init bufhub_init(void)
 					bufhub_max_clipboards);
 
 	bufhub_clipboard_major = __register_chrdev(0, 0, bufhub_max_clipboards,
-			MODULE_NAME, &bufhub_clipboard_fops);
+			KBUILD_MODNAME, &bufhub_clipboard_fops);
 	if (bufhub_clipboard_major < 0) {
 		err = bufhub_clipboard_major;
 		pr_err("__register_chrdev failed. err = %d\n", err);
@@ -476,7 +474,7 @@ fail_misc_register:
 	class_destroy(bufhub_clipboard_class);
 fail_class_create:
 	__unregister_chrdev(bufhub_clipboard_major, 0, bufhub_max_clipboards,
-			MODULE_NAME);
+			KBUILD_MODNAME);
 fail_register_chrdev:
 	vfree(bufhub_clipboard_ptrs);
 fail_vmalloc_bufhub_clipboard_ptrs:
@@ -489,7 +487,7 @@ static void __exit bufhub_exit(void)
 	misc_deregister(&bufhub_miscdev);
 	class_destroy(bufhub_clipboard_class);
 	__unregister_chrdev(bufhub_clipboard_major, 0, bufhub_max_clipboards,
-			MODULE_NAME);
+			KBUILD_MODNAME);
 	vfree(bufhub_clipboard_ptrs);
 	pr_info("exited successfully\n");
 }
