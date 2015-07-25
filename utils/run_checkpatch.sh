@@ -19,3 +19,4 @@ done
 echo "errors: $errors"
 rm -rf $TMPOUTPUT
 [[ $errors -gt 0 ]] && exit 1
+exit 0
