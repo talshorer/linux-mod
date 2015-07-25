@@ -5,11 +5,9 @@
 
 #include "xprintk.h"
 
-#define MODULE_NAME "xprintk"
-
 char *x_name(struct xprintk_x *x)
 {
-	return MODULE_NAME;
+	return KBUILD_MODNAME;
 }
 
 static struct xprintk_x xprintk_x;
@@ -39,4 +37,4 @@ module_exit(xprintk_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Subsystem-specific printk-like functions");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.0.1");
