@@ -20,8 +20,8 @@ struct virtnet_backend_entry {
 #define VIRTNET_BACKEND_ENTRY(_name)       \
 {                                          \
 	.name = #_name,                        \
-	.ops = &virtnet_##_name##_backend_ops, \
-}
+	.ops = &VIRTNET_BACKEND(_name), \
+},
 
 static struct virtnet_backend_entry virtnet_backends[] = {
 	VIRTNET_BACKEND_GLUE()

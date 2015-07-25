@@ -268,11 +268,11 @@ static void virtnet_chr_exit(void)
 			KBUILD_BASENAME);
 }
 
-struct virtnet_backend_ops virtnet_chr_backend_ops = {
+DEFINE_VIRTNET_BACKEND(chr,
 	.init = virtnet_chr_init,
 	.exit = virtnet_chr_exit,
 	.dev_init = virtnet_chr_dev_init,
 	.dev_uninit = virtnet_chr_dev_uninit,
 	.xmit = virtnet_chr_xmit,
-	.priv_size = sizeof(struct virtnet_chr_dev),
-};
+	.priv_size = sizeof(struct virtnet_chr_dev)
+);

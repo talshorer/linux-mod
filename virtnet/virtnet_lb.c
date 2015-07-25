@@ -98,9 +98,9 @@ static void virtnet_lb_dev_uninit(void *priv)
 		/* do nothing */;
 }
 
-struct virtnet_backend_ops virtnet_lb_backend_ops = {
+DEFINE_VIRTNET_BACKEND(lb,
 	.dev_init = virtnet_lb_dev_init,
 	.dev_uninit = virtnet_lb_dev_uninit,
 	.xmit = virtnet_lb_xmit,
 	.priv_size = sizeof(struct virtnet_lb_dev),
-};
+);

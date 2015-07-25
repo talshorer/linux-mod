@@ -3,8 +3,6 @@
 
 #include <linux/netdevice.h>
 
-#include "virtnet_backend_glue.gen.h"
-
 struct virtnet_backend_ops {
 	int (*init)(unsigned int);
 	void (*exit)(void);
@@ -13,6 +11,13 @@ struct virtnet_backend_ops {
 	int (*xmit)(struct net_device *, const char*, size_t);
 	size_t priv_size;
 };
+
+#define VIRTNET_BACKEND(name) virtnet_##name##_backend_ops
+
+#include "virtnet_backend_glue.gen.h"
+
+#define DEFINE_VIRTNET_BACKEND(name, ...) \
+	struct virtnet_backend_ops VIRTNET_BACKEND(name) = { __VA_ARGS__ }
 
 /* virtnet_net exported symbols */
 extern int virtnet_recv(struct net_device *, const char *, size_t);
