@@ -77,7 +77,8 @@ static struct device __init *simpleattr_device_create(int i)
 	}
 	err = device_create_file(dev, &dev_attr_attr);
 	if (err) {
-		pr_err("device_create_file failed. i = %d, err = %d\n",i, err);
+		pr_err("device_create_file failed. i = %d, err = %d\n",
+				i, err);
 		goto fail_device_create_file;
 	}
 	pr_info("created device %s successfully\n", dev->kobj.name);
