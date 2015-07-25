@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/debugfs.h>
@@ -5,8 +7,6 @@
 #include <lmod/meta.h>
 
 #include "elfsect.h"
-
-#define MODULE_NAME "elfsect"
 
 static __elfsect_dummy_symbol struct { } __elfsect_dummies_empty;
 
@@ -40,11 +40,10 @@ static int __init elfsect_create_debugfs(void)
 	int err;
 	struct dentry *file;
 
-	elfsect_debugfs = debugfs_create_dir(MODULE_NAME, NULL);
+	elfsect_debugfs = debugfs_create_dir(KBUILD_MODNAME, NULL);
 	if (!elfsect_debugfs) {
 		err = -ENOMEM;
-		pr_err("%s: debugfs_create_dir failed\n",
-				MODULE_NAME);
+		pr_err("debugfs_create_dir failed\n");
 		goto fail_debugfs_create_dir;
 	}
 
@@ -52,8 +51,8 @@ static int __init elfsect_create_debugfs(void)
 			elfsect_debugfs, NULL, &elfsect_debugfs_stat_fops);
 	if (!file) {
 		err = -ENOMEM;
-		pr_err("%s: debugfs_create_file for %s\n",
-				MODULE_NAME, elfsect_debugfs_dummies_fname);
+		pr_err("debugfs_create_file for %s\n",
+				elfsect_debugfs_dummies_fname);
 		goto fail_debugfs_create_file;
 	}
 
@@ -73,7 +72,7 @@ static int __init elfsect_init(void)
 	if (err)
 		goto fail_elfsect_create_debugfs;
 
-	pr_info("%s: initialized successfully\n", MODULE_NAME);
+	pr_info("initialized successfully\n");
 	return 0;
 
 fail_elfsect_create_debugfs:
@@ -84,7 +83,7 @@ module_init(elfsect_init);
 static void __exit elfsect_exit(void)
 {
 	debugfs_remove_recursive(elfsect_debugfs);
-	pr_info("%s: exited successfully\n", MODULE_NAME);
+	pr_info("exited successfully\n");
 }
 module_exit(elfsect_exit);
 
@@ -92,4 +91,4 @@ module_exit(elfsect_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A module with a section of dummy function pointers");
-MODULE_VERSION("1.2.1");
+MODULE_VERSION("1.2.2");
