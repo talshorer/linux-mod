@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/netdevice.h>
@@ -8,8 +10,6 @@
 #include <lmod/meta.h>
 
 #include "virtnet.h"
-
-static const char DRIVER_NAME[] = "virtnet";
 
 struct pcpu_dstats {
 	u64 tx_packets;
@@ -40,8 +40,7 @@ static int __init virtnet_check_module_params(void)
 	int err = 0;
 
 	if (virtnet_nifaces < 0) {
-		pr_err("%s: virtnet_nifaces < 0. value = %d\n",
-				DRIVER_NAME, virtnet_nifaces);
+		pr_err("virtnet_nifaces < 0. value = %d\n", virtnet_nifaces);
 		err = -EINVAL;
 	}
 	virtnet_backend_ops = virtnet_get_backend(virtnet_backend);
@@ -93,8 +92,7 @@ static int virtnet_dev_init(struct net_device *dev)
 	unsigned int minor;
 	int err;
 
-	pr_info("%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
-			dev->name, __func__);
+	pr_info("interface %s invoked ndo <%s>\n", dev->name, __func__);
 
 	dev->dstats = alloc_percpu(struct pcpu_dstats);
 	if (!dev->dstats) {
@@ -120,8 +118,7 @@ out_none:
 
 static void virtnet_dev_uninit(struct net_device *dev)
 {
-	pr_info("%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
-			dev->name, __func__);
+	pr_info("interface %s invoked ndo <%s>\n", dev->name, __func__);
 	virtnet_backend_dev_uninit(netdev_priv(dev));
 	free_percpu(dev->dstats);
 }
@@ -129,8 +126,7 @@ static void virtnet_dev_uninit(struct net_device *dev)
 /* fake multicast ability */
 static void virtnet_set_multicast_list(struct net_device *dev)
 {
-	pr_info("%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
-			dev->name, __func__);
+	pr_info("interface %s invoked ndo <%s>\n", dev->name, __func__);
 }
 
 static struct rtnl_link_stats64 *virtnet_get_stats64(struct net_device *dev,
@@ -138,8 +134,7 @@ static struct rtnl_link_stats64 *virtnet_get_stats64(struct net_device *dev,
 {
 	int i;
 
-	pr_info("%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
-			dev->name, __func__);
+	pr_info("interface %s invoked ndo <%s>\n", dev->name, __func__);
 
 	for_each_possible_cpu(i) {
 		const struct pcpu_dstats *dstats;
@@ -172,14 +167,13 @@ static netdev_tx_t virtnet_xmit(struct sk_buff *skb, struct net_device *dev)
 	struct pcpu_dstats *dstats = this_cpu_ptr(dev->dstats);
 	int err;
 
-	pr_info("%s: interface %s invoked ndo <%s>\n", DRIVER_NAME,
-			dev->name, __func__);
+	pr_info("interface %s invoked ndo <%s>\n", dev->name, __func__);
 
 	skb_orphan(skb);
 
 	if (virtnet_packetdump) {
-		pr_info("%s: interface %s tx packet of length %d\n",
-				DRIVER_NAME, dev->name, skb->len);
+		pr_info("interface %s tx packet of length %d\n", dev->name,
+				skb->len);
 		print_hex_dump(KERN_INFO, "tx data: ", DUMP_PREFIX_OFFSET, 16,
 				1, skb->data, skb->len, false);
 	}
@@ -211,8 +205,7 @@ static const struct net_device_ops virtnet_netdev_ops = {
 
 static void virtnet_free_netdev(struct net_device *dev)
 {
-	pr_info("%s: destroying interface %s\n",
-			DRIVER_NAME, dev->name);
+	pr_info("destroying interface %s\n", dev->name);
 	free_netdev(dev);
 }
 
@@ -238,7 +231,7 @@ static int virtnet_validate(struct nlattr *tb[], struct nlattr *data[])
 }
 
 static struct rtnl_link_ops virtnet_link_ops = {
-	.kind = DRIVER_NAME,
+	.kind = KBUILD_MODNAME,
 	.priv_size = 0,
 	.setup = virtnet_setup,
 	.validate = virtnet_validate,
@@ -255,8 +248,7 @@ int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
 	skb = netdev_alloc_skb(dev, len);
 	if (unlikely(!skb)) {
 		err = -ENOMEM;
-		pr_err("%s: <%s> netdev_alloc_skb failed\n",
-				DRIVER_NAME, __func__);
+		pr_err("<%s> netdev_alloc_skb failed\n", __func__);
 		goto fail_netdev_alloc_skb;
 	}
 	skb_reserve(skb, NET_IP_ALIGN);
@@ -267,8 +259,7 @@ int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
 	switch (in_interrupt() ? netif_rx(skb) : netif_rx_ni(skb)) {
 	case NET_RX_DROP:
 		err = -EIO;
-		pr_err("%s: <%s> netif_rx failed\n",
-				DRIVER_NAME, __func__);
+		pr_err("<%s> netif_rx failed\n", __func__);
 		break;
 	case NET_RX_SUCCESS:
 		/* HACK: eth_type_trans() pulled ETH_HLEN bytes from skb's
@@ -278,10 +269,8 @@ int virtnet_recv(struct net_device *dev, const char *buf, size_t len)
 		 * messages.
 		 */
 		if (virtnet_packetdump) {
-			pr_info(
-			"%s: interface %s rx packet of length %d\n",
-					DRIVER_NAME, dev->name,
-					skb->len + ETH_HLEN);
+			pr_info("interface %s rx packet of length %d\n",
+					dev->name, skb->len + ETH_HLEN);
 			print_hex_dump(KERN_INFO, "rx data: ",
 					DUMP_PREFIX_OFFSET, 16, 1,
 					skb->data - ETH_HLEN,
@@ -318,7 +307,7 @@ static int virtnet_init_iface(void)
 			NET_NAME_UNKNOWN, virtnet_setup);
 	if (!dev) {
 		err = -ENOMEM;
-		pr_err("%s: alloc_netdev failed\n", DRIVER_NAME);
+		pr_err("alloc_netdev failed\n");
 		goto fail_alloc_netdev;
 
 	}
@@ -326,13 +315,11 @@ static int virtnet_init_iface(void)
 	dev->rtnl_link_ops = &virtnet_link_ops;
 	err = register_netdevice(dev);
 	if (err) {
-		pr_err("%s: register_netdevice failed\n",
-				DRIVER_NAME);
+		pr_err("register_netdevice failed\n");
 		goto fail_register_netdevice;
 	}
 
-	pr_info("%s: created interface %s successfully\n",
-			DRIVER_NAME, dev->name);
+	pr_info("created interface %s successfully\n", dev->name);
 	return 0;
 
 fail_register_netdevice:
@@ -352,15 +339,13 @@ static int __init virtnet_init(void)
 
 	err = virtnet_backend_init(virtnet_nifaces);
 	if (err) {
-		pr_err("%s: virtnet_backend_init failed. err = %d\n",
-				DRIVER_NAME, err);
+		pr_err("virtnet_backend_init failed. err = %d\n", err);
 		goto fail_virtnet_backend_init;
 	}
 
 	err = rtnl_link_register(&virtnet_link_ops);
 	if (err) {
-		pr_err("%s: rtnl_link_register failed. err = %d\n",
-				DRIVER_NAME, err);
+		pr_err("rtnl_link_register failed. err = %d\n", err);
 		goto fail_rtnl_link_register;
 	}
 
@@ -369,15 +354,14 @@ static int __init virtnet_init(void)
 		err = virtnet_init_iface();
 		if (err) {
 			pr_err(
-			"%s: virtnet_init_device failed. i = %d, err = %d\n",
-					DRIVER_NAME, i, err);
+			"virtnet_init_device failed. i = %d, err = %d\n",
+					i, err);
 			goto fail_virtnet_init_device_loop;
 		}
 	}
 	rtnl_unlock();
 
-	pr_info("%s: initializated successfully, backend = %s\n",
-			DRIVER_NAME, virtnet_backend);
+	pr_info("initializated successfully, backend = %s\n", virtnet_backend);
 	return 0;
 
 fail_virtnet_init_device_loop:
@@ -401,4 +385,4 @@ module_exit(virtnet_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virtual net interfaces that pipe to char devices");
-MODULE_VERSION("1.2.7");
+MODULE_VERSION("1.2.8");

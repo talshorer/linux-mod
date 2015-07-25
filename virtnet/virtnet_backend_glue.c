@@ -1,6 +1,6 @@
-#include "virtnet.h"
+#define pr_fmt(fmt) "virtnet_backend: " fmt
 
-#define MODULE_NAME "virtnet_backend"
+#include "virtnet.h"
 
 struct virtnet_backend_entry {
 	char *name;
@@ -34,6 +34,6 @@ struct virtnet_backend_ops *virtnet_get_backend(const char *name)
 	for (i = 0; i < ARRAY_SIZE(virtnet_backends); i++)
 		if (!strcmp(name, virtnet_backends[i].name))
 			return virtnet_backends[i].ops;
-	pr_err("%s: unknown backend %s\n", MODULE_NAME, name);
+	pr_err("unknown backend %s\n", name);
 	return NULL;
 }

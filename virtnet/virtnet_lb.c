@@ -3,8 +3,6 @@
 /* one second */
 #define VIRTNET_LB_DELAY_JIFFIES (1 * HZ)
 
-static const char DRIVER_NAME[] = "virtnet_lb";
-
 struct virtnet_lb_dev {
 	struct list_head entries;
 	spinlock_t lock;

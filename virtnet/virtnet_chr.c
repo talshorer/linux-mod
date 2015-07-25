@@ -1,8 +1,8 @@
+#define pr_fmt(fmt) KBUILD_BASENAME ": " fmt
+
 #include <linux/poll.h>
 
 #include "virtnet.h"
-
-static const char DRIVER_NAME[] = "virtnet_chr";
 
 struct virtnet_chr_dev {
 	struct list_head packets;
@@ -205,11 +205,10 @@ static int virtnet_chr_dev_init(void *priv, unsigned int minor)
 	INIT_LIST_HEAD(&vcdev->packets);
 
 	vcdev->dev = device_create(virtnet_chr_class, NULL, devno, vcdev,
-			"%s%d", DRIVER_NAME, minor);
+			"%s%d", KBUILD_BASENAME, minor);
 	if (IS_ERR(vcdev->dev)) {
 		err = PTR_ERR(vcdev->dev);
-		pr_err("%s: device_create failed minor=%d err=%d\n",
-				DRIVER_NAME, minor, err);
+		pr_err("device_create failed minor=%d err=%d\n", minor, err);
 		goto fail_device_create;
 	}
 
@@ -239,19 +238,17 @@ static int virtnet_chr_init(unsigned int nifaces)
 	virtnet_chr_ndev = nifaces;
 
 	virtnet_chr_major = __register_chrdev(0, 0, virtnet_chr_ndev,
-			DRIVER_NAME, &virtnet_chr_fops);
+			KBUILD_BASENAME, &virtnet_chr_fops);
 	if (virtnet_chr_major < 0) {
 		err = virtnet_chr_major;
-		pr_err("%s: __register_chrdev failed. err = %d\n",
-				DRIVER_NAME, err);
+		pr_err("__register_chrdev failed. err = %d\n", err);
 		goto fail_register_chrdev;
 	}
 
-	virtnet_chr_class = class_create(THIS_MODULE, DRIVER_NAME);
+	virtnet_chr_class = class_create(THIS_MODULE, KBUILD_BASENAME);
 	if (IS_ERR(virtnet_chr_class)) {
 		err = PTR_ERR(virtnet_chr_class);
-		pr_err("%s: class_create failed. err = %d\n",
-				DRIVER_NAME, err);
+		pr_err("class_create failed. err = %d\n", err);
 		goto fail_class_create;
 	}
 
@@ -259,7 +256,7 @@ static int virtnet_chr_init(unsigned int nifaces)
 
 fail_class_create:
 	__unregister_chrdev(virtnet_chr_major, 0, virtnet_chr_ndev,
-			DRIVER_NAME);
+			KBUILD_BASENAME);
 fail_register_chrdev:
 	return err;
 }
@@ -268,7 +265,7 @@ static void virtnet_chr_exit(void)
 {
 	class_destroy(virtnet_chr_class);
 	__unregister_chrdev(virtnet_chr_major, 0, virtnet_chr_ndev,
-			DRIVER_NAME);
+			KBUILD_BASENAME);
 }
 
 struct virtnet_backend_ops virtnet_chr_backend_ops = {
