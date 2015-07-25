@@ -1,4 +1,4 @@
-#define pr_fmt(fmt) "virtnet_backend: " fmt
+#define pr_fmt(fmt) KBUILD_BASENAME ": " fmt
 
 #include "virtnet.h"
 

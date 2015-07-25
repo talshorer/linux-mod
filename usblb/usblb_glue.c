@@ -1,4 +1,4 @@
-#define pr_fmt(fmt) "usblb_glue: " fmt
+#define pr_fmt(fmt) KBUILD_BASENAME ": " fmt
 
 #include <linux/kernel.h>
 
