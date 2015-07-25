@@ -11,8 +11,6 @@
 
 #include <lmod/meta.h>
 
-#define MODULE_NAME "gpio-virtual"
-
 static int vgpio_nchips = 1;
 module_param_named(nchips, vgpio_nchips, int, 0444);
 MODULE_PARM_DESC(nchips, "number of virtual gpio controller chips");
@@ -227,7 +225,7 @@ static const struct dev_pm_ops __vgpio_pm_ops = {
 #endif /* CONFIG_PM_RUNTIME */
 
 static struct class vgpio_class = {
-	.name = MODULE_NAME,
+	.name = KBUILD_MODNAME,
 	.owner = THIS_MODULE,
 	.pm = vgpio_pm_ops,
 };
@@ -262,7 +260,7 @@ static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 	memset(vchip->regs[VGPIO_REG_DIRECTIONS], 0xff, vgpio_reg_type_len);
 
 	vchip->chip.dev = device_create(&vgpio_class, NULL, VGPIO_MKDEV(i),
-			vchip, "%s%d", MODULE_NAME, i);
+			vchip, "%s%d", KBUILD_MODNAME, i);
 	if (IS_ERR(vchip->chip.dev)) {
 		err = PTR_ERR(vchip->chip.dev);
 		pr_err("<%s> i = %d, device_create failed. err = %d\n",
@@ -362,4 +360,4 @@ module_exit(vgpio_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Virtual gpio controller chips");
-MODULE_VERSION("1.1.2");
+MODULE_VERSION("1.1.3");

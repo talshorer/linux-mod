@@ -1,9 +1,10 @@
 #! /bin/bash
 
 MODULE=$(basename $(dirname $(realpath $0)))
+KBUILD_MODNAME=$(echo $MODULE | tr "-" "_")
 NCHIPS=4
 CHIP_NPINS=32
-MODULE_SYSFS=/sys/class/$MODULE
+MODULE_SYSFS=/sys/class/$KBUILD_MODNAME
 GPIO_SYSFS=/sys/class/gpio
 IN=in
 OUT=out
@@ -34,7 +35,7 @@ err=0
 cd $(dirname $0)
 insmod $MODULE.ko nchips=$NCHIPS chip_npins=$CHIP_NPINS
 for i in $(seq 0 $(( $NCHIPS - 1 ))); do
-	chip=${MODULE}$i
+	chip=${KBUILD_MODNAME}$i
 	gpiochip=$(ls -1 $MODULE_SYSFS/$chip | grep gpiochip)
 	echo "$0: running test on chip $chip ($gpiochip)" 1>&2
 	gpiochip_sysfs=$GPIO_SYSFS/$gpiochip
