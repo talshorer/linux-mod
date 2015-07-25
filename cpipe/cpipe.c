@@ -1,3 +1,5 @@
+#define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/fs.h>
@@ -11,8 +13,6 @@
 #include <lmod/meta.h>
 
 #include "cpipe_ioctl.h"
-
-static const char DRIVER_NAME[] = "cpipe";
 
 struct cpipe_dev {
 	struct kfifo rfifo;
@@ -46,19 +46,17 @@ static int __init cpipe_check_module_params(void)
 	int err = 0;
 
 	if (cpipe_npipes < 0) {
-		pr_err("%s: cpipe_npipes < 0. value = %d\n",
-				DRIVER_NAME, cpipe_npipes);
+		pr_err("cpipe_npipes < 0. value = %d\n", cpipe_npipes);
 		err = -EINVAL;
 	}
 	if (cpipe_bsize < 0) {
-		pr_err("%s: cpipe_bsize < 0. value = 0x%x\n",
-				DRIVER_NAME, cpipe_bsize);
+		pr_err("cpipe_bsize < 0. value = 0x%x\n", cpipe_bsize);
 		err = -EINVAL;
 	}
 	/* cpipe_bsize must be a power of two */
 	if (cpipe_bsize & (cpipe_bsize - 1)) {
-		pr_err("%s: cpipe_bsize is not a power of two. value = %d\n",
-				DRIVER_NAME, cpipe_bsize);
+		pr_err("cpipe_bsize is not a power of two. value = %d\n",
+				cpipe_bsize);
 		err = -EINVAL;
 	}
 	return err;
@@ -286,23 +284,20 @@ static int __init cpipe_dev_init(struct cpipe_dev *dev, int i, int j)
 
 	err = kfifo_alloc(&dev->rfifo, cpipe_bsize, GFP_KERNEL);
 	if (err) {
-		pr_err("%s: kfifo_alloc failed i=%d j=%d err=%d\n",
-				DRIVER_NAME, i, j, err);
+		pr_err("kfifo_alloc failed i=%d j=%d err=%d\n", i, j, err);
 		goto fail_kfifo_alloc;
 	}
 	mutex_init(&dev->rmutex);
 	init_waitqueue_head(&dev->rq);
 	init_waitqueue_head(&dev->wq);
 	dev->dev = device_create(cpipe_class, NULL, devno, dev,
-			"%s%d.%d", DRIVER_NAME, i, j);
+			"%s%d.%d", KBUILD_MODNAME, i, j);
 	if (IS_ERR(dev->dev)) {
 		err = PTR_ERR(dev->dev);
-		pr_err("%s: device_create failed i=%d j=%d err=%d\n",
-				DRIVER_NAME, i, j, err);
+		pr_err("device_create failed i=%d j=%d err=%d\n", i, j, err);
 		goto fail_device_create;
 	}
-	pr_info("%s: created device %s successfully\n",
-			DRIVER_NAME, cpipe_dev_name(dev));
+	pr_info("created device %s successfully\n", cpipe_dev_name(dev));
 	return 0;
 fail_device_create:
 	kfifo_free(&dev->rfifo);
@@ -312,8 +307,7 @@ fail_kfifo_alloc:
 
 static void cpipe_dev_destroy(struct cpipe_dev *dev)
 {
-	pr_info("%s: destroying device %s\n", DRIVER_NAME,
-			cpipe_dev_name(dev));
+	pr_info("destroying device %s\n", cpipe_dev_name(dev));
 	device_destroy(cpipe_class, cpipe_dev_devt(dev));
 	kfifo_free(&dev->rfifo);
 }
@@ -326,9 +320,8 @@ static int __init cpipe_pair_init(struct cpipe_pair *pair, int i)
 	for (j = 0; j < ARRAY_SIZE(pair->devices); j++) {
 		err = cpipe_dev_init(&pair->devices[j], i, j);
 		if (err) {
-			pr_err(
-			"%s: cpipe_dev_init failed i=%d j=%d err=%d\n",
-					DRIVER_NAME, i, j, err);
+			pr_err("cpipe_dev_init failed i=%d j=%d err=%d\n",
+					i, j, err);
 			goto fail_cpipe_dev_init;
 		}
 	}
@@ -339,14 +332,12 @@ static int __init cpipe_pair_init(struct cpipe_pair *pair, int i)
 				cpipe_dev_kobj(pair->devices[j].twin),
 				cpipe_twin_link_name);
 		if (err) {
-			pr_err(
-			"%s: sysfs_create_link failed i=%d j=%d err=%d\n",
-					DRIVER_NAME, i, j, err);
+			pr_err("sysfs_create_link failed i=%d j=%d err=%d\n",
+					i, j, err);
 			goto fail_sysfs_create_link;
 		}
 	}
-	pr_info("%s: created pair %s%d successfully\n",
-			DRIVER_NAME, DRIVER_NAME, i);
+	pr_info("created pair %s%d successfully\n", KBUILD_MODNAME, i);
 	return 0;
 fail_sysfs_create_link:
 	while (j--)
@@ -364,8 +355,7 @@ static void cpipe_pair_destroy(struct cpipe_pair *pair)
 	int i, j;
 
 	i = MINOR(cpipe_dev_devt(&pair->devices[0])) / 2;
-	pr_info("%s: destroying pair %s%d\n",
-			DRIVER_NAME, DRIVER_NAME, i);
+	pr_info("destroying pair %s%d\n", KBUILD_MODNAME, i);
 	for (j = 0; j < ARRAY_SIZE(pair->devices); j++) {
 		sysfs_remove_link(cpipe_dev_kobj(&pair->devices[j]),
 				cpipe_twin_link_name);
@@ -378,50 +368,46 @@ static int __init cpipe_init(void)
 	int err;
 	int i;
 
-	pr_info("%s: in %s\n", DRIVER_NAME, __func__);
+	pr_info("in %s\n", __func__);
 	err = cpipe_check_module_params();
 	if (err)
 		return err;
 	cpipe_pairs = vmalloc(sizeof(cpipe_pairs[0]) * cpipe_npipes);
 	if (!cpipe_pairs) {
 		err = -ENOMEM;
-		pr_err("%s: failed to allocate cpipe_pairs\n",
-				DRIVER_NAME);
+		pr_err("failed to allocate cpipe_pairs\n");
 		goto fail_vmalloc_cpipe_pairs;
 	}
 	memset(cpipe_pairs, 0, sizeof(cpipe_pairs[0]) * cpipe_npipes);
-	cpipe_major = __register_chrdev(0, 0, cpipe_npipes * 2,
-			DRIVER_NAME, &cpipe_fops);
+	cpipe_major = __register_chrdev(0, 0, cpipe_npipes * 2, KBUILD_MODNAME,
+			&cpipe_fops);
 	if (cpipe_major < 0) {
 		err = cpipe_major;
-		pr_err("%s: __register_chrdev failed. err = %d\n",
-				DRIVER_NAME, err);
+		pr_err("__register_chrdev failed. err = %d\n", err);
 		goto fail_register_chrdev;
 	}
-	cpipe_class = class_create(THIS_MODULE, DRIVER_NAME);
+	cpipe_class = class_create(THIS_MODULE, KBUILD_MODNAME);
 	if (IS_ERR(cpipe_class)) {
 		err = PTR_ERR(cpipe_class);
-		pr_err("%s: class_create failed. err = %d\n",
-				DRIVER_NAME, err);
+		pr_err("class_create failed. err = %d\n", err);
 		goto fail_class_create;
 	}
 	for (i = 0; i < cpipe_npipes; i++) {
 		err = cpipe_pair_init(&cpipe_pairs[i], i);
 		if (err) {
-			pr_err(
-			"%s: cpipe_pair_init failed. i = %d, err = %d\n",
-					DRIVER_NAME, i, err);
+			pr_err("cpipe_pair_init failed. i = %d, err = %d\n",
+					i, err);
 			goto fail_cpipe_pair_init_loop;
 		}
 	}
-	pr_info("%s: initializated successfully\n", DRIVER_NAME);
+	pr_info("initializated successfully\n");
 	return 0;
 fail_cpipe_pair_init_loop:
 	while (i--)
 		cpipe_pair_destroy(&cpipe_pairs[i]);
 	class_destroy(cpipe_class);
 fail_class_create:
-	__unregister_chrdev(cpipe_major, 0, cpipe_npipes * 2, DRIVER_NAME);
+	__unregister_chrdev(cpipe_major, 0, cpipe_npipes * 2, KBUILD_MODNAME);
 fail_register_chrdev:
 	vfree(cpipe_pairs);
 fail_vmalloc_cpipe_pairs:
@@ -436,9 +422,9 @@ static void __exit cpipe_exit(void)
 	for (i = 0; i < cpipe_npipes; i++)
 		cpipe_pair_destroy(&cpipe_pairs[i]);
 	class_destroy(cpipe_class);
-	__unregister_chrdev(cpipe_major, 0, cpipe_npipes * 2, DRIVER_NAME);
+	__unregister_chrdev(cpipe_major, 0, cpipe_npipes * 2, KBUILD_MODNAME);
 	vfree(cpipe_pairs);
-	pr_info("%s: exited successfully\n", DRIVER_NAME);
+	pr_info("exited successfully\n");
 }
 module_exit(cpipe_exit);
 
@@ -446,4 +432,4 @@ module_exit(cpipe_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Pairs of char devices acting as pipes");
-MODULE_VERSION("1.2.0");
+MODULE_VERSION("1.2.1");
