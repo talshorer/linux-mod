@@ -13,20 +13,9 @@ cat << END_CAT
 #ifndef $GUARD
 #define $GUARD
 
-#ifndef _VIRTNET_H
-#error do not include directly. use "virtnet.h"
-#endif
-struct virtnet_backend_ops;
 END_CAT
 
-echo "/* backends */"
-for backend in $backends; do
-	echo "extern struct virtnet_backend_ops VIRTNET_BACKEND($backend);"
-done
-echo
-
 cat << END_CAT
-/* glue */
 #define VIRTNET_BACKEND_GLUE() \\
 END_CAT
 

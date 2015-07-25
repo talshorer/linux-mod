@@ -19,6 +19,15 @@ struct virtnet_backend_ops {
 #define DEFINE_VIRTNET_BACKEND(name, ...) \
 	struct virtnet_backend_ops VIRTNET_BACKEND(name) = { __VA_ARGS__ }
 
+
+/* generate an extern directive for each backend */
+#define __EMPTY /* prevent checkpatch from complaining about the semicolon */
+#define VIRTNET_BACKEND_ENTRY(name) \
+	extern struct virtnet_backend_ops VIRTNET_BACKEND(name); __EMPTY
+VIRTNET_BACKEND_GLUE()
+#undef VIRTNET_BACKEND_ENTRY
+#undef __EMPTY
+
 /* virtnet_net exported symbols */
 extern int virtnet_recv(struct net_device *, const char *, size_t);
 
