@@ -10,6 +10,7 @@ cd $(dirname $0)
 tmp=$(mktemp)
 tail -f $KERNLOG -n0 > $tmp &
 childpid=$!
+sleep 1
 insmod $MODULE.ko
 sleep 1
 kill $childpid
