@@ -8,38 +8,38 @@ ccflags-y += $(LMOD_CFLAGS)
 CHECKFLAGS += -Wsparse-all -Wsparse-error -Wno-shadow
 
 CC = $(CROSS_COMPILE)gcc
+CLEAN = rm -f
 
 default: all
 
 %.out: %.c
-	$(CC) $< -o $@ $(LMOD_US_CFLAGS) $($@_CFLAGS)
-
-lib%.so: %.c
-	$(CC) $< -o $@ -shared $(LMOD_US_CFLAGS) $($@_CFLAGS)
+	@echo "  BUILD $@"
+	@$(CC) $< -o $@ $(LMOD_US_CFLAGS) $($@_CFLAGS)
 
 %.pyc: %.py
 	pycompile $<
 
-kern_make:
-	$(MAKE) -C $(KERNEL) M=$(M) $(KTARGET) C=1
+define kern_make
+$(MAKE) -C $(KERNEL) M=$(M) $1 C=1
+endef
 
 modules:
-	$(MAKE) kern_make KTARGET=modules
+	$(call kern_make, modules)
 
 modules-clean:
-	$(MAKE) kern_make KTARGET=clean
+	$(call kern_make, clean)
 
 gen-clean:
-	rm -f *.gen.*
+	$(CLEAN) *.gen.*
 
 bin-clean:
-	rm -f *.out
+	$(CLEAN) *.out
 
 py-clean:
-	rm -f *.pyc
+	$(CLEAN) *.pyc
 
 backup-clean:
-	rm -f *~
+	$(CLEAN) *~
 
 # always clean backup files
 clean: backup-clean
