@@ -145,10 +145,9 @@ static int __match_devt(struct device *dev, const void *data)
 
 static int virtnet_chr_open(struct inode *inode, struct file *filp)
 {
-	dev_t devt = MKDEV(virtnet_chr_major, iminor(inode));
 	struct virtnet_chr_dev *vcdev = dev_get_drvdata(
-			class_find_device(virtnet_chr_class, NULL, &devt,
-			__match_devt));
+			class_find_device(virtnet_chr_class, NULL,
+					&inode->i_rdev, __match_devt));
 	filp->private_data = vcdev;
 	return 0;
 }
