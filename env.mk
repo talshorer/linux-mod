@@ -19,6 +19,11 @@ default: all
 %.pyc: %.py
 	pycompile $<
 
+# dependencies order is important here, since it
+# decides the argument order to the shell script
+check_uapi_%_value: check_uapi_%_value.sh $(notdir $(M))_uapi.h
+	./$^
+
 define kern_make
 $(MAKE) -C $(KERNEL) M=$(M) $1 C=1
 endef
