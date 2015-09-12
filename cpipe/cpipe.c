@@ -73,7 +73,7 @@ static int cpipe_mutex_lock(struct mutex *mutex, int f_flags)
 		if (!mutex_trylock(mutex))
 			return -EAGAIN;
 	} else if (mutex_lock_interruptible(mutex))
-			return -ERESTARTSYS;
+		return -ERESTARTSYS;
 	return 0;
 }
 
