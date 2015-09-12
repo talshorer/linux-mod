@@ -151,10 +151,16 @@ static void usblb_gadget_ep_init(struct usblb_gadget_ep *ep, int epnum)
 	INIT_LIST_HEAD(&ep->ep.ep_list);
 	INIT_LIST_HEAD(&ep->requests);
 	ep->ep.ops = &usblb_gadget_ep_ops;
+	ep->ep.caps.dir_in = 1;
+	ep->ep.caps.dir_out = 1;
 	if (epnum) {
+		ep->ep.caps.type_iso = 1;
+		ep->ep.caps.type_bulk = 1;
+		ep->ep.caps.type_int = 1;
 		usb_ep_set_maxpacket_limit(&ep->ep, USBLB_GADGET_MAXPACKET);
 		list_add_tail(&ep->ep.ep_list, &ep->g->g.ep_list);
 	} else {
+		ep->ep.caps.type_control = 1;
 		usb_ep_set_maxpacket_limit(&ep->ep, 64);
 		ep->g->g.ep0 = &ep->ep;
 	}
