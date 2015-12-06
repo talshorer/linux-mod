@@ -329,9 +329,6 @@ fail_kzalloc_ticker:
 	return ERR_PTR(err);
 }
 
-CONFIGFS_ATTR_STRUCT(f_ticker_opts);
-CONFIGFS_ATTR_OPS(f_ticker_opts);
-
 static void ticker_attr_release(struct config_item *item)
 {
 	struct f_ticker_opts *opts = to_f_ticker_opts(item);
@@ -340,18 +337,16 @@ static void ticker_attr_release(struct config_item *item)
 }
 
 static struct configfs_item_operations ticker_item_ops = {
-	.release		= ticker_attr_release,
-	.show_attribute		= f_ticker_opts_attr_show,
-	.store_attribute	= f_ticker_opts_attr_store,
+	.release = ticker_attr_release,
 };
 
-static ssize_t f_ticker_opts_interval_show(struct f_ticker_opts *opts,
+static ssize_t f_ticker_opts_interval_show(struct config_item *item,
 		char *page)
 {
-	return sprintf(page, "%u\n", opts->interval);
+	return sprintf(page, "%u\n", to_f_ticker_opts(item)->interval);
 }
 
-static ssize_t f_ticker_opts_interval_store(struct f_ticker_opts *opts,
+static ssize_t f_ticker_opts_interval_store(struct config_item *item,
 		const char *page, size_t len)
 {
 	int ret;
@@ -365,18 +360,15 @@ static ssize_t f_ticker_opts_interval_store(struct f_ticker_opts *opts,
 				TICKER_POLL_INTERVAL_MS);
 		return -EINVAL;
 	}
-	opts->interval = num;
+	to_f_ticker_opts(item)->interval = num;
 	ret = len;
 	return ret;
 }
 
-static struct f_ticker_opts_attribute f_ticker_opts_interval =
-	__CONFIGFS_ATTR(interval, S_IRUGO | S_IWUSR,
-			f_ticker_opts_interval_show,
-			f_ticker_opts_interval_store);
+CONFIGFS_ATTR(f_ticker_opts_, interval);
 
 static struct configfs_attribute *ticker_attrs[] = {
-	&f_ticker_opts_interval.attr,
+	&f_ticker_opts_attr_interval,
 	NULL,
 };
 
@@ -423,4 +415,4 @@ DECLARE_USB_FUNCTION_INIT(ticker, ticker_alloc_instance, ticker_alloc_func);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("Ticker usb gadget function");
-MODULE_VERSION("1.0.1");
+MODULE_VERSION("1.1.0");
