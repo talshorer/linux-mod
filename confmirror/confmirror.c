@@ -68,22 +68,18 @@ static inline struct confmirror_item *to_confmirror_item(
 	return item ? container_of(item, struct confmirror_item, item) : NULL;
 }
 
-CONFIGFS_ATTR_STRUCT(confmirror_item);
-CONFIGFS_ATTR_OPS(confmirror_item);
+#define CONFMIRROR_ATTR(name) CONFIGFS_ATTR(confmirror_configfs_, name)
 
-#define CONFMIRROR_ATTR(_name, _mode, _show, _store) \
-	struct confmirror_item_attribute confmirror_attr_##_name = \
-			__CONFIGFS_ATTR(_name, _mode, _show, _store)
-
-static ssize_t confmirror_configfs_attr_show(struct confmirror_item *cmi,
+static ssize_t confmirror_configfs_attr_show(struct config_item *item,
 		char *page)
 {
-	return confmirror_attr_show(cmi, page, __func__);
+	return confmirror_attr_show(to_confmirror_item(item), page, __func__);
 }
 
-static ssize_t confmirror_configfs_attr_store(struct confmirror_item *cmi,
+static ssize_t confmirror_configfs_attr_store(struct config_item *item,
 		const char *page, size_t count)
 {
+	struct confmirror_item *cmi = to_confmirror_item(item);
 	unsigned long value;
 	int err;
 
@@ -95,11 +91,10 @@ static ssize_t confmirror_configfs_attr_store(struct confmirror_item *cmi,
 	return count;
 }
 
-static CONFMIRROR_ATTR(attr, S_IRUGO | S_IWUSR, confmirror_configfs_attr_show,
-		confmirror_configfs_attr_store);
+CONFIGFS_ATTR(confmirror_configfs_, attr);
 
 static struct configfs_attribute *confmirror_configfs_attrs[] = {
-	&confmirror_attr_attr.attr,
+	&confmirror_configfs_attr_attr,
 	NULL,
 };
 
@@ -109,9 +104,7 @@ static void confmirror_item_release(struct config_item *item)
 }
 
 static struct configfs_item_operations confmirror_item_ops = {
-	.release         = confmirror_item_release,
-	.show_attribute  = confmirror_item_attr_show,
-	.store_attribute = confmirror_item_attr_store,
+	.release = confmirror_item_release,
 };
 
 static struct config_item_type confmirror_item_type = {
@@ -225,4 +218,4 @@ module_exit(confmirror_exit);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("configfs subsystem that mirrors items to sysfs kobjects");
-MODULE_VERSION("1.0.0");
+MODULE_VERSION("1.1.0");
