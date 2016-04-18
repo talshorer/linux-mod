@@ -12,9 +12,9 @@
 struct bf_ctx {
 	int fd;
 	char data[BRAINFUCK_ARRSIZE];
-	unsigned dp;
+	unsigned int dp;
 	off_t stack[BRAINFUCK_MAX_LOOP_NEST_DEPTH];
-	unsigned sp;
+	unsigned int sp;
 };
 
 struct bf_cmd {
@@ -88,7 +88,7 @@ static int startloop(struct bf_ctx *ctx)
 	if (ctx->data[ctx->dp]) {
 		ctx->sp++;
 	} else {
-		unsigned count = 1;
+		unsigned int count = 1;
 		char cmd;
 
 		while (1) {
@@ -156,7 +156,7 @@ static int execute_bf_program(char *filenmae)
 	}
 
 	while (1) {
-		unsigned i;
+		unsigned int i;
 		/* fetch */
 		ret = readone(ctx, &cmd);
 		if (ret < 0) {
