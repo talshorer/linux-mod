@@ -135,15 +135,15 @@ static inline void vgpio_set_bit(struct vgpio_chip *vchip,
 
 static int vgpio_request(struct gpio_chip *chip, unsigned offset)
 {
-	dev_info(chip->dev, "<%s> offset = %u\n", __func__, offset);
-	pm_runtime_get_sync(chip->dev);
+	dev_info(chip->parent, "<%s> offset = %u\n", __func__, offset);
+	pm_runtime_get_sync(chip->parent);
 	return 0;
 }
 
 static void vgpio_free(struct gpio_chip *chip, unsigned offset)
 {
-	dev_info(chip->dev, "<%s> offset = %u\n", __func__, offset);
-	pm_runtime_put(chip->dev);
+	dev_info(chip->parent, "<%s> offset = %u\n", __func__, offset);
+	pm_runtime_put(chip->parent);
 }
 
 static int vgpio_get_direction(struct gpio_chip *chip, unsigned offset)
@@ -151,7 +151,7 @@ static int vgpio_get_direction(struct gpio_chip *chip, unsigned offset)
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	int ret = vgpio_get_bit(vchip, VGPIO_REG_DIRECTIONS, offset);
 
-	dev_info(chip->dev, "<%s> offset = %u, ret = %d\n",
+	dev_info(chip->parent, "<%s> offset = %u, ret = %d\n",
 			__func__, offset, ret);
 	return ret;
 }
@@ -161,7 +161,7 @@ static int vgpio_direction_input(struct gpio_chip *chip, unsigned offset)
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	unsigned long flags;
 
-	dev_info(chip->dev, "<%s> offset = %u\n", __func__, offset);
+	dev_info(chip->parent, "<%s> offset = %u\n", __func__, offset);
 	spin_lock_irqsave(&vchip->lock, flags);
 	__vgpio_set_bit_hi(vchip, VGPIO_REG_DIRECTIONS, offset);
 	__vgpio_set_bit(vchip, VGPIO_REG_VALUES, offset, 0);
@@ -175,7 +175,7 @@ static int vgpio_direction_output(struct gpio_chip *chip, unsigned offset,
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	unsigned long flags;
 
-	dev_info(chip->dev, "<%s> offset = %u, value = %d\n",
+	dev_info(chip->parent, "<%s> offset = %u, value = %d\n",
 			__func__, offset, value);
 	spin_lock_irqsave(&vchip->lock, flags);
 	__vgpio_set_bit_lo(vchip, VGPIO_REG_DIRECTIONS, offset);
@@ -189,7 +189,7 @@ static int vgpio_get(struct gpio_chip *chip, unsigned offset)
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	int ret = vgpio_get_bit(vchip, VGPIO_REG_VALUES, offset);
 
-	dev_info(chip->dev, "<%s> offset = %u, ret = %d\n",
+	dev_info(chip->parent, "<%s> offset = %u, ret = %d\n",
 			__func__, offset, ret);
 	return ret;
 }
@@ -198,7 +198,7 @@ static void vgpio_set(struct gpio_chip *chip, unsigned offset, int value)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 
-	dev_info(chip->dev, "<%s> offset = %u, value = %d\n",
+	dev_info(chip->parent, "<%s> offset = %u, value = %d\n",
 			__func__, offset, value);
 	vgpio_set_bit(vchip, VGPIO_REG_VALUES, offset, value);
 }
@@ -259,10 +259,10 @@ static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 	/* set all pins input */
 	memset(vchip->regs[VGPIO_REG_DIRECTIONS], 0xff, vgpio_reg_type_len);
 
-	vchip->chip.dev = device_create(&vgpio_class, NULL, VGPIO_MKDEV(i),
+	vchip->chip.parent = device_create(&vgpio_class, NULL, VGPIO_MKDEV(i),
 			vchip, "%s%d", KBUILD_MODNAME, i);
-	if (IS_ERR(vchip->chip.dev)) {
-		err = PTR_ERR(vchip->chip.dev);
+	if (IS_ERR(vchip->chip.parent)) {
+		err = PTR_ERR(vchip->chip.parent);
 		pr_err("<%s> i = %d, device_create failed. err = %d\n",
 				__func__, i, err);
 		goto fail_device_create;
@@ -275,10 +275,10 @@ static int vgpio_chip_init(struct vgpio_chip *vchip, int i)
 		goto fail_gipochip_add;
 	}
 
-	pm_runtime_enable(vchip->chip.dev);
+	pm_runtime_enable(vchip->chip.parent);
 
 	pr_info("created chip %s successfully\n",
-			dev_name(vchip->chip.dev));
+			dev_name(vchip->chip.parent));
 	return 0;
 
 fail_gipochip_add:
@@ -291,7 +291,7 @@ fail_kzalloc_vchip_mem:
 
 static void vgpio_chip_cleanup(struct vgpio_chip *vchip)
 {
-	dev_t devt = vchip->chip.dev->devt;
+	dev_t devt = vchip->chip.parent->devt;
 
 	gpiochip_remove(&vchip->chip);
 	device_destroy(&vgpio_class, devt);
