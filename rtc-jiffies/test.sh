@@ -56,6 +56,7 @@ for i in $(seq 0 $(( $NCLOCKS - 1 ))); do
 	children="$children $!"
 done
 wait $children || err=1
+sleep 1
 rmmod $MODULE
 rm $LOCKFILE
 exit $err
