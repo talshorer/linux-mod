@@ -64,9 +64,9 @@ static struct vgpio_chip *vgpio_chips;
 /* register manipulation functions */
 
 static inline int vgpio_get_bit(struct vgpio_chip *vchip,
-		enum vgpio_reg_type regtype, unsigned bit)
+		enum vgpio_reg_type regtype, unsigned int bit)
 {
-	unsigned boffset = bit & 0x7;
+	unsigned int boffset = bit & 0x7;
 	unsigned long flags;
 	int ret;
 
@@ -78,25 +78,25 @@ static inline int vgpio_get_bit(struct vgpio_chip *vchip,
 
 #define __vgpio_set_bit_op(vchip, regtype, bit, op) \
 do { \
-	unsigned __bit = (bit); \
+	unsigned int __bit = (bit); \
 	(vchip)->regs[regtype][__bit >> 3] op(1 << (__bit & 0x7)); \
 } while (0)
 
 static void __vgpio_set_bit_hi(struct vgpio_chip *vchip,
-		enum vgpio_reg_type regtype, unsigned bit)
+		enum vgpio_reg_type regtype, unsigned int bit)
 {
 	__vgpio_set_bit_op(vchip, regtype, bit, |=
 			);
 }
 
 static void __vgpio_set_bit_lo(struct vgpio_chip *vchip,
-		enum vgpio_reg_type regtype, unsigned bit)
+		enum vgpio_reg_type regtype, unsigned int bit)
 {
 	__vgpio_set_bit_op(vchip, regtype, bit, &= ~);
 }
 
 static inline void vgpio_set_bit_hi(struct vgpio_chip *vchip,
-		enum vgpio_reg_type regtype, unsigned bit)
+		enum vgpio_reg_type regtype, unsigned int bit)
 {
 	unsigned long flags;
 
@@ -106,7 +106,7 @@ static inline void vgpio_set_bit_hi(struct vgpio_chip *vchip,
 }
 
 static inline void vgpio_set_bit_lo(struct vgpio_chip *vchip,
-		enum vgpio_reg_type regtype, unsigned bit)
+		enum vgpio_reg_type regtype, unsigned int bit)
 {
 	unsigned long flags;
 
@@ -116,13 +116,13 @@ static inline void vgpio_set_bit_lo(struct vgpio_chip *vchip,
 }
 
 static inline void __vgpio_set_bit(struct vgpio_chip *vchip,
-		enum vgpio_reg_type regtype, unsigned bit, int value)
+		enum vgpio_reg_type regtype, unsigned int bit, int value)
 {
 	(value ? __vgpio_set_bit_hi : __vgpio_set_bit_lo)(vchip, regtype, bit);
 }
 
 static inline void vgpio_set_bit(struct vgpio_chip *vchip,
-		enum vgpio_reg_type regtype, unsigned bit, int value)
+		enum vgpio_reg_type regtype, unsigned int bit, int value)
 {
 	unsigned long flags;
 
@@ -133,20 +133,20 @@ static inline void vgpio_set_bit(struct vgpio_chip *vchip,
 
 /* gpio_chip operations */
 
-static int vgpio_request(struct gpio_chip *chip, unsigned offset)
+static int vgpio_request(struct gpio_chip *chip, unsigned int offset)
 {
 	dev_info(chip->parent, "<%s> offset = %u\n", __func__, offset);
 	pm_runtime_get_sync(chip->parent);
 	return 0;
 }
 
-static void vgpio_free(struct gpio_chip *chip, unsigned offset)
+static void vgpio_free(struct gpio_chip *chip, unsigned int offset)
 {
 	dev_info(chip->parent, "<%s> offset = %u\n", __func__, offset);
 	pm_runtime_put(chip->parent);
 }
 
-static int vgpio_get_direction(struct gpio_chip *chip, unsigned offset)
+static int vgpio_get_direction(struct gpio_chip *chip, unsigned int offset)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	int ret = vgpio_get_bit(vchip, VGPIO_REG_DIRECTIONS, offset);
@@ -156,7 +156,7 @@ static int vgpio_get_direction(struct gpio_chip *chip, unsigned offset)
 	return ret;
 }
 
-static int vgpio_direction_input(struct gpio_chip *chip, unsigned offset)
+static int vgpio_direction_input(struct gpio_chip *chip, unsigned int offset)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	unsigned long flags;
@@ -169,7 +169,7 @@ static int vgpio_direction_input(struct gpio_chip *chip, unsigned offset)
 	return 0;
 }
 
-static int vgpio_direction_output(struct gpio_chip *chip, unsigned offset,
+static int vgpio_direction_output(struct gpio_chip *chip, unsigned int offset,
 		int value)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
@@ -184,7 +184,7 @@ static int vgpio_direction_output(struct gpio_chip *chip, unsigned offset,
 	return 0;
 }
 
-static int vgpio_get(struct gpio_chip *chip, unsigned offset)
+static int vgpio_get(struct gpio_chip *chip, unsigned int offset)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 	int ret = vgpio_get_bit(vchip, VGPIO_REG_VALUES, offset);
@@ -194,7 +194,7 @@ static int vgpio_get(struct gpio_chip *chip, unsigned offset)
 	return ret;
 }
 
-static void vgpio_set(struct gpio_chip *chip, unsigned offset, int value)
+static void vgpio_set(struct gpio_chip *chip, unsigned int offset, int value)
 {
 	struct vgpio_chip *vchip = to_vgpio_chip(chip);
 
