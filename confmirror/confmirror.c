@@ -27,7 +27,7 @@ static void confmirror_kobj_release(struct kobject *kobj)
 }
 
 static void confmirror_print_attr_access(struct confmirror_item *cmi,
-		const char *func, unsigned value)
+		const char *func, unsigned int value)
 {
 	pr_info("<%s> %s, %u\n", func, kobject_name(&cmi->kobj), value);
 }
@@ -35,7 +35,7 @@ static void confmirror_print_attr_access(struct confmirror_item *cmi,
 static ssize_t confmirror_attr_show(struct confmirror_item *cmi, char *buf,
 		const char *func)
 {
-	unsigned value = atomic_read(&cmi->value);
+	unsigned int value = atomic_read(&cmi->value);
 
 	confmirror_print_attr_access(cmi, func, value);
 	return snprintf(buf, PAGE_SIZE, "%u\n", value);
