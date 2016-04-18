@@ -36,7 +36,9 @@ cd $(dirname $0)
 insmod $MODULE.ko nchips=$NCHIPS chip_npins=$CHIP_NPINS
 for i in $(seq 0 $(( $NCHIPS - 1 ))); do
 	chip=${KBUILD_MODNAME}$i
-	gpiochip=$(ls -1 $MODULE_SYSFS/$chip | grep gpiochip)
+	for gpiochip in $(ls -1 $MODULE_SYSFS/$chip | grep gpiochip); do
+		[[ -e $MODULE_SYSFS/$chip/$gpiochip/device ]] && break
+	done
 	echo "$0: running test on chip $chip ($gpiochip)" 1>&2
 	gpiochip_sysfs=$GPIO_SYSFS/$gpiochip
 	if [[ ! -e $gpiochip_sysfs ]]; then
