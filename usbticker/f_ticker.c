@@ -154,7 +154,7 @@ static int ticker_bind(struct usb_configuration *c, struct usb_function *f)
 		ticker_ss_int_desc.bEndpointAddress;
 
 	status = usb_assign_descriptors(f, ticker_fs_descs, ticker_hs_descs,
-			ticker_ss_descs);
+			ticker_ss_descs, ticker_ss_descs);
 	if (status)
 		return status;
 
@@ -279,7 +279,8 @@ static void ticker_disable(struct usb_function *f)
 	f_ticker_disable(ticker);
 }
 
-static int ticker_set_alt(struct usb_function *f, unsigned intf, unsigned alt)
+static int ticker_set_alt(struct usb_function *f, unsigned int intf,
+		unsigned int alt)
 {
 	struct f_ticker *ticker = func_to_ticker(f);
 	struct usb_composite_dev *cdev = f->config->cdev;
