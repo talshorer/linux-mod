@@ -206,26 +206,26 @@ static inline void deepfs_depth_file_destroy(struct deepfs_depth_file *f)
 	kfree(f);
 }
 
-static const char *deepfs_symlink_follow_link(struct dentry *dentry,
-		void **cookie)
+
+static void deepfs_free_link(void *cookie)
+{
+	deepfs_trace(__func__, cookie);
+}
+
+static const char *deepfs_get_link(struct dentry *dentry, struct inode *inode,
+		struct delayed_call *done)
 {
 	struct deepfs_symlink *l = to_deepfs_symlink(dentry->d_inode);
 
 	deepfs_trace(__func__, dentry);
 	/* pass dentry as the cookie for tracing */
-	*cookie = dentry;
+	set_delayed_call(done, deepfs_free_link, dentry);
 	return l->buf;
-}
-
-static void deepfs_symlink_put_link(struct inode *inode, void *cookie)
-{
-	deepfs_trace(__func__, cookie);
 }
 
 static const struct inode_operations deepfs_symlink_inode_operations = {
 	.readlink    = generic_readlink,
-	.follow_link = deepfs_symlink_follow_link,
-	.put_link = deepfs_symlink_put_link,
+	.get_link = deepfs_get_link,
 };
 
 static int deepfs_symlink_create(struct super_block *sb,
@@ -515,8 +515,8 @@ static int deepfs_fill_super(struct super_block *sb, void *data, int silent)
 
 	save_mount_options(sb, data);
 
-	sb->s_blocksize = PAGE_CACHE_SIZE;
-	sb->s_blocksize_bits = PAGE_CACHE_SHIFT;
+	sb->s_blocksize = PAGE_SIZE;
+	sb->s_blocksize_bits = PAGE_SHIFT;
 	sb->s_magic = DEEPFS_MAGIC;
 	sb->s_flags |= MS_RDONLY;
 	sb->s_op = &deepfs_super_ops;
