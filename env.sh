@@ -13,6 +13,7 @@ function max {
 
 OCTAL_VALUE_REGEX="0[0-7]\+"
 DECIMAL_VALUE_REGEX="[0-9]\+"
+HEXADECIMAL_VALUE_REGEX="0x[0-9a-fA-F]\+"
 
 function check_uapi_value {
 	PREFIX=$1
