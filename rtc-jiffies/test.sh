@@ -10,7 +10,7 @@ LOCKFILE=$(mktemp)
 
 __echo()
 {
-	flock $LOCKFILE -c echo "$@" 1>&2
+	flock $LOCKFILE -c "echo $@" 1>&2
 }
 
 check_diff()
@@ -24,7 +24,9 @@ check_diff()
 	if [[ $clkdiff -gt 1 ]]; then
 		__echo "sysclk and $rtc differ by more than 1 seconds "\
 				"(hwclk=$hwclk sysclk=$sysclk)"
+		return 1
 	fi
+	return 0
 }
 
 test_one_clock()
@@ -34,7 +36,7 @@ test_one_clock()
 	local clock_sysfs=$MODULE_SYSFS/$clock
 	local rtc=$(basename $clock_sysfs/rtc*)
 	local rtcdev=/dev/$rtc
-	__echo "$0: beginning test on clock $clock ($rtc)"
+	__echo "$0: beginning test on clock $clock \($rtc\)"
 	hwclock -f $rtcdev -w || lerr=1
 	if [[ $lerr == 0 ]]; then
 		for sleeptime in 0 2 4; do
