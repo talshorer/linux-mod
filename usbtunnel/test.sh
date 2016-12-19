@@ -29,6 +29,7 @@ sleep_a_bit
 # test logic
 err=1
 echo 7 > /proc/sys/kernel/printk
+rmmod g_serial
 rmmod dummy_hcd
 rmmod $MODULE
 exit $err
