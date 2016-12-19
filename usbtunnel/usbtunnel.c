@@ -5,14 +5,23 @@
 #include <linux/usb.h>
 #include <linux/usb/gadget.h>
 
+#include "u_f.h"
+
 #define MAX_DEVNAME_LEN 32
+#define USBTUNNEL_EP0_BUFSIZ 1024
 
 struct usbtunnel {
 	char udc[MAX_DEVNAME_LEN + 1];
 	char port[MAX_DEVNAME_LEN + 1];
-	struct usb_gadget_driver gadget_driver;
-	struct usb_device *udev;
 	struct list_head list;
+	struct {
+		char function[10 + MAX_DEVNAME_LEN + 1]; /* usbtunnel.$PORT\0 */
+		struct usb_gadget_driver driver;
+		struct usb_request *ep0_req;
+	} g;
+	struct {
+		struct usb_device *udev;
+	} h;
 };
 
 static LIST_HEAD(usbtunnel_list);
@@ -35,12 +44,31 @@ found:
 
 static int usbtunnel_host_probe(struct usb_device *udev)
 {
+	int err;
+	struct usbtunnel *ut;
+
+	ut = usbtunnel_lookup(dev_name(&udev->dev));
+	if (!ut)
+		return -ENODEV;
+	ut->h.udev = udev;
+	dev_set_drvdata(&udev->dev, ut);
 	/* TODO */
-	return -ENODEV;
+	ut->g.driver.max_speed = udev->speed;
+	err = usb_gadget_probe_driver(&ut->g.driver);
+	if (err)
+		return err;
+	dev_info(&udev->dev, "tunnel is running on port\n");
+	return 0;
 }
 
 static void usbtunnel_host_disconnect(struct usb_device *udev)
 {
+	struct usbtunnel *ut;
+
+	ut = dev_get_drvdata(&udev->dev);
+	usb_gadget_unregister_driver(&ut->g.driver);
+	ut->h.udev = NULL;
+	dev_info(&udev->dev, "tunnel disconnected from port\n");
 	/* TODO */
 }
 
@@ -59,16 +87,46 @@ static ssize_t match_show(struct device_driver *driver, char *buf)
 	return ret;
 }
 
+static void usbtunnel_ep0_req_complete(struct usb_ep *ep,
+		struct usb_request *req)
+{
+	/* TODO */
+}
+
 static int usbtunnel_gadget_bind(struct usb_gadget *gadget,
 		struct usb_gadget_driver *gdriver)
 {
-	/* TODO */
-	return -ENODEV;
+	struct usbtunnel *ut = container_of(gdriver, struct usbtunnel,
+				g.driver);
+	int err;
+
+	set_gadget_data(gadget, ut);
+	ut->g.ep0_req = usb_ep_alloc_request(gadget->ep0, GFP_KERNEL);
+	if (!ut->g.ep0_req) {
+		err = -ENOMEM;
+		goto fail_usb_ep_alloc_request;
+	}
+	ut->g.ep0_req->buf = kmalloc(USBTUNNEL_EP0_BUFSIZ, GFP_KERNEL);
+	if (!ut->g.ep0_req->buf) {
+		err = -ENOMEM;
+		goto fail_kmalloc_ep0_req_buf;
+	}
+	ut->g.ep0_req->complete = usbtunnel_ep0_req_complete;
+	ut->g.ep0_req->context = ut;
+	gadget->ep0->driver_data = ut;
+	return 0;
+
+fail_kmalloc_ep0_req_buf:
+	usb_ep_free_request(gadget->ep0, ut->g.ep0_req);
+fail_usb_ep_alloc_request:
+	return err;
 }
 
 static void usbtunnel_gadget_unbind(struct usb_gadget *gadget)
 {
-	/* TODO */
+	struct usbtunnel *ut = get_gadget_data(gadget);
+
+	free_ep_req(gadget->ep0, ut->g.ep0_req);
 }
 
 static int usbtunnel_gadget_setup(struct usb_gadget *gadget,
@@ -104,8 +162,7 @@ static const struct usb_gadget_driver usbtunnel_gadget_driver_template = {
 	.suspend    = usbtunnel_gadget_suspend,
 	.resume     = usbtunnel_gadget_resume,
 
-	/* TODO function? */
-	/* TODO max_speed? */
+	/* TODO max_speed? need to match the port's. what if mismatch? */
 
 	.driver	= {
 		/* TODO name? */
@@ -137,16 +194,21 @@ static int usbtunnel_add(const char *buf, size_t len)
 
 	memcpy(ut->port, buf, portlen);
 	memcpy(ut->udc, sep, udclen);
+	snprintf(ut->g.function,  sizeof(ut->g.function), "usbtunnel.%s",
+			ut->port);
 	pr_info("tunneling port %s to udc %s\n", ut->port, ut->udc);
-	ut->gadget_driver = usbtunnel_gadget_driver_template;
+	ut->g.driver = usbtunnel_gadget_driver_template;
+	ut->g.driver.function = ut->g.function;
+	ut->g.driver.driver.name = ut->g.function;
+	ut->g.driver.udc_name = ut->udc;
 	/* TODO more fields. udc? */
-	/* TODO probe */
 
 	spin_lock_irqsave(&usbtunnel_list_lock, flags);
 	list_add(&ut->list, &usbtunnel_list);
 	spin_unlock_irqrestore(&usbtunnel_list_lock, flags);
 
 	return 0;
+
 }
 
 static void usbtunnel_cleanup(struct usbtunnel *ut)
@@ -176,6 +238,11 @@ static int usbtunnel_del(const char *buf, size_t len)
 	kfree(s);
 	if (!ut)
 		return -EINVAL;
+	if (ut->h.udev) {
+		pr_err("can't remove tunnel on port %s while active!\n",
+				ut->port);
+		return -EBUSY;
+	}
 	usbtunnel_cleanup(ut);
 	return 0;
 }
