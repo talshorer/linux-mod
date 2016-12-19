@@ -4,11 +4,13 @@ MODULE=$(basename $(dirname $(realpath $0)))
 HOST_DRIVER_SYSFS="/sys/bus/usb/drivers/usbtunnel-host"
 USBTUNNELCTL="./usbtunnelctl.sh"
 
-sleep_a_bit() { usleep 400000; }
+sleep_a_bit() { usleep 500000; }
 
 err=0
 cd $(dirname $0)
 insmod $MODULE.ko
+echo "module $MODULE +p" > /sys/kernel/debug/dynamic_debug/control
+echo 8 > /proc/sys/kernel/printk
 modprobe dummy_hcd num=2
 modprobe g_serial
 sleep_a_bit
@@ -26,6 +28,7 @@ echo -n $port > $orig_driver/bind
 sleep_a_bit
 # test logic
 err=1
+echo 7 > /proc/sys/kernel/printk
 rmmod dummy_hcd
 rmmod $MODULE
 exit $err

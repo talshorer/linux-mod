@@ -2,7 +2,7 @@ obj-m := usbtunnel.o
 
 M:=$(shell pwd)
 
-ccflags-y += -I$(srctree)/drivers/usb/gadget/
+ccflags-y += -I$(srctree)/drivers/usb/gadget/ -DDEBUG
 
 include $(M)/../env.mk
 

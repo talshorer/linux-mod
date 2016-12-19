@@ -47,6 +47,7 @@ static int usbtunnel_host_probe(struct usb_device *udev)
 	int err;
 	struct usbtunnel *ut;
 
+	dev_dbg(&udev->dev, "<%s>\n", __func__);
 	ut = usbtunnel_lookup(dev_name(&udev->dev));
 	if (!ut)
 		return -ENODEV;
@@ -65,6 +66,7 @@ static void usbtunnel_host_disconnect(struct usb_device *udev)
 {
 	struct usbtunnel *ut;
 
+	dev_dbg(&udev->dev, "<%s>\n", __func__);
 	ut = dev_get_drvdata(&udev->dev);
 	usb_gadget_unregister_driver(&ut->g.driver);
 	ut->h.udev = NULL;
@@ -100,6 +102,7 @@ static int usbtunnel_gadget_bind(struct usb_gadget *gadget,
 				g.driver);
 	int err;
 
+	dev_dbg(&gadget->dev, "<%s>\n", __func__);
 	set_gadget_data(gadget, ut);
 	ut->g.ep0_req = usb_ep_alloc_request(gadget->ep0, GFP_KERNEL);
 	if (!ut->g.ep0_req) {
@@ -126,28 +129,33 @@ static void usbtunnel_gadget_unbind(struct usb_gadget *gadget)
 {
 	struct usbtunnel *ut = get_gadget_data(gadget);
 
+	dev_dbg(&gadget->dev, "<%s>\n", __func__);
 	free_ep_req(gadget->ep0, ut->g.ep0_req);
 }
 
 static int usbtunnel_gadget_setup(struct usb_gadget *gadget,
 		const struct usb_ctrlrequest *ctrl)
 {
+	dev_dbg(&gadget->dev, "<%s>\n", __func__);
 	/* TODO */
 	return -EINVAL;
 }
 
 static void usbtunnel_gadget_disconnect(struct usb_gadget *gadget)
 {
+	dev_dbg(&gadget->dev, "<%s>\n", __func__);
 	/* TODO */
 }
 
 static void usbtunnel_gadget_suspend(struct usb_gadget *gadget)
 {
+	dev_dbg(&gadget->dev, "<%s>\n", __func__);
 	/* TODO */
 }
 
 static void usbtunnel_gadget_resume(struct usb_gadget *gadget)
 {
+	dev_dbg(&gadget->dev, "<%s>\n", __func__);
 	/* TODO */
 }
 
@@ -180,6 +188,7 @@ static int usbtunnel_add(const char *buf, size_t len)
 
 	if (buf[len - 1] == '\n')
 		len--;
+	pr_debug("<%s> %.*s\n", __func__, len, buf);
 	sep = memchr(buf, ' ', len);
 	if (!sep)
 		return -EINVAL;
@@ -234,6 +243,7 @@ static int usbtunnel_del(const char *buf, size_t len)
 	if (!s)
 		return -ENOMEM;
 	s[len] = '\0';
+	pr_debug("<%s> %s\n", __func__, s);
 	ut = usbtunnel_lookup(s);
 	kfree(s);
 	if (!ut)
