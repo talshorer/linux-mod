@@ -63,4 +63,4 @@ module_serio_driver(seriorepeater_drv);
 LMOD_MODULE_AUTHOR();
 LMOD_MODULE_LICENSE();
 MODULE_DESCRIPTION("A repeater on the serio bus");
-MODULE_VERSION("0.0.1");
+MODULE_VERSION("1.0.0");
