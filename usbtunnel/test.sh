@@ -21,7 +21,7 @@ orig_driver=$(realpath /sys/bus/usb/devices/$port/driver)
 echo -n $port > $orig_driver/unbind
 sleep_a_bit
 echo -n $port > $HOST_DRIVER_SYSFS/bind
-sleep_a_bit
+sleep 10
 echo -n $port > $HOST_DRIVER_SYSFS/unbind
 sleep_a_bit
 echo -n $port > $orig_driver/bind
