@@ -207,7 +207,7 @@ static void usbtunnel_ep0_req_complete(struct usb_ep *ep,
 	int err;
 
 	dev_dbg(&ut->g.gadget->dev, "<%s> in=%d status=%d\n", __func__,
-			ut->g.ctrl.state.in, ut->g.ctrl.state.status);
+		ut->g.ctrl.state.in, ut->g.ctrl.state.status);
 	if (ut->g.ctrl.state.status) {
 		/* finished the status phase, so we're done */
 		usbtunnel_gadget_process_pending_ctrl(ut);
@@ -223,8 +223,8 @@ static void usbtunnel_ep0_req_complete(struct usb_ep *ep,
 				GFP_ATOMIC);
 		if (err) {
 			dev_err(&ut->g.gadget->dev,
-					"<%s:%d> usb_ep_queue returned %d\n",
-					__func__, __LINE__, err);
+				"<%s:%d> usb_ep_queue returned %d\n",
+				__func__, __LINE__, err);
 			return;
 		}
 	} else {
@@ -239,7 +239,7 @@ static int usbtunnel_gadget_bind(struct usb_gadget *gadget,
 		struct usb_gadget_driver *gdriver)
 {
 	struct usbtunnel *ut = container_of(gdriver, struct usbtunnel,
-				g.driver);
+		g.driver);
 	int err;
 
 	dev_dbg(&gadget->dev, "<%s>\n", __func__);
@@ -300,11 +300,11 @@ static void usbtunnel_ctrl_work(struct work_struct *work)
 			/* send status */
 			ut->g.ctrl.req->length = 0;
 			err = usb_ep_queue(ut->g.gadget->ep0, ut->g.ctrl.req,
-					GFP_KERNEL);
+				GFP_KERNEL);
 			if (err)
 				dev_err(&ut->g.gadget->dev,
-						"<%s:%d> usb_ep_queue returned %d\n",
-						__func__, __LINE__, err);
+					"<%s:%d> usb_ep_queue returned %d\n",
+					__func__, __LINE__, err);
 		}
 		usbtunnel_gadget_process_pending_ctrl(ut);
 		return;
@@ -314,16 +314,16 @@ static void usbtunnel_ctrl_work(struct work_struct *work)
 		/* we got data from the device, send it to the host */
 		ut->g.ctrl.req->length = ut->g.ctrl.setup.length;
 		err = usb_ep_queue(ut->g.gadget->ep0, ut->g.ctrl.req,
-				GFP_KERNEL);
+			GFP_KERNEL);
 		if (err) {
 			dev_err(&ut->g.gadget->dev,
-					"<%s:%d> usb_ep_queue returned %d\n",
-					__func__, __LINE__, err);
+				"<%s:%d> usb_ep_queue returned %d\n",
+				__func__, __LINE__, err);
 			return;
 		}
 	} else {
 		dev_err(&ut->g.gadget->dev, "<%s:%d> shouldn't get here\n",
-				__func__, __LINE__);
+			__func__, __LINE__);
 	}
 }
 
@@ -415,7 +415,7 @@ static int usbtunnel_add(const char *buf, size_t len)
 	memcpy(ut->port, buf, portlen);
 	memcpy(ut->udc, sep, udclen);
 	snprintf(ut->g.function,  sizeof(ut->g.function), "usbtunnel.%s",
-			ut->port);
+		ut->port);
 	pr_info("tunneling port %s to udc %s\n", ut->port, ut->udc);
 	ut->g.driver = usbtunnel_gadget_driver_template;
 	ut->g.driver.function = ut->g.function;
@@ -425,7 +425,6 @@ static int usbtunnel_add(const char *buf, size_t len)
 	spin_lock_init(&ut->g.ctrl.pending.lock);
 	INIT_LIST_HEAD(&ut->g.ctrl.pending.list);
 	ut->g.ctrl.pending.in_progress = false;
-	/* TODO more fields. udc? */
 
 	spin_lock_irqsave(&usbtunnel_list_lock, flags);
 	list_add(&ut->list, &usbtunnel_list);
@@ -464,7 +463,7 @@ static int usbtunnel_del(const char *buf, size_t len)
 		return -EINVAL;
 	if (ut->h.udev) {
 		pr_err("can't remove tunnel on port %s while active!\n",
-				ut->port);
+			ut->port);
 		return -EBUSY;
 	}
 	usbtunnel_cleanup(ut);
@@ -543,4 +542,4 @@ module_exit(usbtunnel_exit);
 MODULE_AUTHOR();
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("usb tunnel: export a connected device to a connected host");
-MODULE_VERSION("0.0.1");
+MODULE_VERSION("0.0.2");
