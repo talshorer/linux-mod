@@ -17,6 +17,15 @@ struct usbtunnel_pending_ctrl {
 	struct list_head link;
 };
 
+struct usbtunnel_ep_map {
+	struct {
+		unsigned int hep;
+		struct usb_ep *gep;
+	} map[16];
+	unsigned int config;
+	struct list_head link;
+};
+
 struct usbtunnel {
 	char udc[MAX_DEVNAME_LEN + 1];
 	char port[MAX_DEVNAME_LEN + 1];
@@ -54,6 +63,7 @@ struct usbtunnel {
 	struct {
 		struct usb_device *udev;
 	} h;
+	struct list_head maps_list;
 };
 
 static LIST_HEAD(usbtunnel_list);
@@ -148,17 +158,6 @@ static int usbtunnel_gadget_do_setup(struct usbtunnel *ut,
 		return usb_ep_queue(ut->g.gadget->ep0, ut->g.ctrl.req,
 			GFP_ATOMIC);
 	}
-	//switch (ut->g.ctrl.request) {
-	//case USB_REQ_SET_ADDRESS:
-	//	dev_dbg(&gadget->dev, "<%s> received SET_ADDRESS to %d\n",
-	//			__func__, ut->g.ctrl.value);
-	//
-	//	return 0;
-	//case USB_REQ_SET_CONFIGURATION:
-	//	/* we hook here to enable/disable endpoints */
-	//	/* TODO */
-	//	break;
-	//}
 	if (usb_pipein(ut->g.ctrl.setup.requesttype)) {
 		/* perform the transaction first, then return data to host */
 		ut->g.ctrl.state.in = true;
@@ -274,6 +273,117 @@ static void usbtunnel_gadget_unbind(struct usb_gadget *gadget)
 	free_ep_req(gadget->ep0, ut->g.ctrl.req);
 }
 
+static void usbtunnel_set_configuration_hook(struct usbtunnel *ut)
+{
+	struct usb_host_config *config;
+	struct usb_interface *interface;
+	struct usb_host_endpoint *ep;
+	unsigned int i, j;
+
+	for (i = 0; i < ut->h.udev->descriptor.bNumConfigurations; i++)
+		if (ut->h.udev->config[i].desc.bConfigurationValue ==
+				ut->g.ctrl.setup.value) {
+			config = &ut->h.udev->config[i];
+			break;
+		}
+	if (i == ut->h.udev->descriptor.bNumConfigurations) {
+		dev_warn(&ut->h.udev->dev, "configuration %d not found\n",
+			ut->g.ctrl.setup.value);
+		/* TODO do more? nothing will work if we just roll with this. */
+		return;
+	}
+	dev_info(&ut->g.gadget->dev, "USB_REQ_SET_CONFIGURATION\n");
+	dev_info(&ut->h.udev->dev, "bNumConfigurations = %d\n",
+		ut->h.udev->descriptor.bNumConfigurations);
+	dev_info(&ut->h.udev->dev, "bNumInterfaces = %d\n",
+		config->desc.bNumInterfaces);
+	for (i = 0; i < config->desc.bNumInterfaces; i++) {
+		interface = config->interface[i];
+		dev_info(&ut->h.udev->dev, "interface@%d: bNumEndpoints = %d\n",
+			i, interface->cur_altsetting->desc.bNumEndpoints);
+		for (j = 0; j < interface->cur_altsetting->desc.bNumEndpoints;
+				j++) {
+			ep = &interface->cur_altsetting->endpoint[j];
+			dev_info(&ut->h.udev->dev,
+				"ep@%d.%d: bEndpointAddress 0x%02x\n",
+				i, j, ep->desc.bEndpointAddress);
+		}
+	}
+}
+
+static int usbtunnel_translate_configuration(struct usbtunnel *ut)
+{
+	void *buf = ut->g.ctrl.req->buf;
+	struct usb_config_descriptor *cdesc = buf;
+	unsigned int i, j, x;
+	struct usb_interface_descriptor *idesc;
+	struct usb_endpoint_descriptor *edesc;
+	__le16 maxpacket; /* usb_ep_autoconfig might mess wMaxPacketSize */
+	struct usbtunnel_ep_map *map;
+	bool populate_map = true;
+	int err;
+
+	if (le16_to_cpu(cdesc->wTotalLength) > ut->g.ctrl.setup.length)
+		return 0;
+	list_for_each_entry(map, &ut->maps_list, link)
+		if (map->config == cdesc->bConfigurationValue) {
+			populate_map = false;
+			break;
+		}
+	if (populate_map) {
+		map = kzalloc(sizeof(*map), GFP_KERNEL);
+		if (!map)
+			return -ENOMEM;
+		map->config = cdesc->bConfigurationValue;
+		dev_info(&ut->h.udev->dev,
+			"mapping endpoints for configuration %d\n",
+			map->config);
+	}
+	x = 0;
+	buf += cdesc->bLength;
+	for (i = 0; i < cdesc->bNumInterfaces; i++) {
+		do {
+			idesc = buf;
+			buf += idesc->bLength;
+		} while (idesc->bDescriptorType != USB_DT_INTERFACE);
+		for (j = 0; j < idesc->bNumEndpoints; j++) {
+			do {
+				edesc = buf;
+				buf += edesc->bLength;
+			} while (edesc->bDescriptorType != USB_DT_ENDPOINT);
+			if (populate_map) {
+				maxpacket =  edesc->wMaxPacketSize;
+				map->map[x].hep = edesc->bEndpointAddress;
+				map->map[x].gep = usb_ep_autoconfig(
+					ut->g.gadget, edesc);
+				if (!map->map[x].gep) {
+					err = -EBUSY;
+					goto out;
+				}
+				edesc->wMaxPacketSize = maxpacket;
+				dev_info(&ut->h.udev->dev,
+					"host ep 0x%02x -> gadget ep 0x%02x\n",
+					map->map[x].hep,
+					edesc->bEndpointAddress);
+			} else {
+				edesc->bEndpointAddress =
+					map->map[x].gep->address;
+			}
+			x++;
+		}
+	}
+	err = 0;
+out:
+	if (populate_map) {
+		usb_ep_autoconfig_reset(ut->g.gadget);
+		if (err)
+			kfree(map);
+		else
+			list_add(&map->link, &ut->maps_list);
+	}
+	return err;
+}
+
 static void usbtunnel_ctrl_work(struct work_struct *work)
 {
 	struct usbtunnel *ut = container_of(work, struct usbtunnel,
@@ -286,10 +396,21 @@ static void usbtunnel_ctrl_work(struct work_struct *work)
 	/* we were called because it's time to perform a control transaction */
 	pipe = ut->g.ctrl.state.in ? usb_rcvctrlpipe(ut->h.udev, 0) :
 		usb_sndctrlpipe(ut->h.udev, 0);
-	err = usb_control_msg(ut->h.udev, pipe, ut->g.ctrl.setup.request,
-		ut->g.ctrl.setup.requesttype, ut->g.ctrl.setup.value,
-		ut->g.ctrl.setup.index, ut->g.ctrl.req->buf,
-		ut->g.ctrl.setup.length, USBTUNNEL_CONTROL_MSG_TIMEOUT);
+	if (ut->g.ctrl.setup.request == USB_REQ_SET_CONFIGURATION) {
+		err = usb_set_configuration(ut->h.udev, ut->g.ctrl.setup.value);
+		if (!err)
+			usbtunnel_set_configuration_hook(ut);
+	} else {
+		err = usb_control_msg(ut->h.udev, pipe,
+			ut->g.ctrl.setup.request, ut->g.ctrl.setup.requesttype,
+			ut->g.ctrl.setup.value, ut->g.ctrl.setup.index,
+			ut->g.ctrl.req->buf, ut->g.ctrl.setup.length,
+			USBTUNNEL_CONTROL_MSG_TIMEOUT);
+		if (err >= 0 && (ut->g.ctrl.setup.value >> 8) ==
+				USB_DT_CONFIG && ut->g.ctrl.setup.request ==
+					USB_REQ_GET_DESCRIPTOR)
+			err = usbtunnel_translate_configuration(ut);
+	}
 	if (err < 0) {
 		dev_err(&ut->h.udev->dev, "usb_control_msg returned %d\n", err);
 		return;
@@ -425,6 +546,7 @@ static int usbtunnel_add(const char *buf, size_t len)
 	spin_lock_init(&ut->g.ctrl.pending.lock);
 	INIT_LIST_HEAD(&ut->g.ctrl.pending.list);
 	ut->g.ctrl.pending.in_progress = false;
+	INIT_LIST_HEAD(&ut->maps_list);
 
 	spin_lock_irqsave(&usbtunnel_list_lock, flags);
 	list_add(&ut->list, &usbtunnel_list);
@@ -436,12 +558,15 @@ static int usbtunnel_add(const char *buf, size_t len)
 static void usbtunnel_cleanup(struct usbtunnel *ut)
 {
 	unsigned long flags;
+	struct usbtunnel_ep_map *map, *tmp;
 
 	spin_lock_irqsave(&usbtunnel_list_lock, flags);
 	list_del(&ut->list);
 	spin_unlock_irqrestore(&usbtunnel_list_lock, flags);
 
 	pr_info("removed tunnel on port %s\n", ut->port);
+	list_for_each_entry_safe(map, tmp, &ut->maps_list, link)
+		kfree(map);
 	kfree(ut);
 }
 
