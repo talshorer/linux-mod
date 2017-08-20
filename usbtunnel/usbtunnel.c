@@ -103,12 +103,16 @@ static int usbtunnel_host_probe(struct usb_device *udev)
 static void usbtunnel_host_disconnect(struct usb_device *udev)
 {
 	struct usbtunnel *ut;
+	struct usbtunnel_ep_map *map, *tmp;
 
 	dev_dbg(&udev->dev, "<%s>\n", __func__);
 	ut = dev_get_drvdata(&udev->dev);
 	usb_gadget_unregister_driver(&ut->gadget_driver);
 	ut->udev = NULL;
 	dev_info(&udev->dev, "tunnel disconnected from port\n");
+	list_for_each_entry_safe(map, tmp, &ut->maps_list, link)
+		kfree(map);
+	INIT_LIST_HEAD(&ut->maps_list);
 	/* TODO */
 }
 
@@ -554,15 +558,12 @@ static int usbtunnel_add(const char *buf, size_t len)
 static void usbtunnel_cleanup(struct usbtunnel *ut)
 {
 	unsigned long flags;
-	struct usbtunnel_ep_map *map, *tmp;
 
 	spin_lock_irqsave(&usbtunnel_list_lock, flags);
 	list_del(&ut->list);
 	spin_unlock_irqrestore(&usbtunnel_list_lock, flags);
 
 	pr_info("removed tunnel on port %s\n", ut->port);
-	list_for_each_entry_safe(map, tmp, &ut->maps_list, link)
-		kfree(map);
 	kfree(ut);
 }
 
