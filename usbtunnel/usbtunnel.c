@@ -30,39 +30,35 @@ struct usbtunnel {
 	char udc[MAX_DEVNAME_LEN + 1];
 	char port[MAX_DEVNAME_LEN + 1];
 	struct list_head list;
+	char function[10 + MAX_DEVNAME_LEN + 1]; /* usbtunnel.$PORT\0 */
+	struct usb_gadget_driver gadget_driver;
+	struct usb_gadget *gadget;
 	struct {
-		char function[10 + MAX_DEVNAME_LEN + 1]; /* usbtunnel.$PORT\0 */
-		struct usb_gadget_driver driver;
-		struct usb_gadget *gadget;
 		struct {
-			struct {
-				__u8 requesttype;
-				__u8 request;
-				__u16 value;
-				__u16 index;
-				__u16 length;
-			} setup;
-			/*
-			 * state:
-			 * ... for the worker: what you should do
-			 * ... for the request complete callback: what was done
-			 */
-			struct {
-				bool in;
-				bool status;
-			} state;
-			struct {
-				spinlock_t lock;
-				struct list_head list;
-				bool in_progress;
-			} pending;
-			struct work_struct work;
-			struct usb_request *req;
-		} ctrl;
-	} g;
-	struct {
-		struct usb_device *udev;
-	} h;
+			__u8 requesttype;
+			__u8 request;
+			__u16 value;
+			__u16 index;
+			__u16 length;
+		} setup;
+		/*
+		 * state:
+		 * ... for the worker: what you should do
+		 * ... for the request complete callback: what was done
+		 */
+		struct {
+			bool in;
+			bool status;
+		} state;
+		struct {
+			spinlock_t lock;
+			struct list_head list;
+			bool in_progress;
+		} pending;
+		struct work_struct work;
+		struct usb_request *req;
+	} ctrl;
+	struct usb_device *udev;
 	struct list_head maps_list;
 };
 
@@ -93,11 +89,11 @@ static int usbtunnel_host_probe(struct usb_device *udev)
 	ut = usbtunnel_lookup(dev_name(&udev->dev));
 	if (!ut)
 		return -ENODEV;
-	ut->h.udev = udev;
+	ut->udev = udev;
 	dev_set_drvdata(&udev->dev, ut);
 	/* TODO */
-	ut->g.driver.max_speed = udev->speed;
-	err = usb_gadget_probe_driver(&ut->g.driver);
+	ut->gadget_driver.max_speed = udev->speed;
+	err = usb_gadget_probe_driver(&ut->gadget_driver);
 	if (err)
 		return err;
 	dev_info(&udev->dev, "tunnel is running on port\n");
@@ -110,8 +106,8 @@ static void usbtunnel_host_disconnect(struct usb_device *udev)
 
 	dev_dbg(&udev->dev, "<%s>\n", __func__);
 	ut = dev_get_drvdata(&udev->dev);
-	usb_gadget_unregister_driver(&ut->g.driver);
-	ut->h.udev = NULL;
+	usb_gadget_unregister_driver(&ut->gadget_driver);
+	ut->udev = NULL;
 	dev_info(&udev->dev, "tunnel disconnected from port\n");
 	/* TODO */
 }
@@ -131,52 +127,52 @@ static ssize_t match_show(struct device_driver *driver, char *buf)
 	return ret;
 }
 
-/* called with &ut->g.ctrl.pending.lock locked */
+/* called with &ut->ctrl.pending.lock locked */
 static int usbtunnel_gadget_do_setup(struct usbtunnel *ut,
 		const struct usb_ctrlrequest *ctrl)
 {
 	int err = 0;
 
-	ut->g.ctrl.pending.in_progress = true;
-	ut->g.ctrl.setup.requesttype = ctrl->bRequestType;
-	ut->g.ctrl.setup.request = ctrl->bRequest;
-	ut->g.ctrl.setup.value = le16_to_cpu(ctrl->wValue);
-	ut->g.ctrl.setup.index = le16_to_cpu(ctrl->wIndex);
-	ut->g.ctrl.setup.length = le16_to_cpu(ctrl->wLength);
-	dev_dbg(&ut->g.gadget->dev, "<%s> 0x%02x 0x%02x 0x%04x 0x%04x 0x%04x\n",
-		__func__, ut->g.ctrl.setup.requesttype,
-		ut->g.ctrl.setup.request, ut->g.ctrl.setup.value,
-		ut->g.ctrl.setup.index, ut->g.ctrl.setup.length);
-	if (ut->g.ctrl.setup.request == USB_REQ_SET_ADDRESS) {
+	ut->ctrl.pending.in_progress = true;
+	ut->ctrl.setup.requesttype = ctrl->bRequestType;
+	ut->ctrl.setup.request = ctrl->bRequest;
+	ut->ctrl.setup.value = le16_to_cpu(ctrl->wValue);
+	ut->ctrl.setup.index = le16_to_cpu(ctrl->wIndex);
+	ut->ctrl.setup.length = le16_to_cpu(ctrl->wLength);
+	dev_dbg(&ut->gadget->dev, "<%s> 0x%02x 0x%02x 0x%04x 0x%04x 0x%04x\n",
+		__func__, ut->ctrl.setup.requesttype,
+		ut->ctrl.setup.request, ut->ctrl.setup.value,
+		ut->ctrl.setup.index, ut->ctrl.setup.length);
+	if (ut->ctrl.setup.request == USB_REQ_SET_ADDRESS) {
 		/*
 		 * we don't forward this to the device.
 		 * pretend we already did by skipping the worker.
 		 */
-		ut->g.ctrl.state.in = true;
-		ut->g.ctrl.state.status = true;
-		ut->g.ctrl.req->length = 0 /* which is ut->g.ctrl.length */;
-		return usb_ep_queue(ut->g.gadget->ep0, ut->g.ctrl.req,
+		ut->ctrl.state.in = true;
+		ut->ctrl.state.status = true;
+		ut->ctrl.req->length = 0 /* which is ut->ctrl.length */;
+		return usb_ep_queue(ut->gadget->ep0, ut->ctrl.req,
 			GFP_ATOMIC);
 	}
-	if (usb_pipein(ut->g.ctrl.setup.requesttype)) {
+	if (usb_pipein(ut->ctrl.setup.requesttype)) {
 		/* perform the transaction first, then return data to host */
-		ut->g.ctrl.state.in = true;
-		ut->g.ctrl.state.status = false;
-		schedule_work(&ut->g.ctrl.work);
-	} else if (ut->g.ctrl.setup.length) {
+		ut->ctrl.state.in = true;
+		ut->ctrl.state.status = false;
+		schedule_work(&ut->ctrl.work);
+	} else if (ut->ctrl.setup.length) {
 		/* requesttype's direction is OUT */
 		/* need data from host before we perform the transaction */
-		ut->g.ctrl.state.in = false;
-		ut->g.ctrl.state.status = false;
-		ut->g.ctrl.req->length = ut->g.ctrl.setup.length;
-		err = usb_ep_queue(ut->g.gadget->ep0, ut->g.ctrl.req,
+		ut->ctrl.state.in = false;
+		ut->ctrl.state.status = false;
+		ut->ctrl.req->length = ut->ctrl.setup.length;
+		err = usb_ep_queue(ut->gadget->ep0, ut->ctrl.req,
 			GFP_ATOMIC);
 	} else {
 		/* requesttype's direction is OUT. length is zero */
 		/* "simple" request. no data */
-		ut->g.ctrl.state.in = false;
-		ut->g.ctrl.state.status = true;
-		schedule_work(&ut->g.ctrl.work);
+		ut->ctrl.state.in = false;
+		ut->ctrl.state.status = true;
+		schedule_work(&ut->ctrl.work);
 	}
 	return err;
 }
@@ -186,17 +182,17 @@ static void usbtunnel_gadget_process_pending_ctrl(struct usbtunnel *ut)
 	unsigned long flags;
 	struct usbtunnel_pending_ctrl *pending;
 
-	spin_lock_irqsave(&ut->g.ctrl.pending.lock, flags);
-	if (list_empty(&ut->g.ctrl.pending.list)) {
-		ut->g.ctrl.pending.in_progress = false;
+	spin_lock_irqsave(&ut->ctrl.pending.lock, flags);
+	if (list_empty(&ut->ctrl.pending.list)) {
+		ut->ctrl.pending.in_progress = false;
 	} else {
-		pending = list_first_entry(&ut->g.ctrl.pending.list,
+		pending = list_first_entry(&ut->ctrl.pending.list,
 			typeof(*pending), link);
 		usbtunnel_gadget_do_setup(ut, &pending->ctrl);
 		list_del(&pending->link);
 		kfree(pending);
 	}
-	spin_unlock_irqrestore(&ut->g.ctrl.pending.lock, flags);
+	spin_unlock_irqrestore(&ut->ctrl.pending.lock, flags);
 }
 
 static void usbtunnel_ep0_req_complete(struct usb_ep *ep,
@@ -205,32 +201,32 @@ static void usbtunnel_ep0_req_complete(struct usb_ep *ep,
 	struct usbtunnel *ut = ep->driver_data;
 	int err;
 
-	dev_dbg(&ut->g.gadget->dev, "<%s> in=%d status=%d\n", __func__,
-		ut->g.ctrl.state.in, ut->g.ctrl.state.status);
-	if (ut->g.ctrl.state.status) {
+	dev_dbg(&ut->gadget->dev, "<%s> in=%d status=%d\n", __func__,
+		ut->ctrl.state.in, ut->ctrl.state.status);
+	if (ut->ctrl.state.status) {
 		/* finished the status phase, so we're done */
 		usbtunnel_gadget_process_pending_ctrl(ut);
 		return;
 	}
 	/* from here on we know we're not in status phase */
-	if (ut->g.ctrl.state.in) {
+	if (ut->ctrl.state.in) {
 		/* we sent data to the host, receive status */
-		ut->g.ctrl.state.in = false;
-		ut->g.ctrl.state.status = true;
-		ut->g.ctrl.req->length = 0;
-		err = usb_ep_queue(ut->g.gadget->ep0, ut->g.ctrl.req,
+		ut->ctrl.state.in = false;
+		ut->ctrl.state.status = true;
+		ut->ctrl.req->length = 0;
+		err = usb_ep_queue(ut->gadget->ep0, ut->ctrl.req,
 				GFP_ATOMIC);
 		if (err) {
-			dev_err(&ut->g.gadget->dev,
+			dev_err(&ut->gadget->dev,
 				"<%s:%d> usb_ep_queue returned %d\n",
 				__func__, __LINE__, err);
 			return;
 		}
 	} else {
 		/* got data from the host, we can perform the transaction */
-		// ut->g.ctrl.state.in = false;
-		ut->g.ctrl.state.status = true;
-		schedule_work(&ut->g.ctrl.work);
+		// ut->ctrl.state.in = false;
+		ut->ctrl.state.status = true;
+		schedule_work(&ut->ctrl.work);
 	}
 }
 
@@ -238,29 +234,29 @@ static int usbtunnel_gadget_bind(struct usb_gadget *gadget,
 		struct usb_gadget_driver *gdriver)
 {
 	struct usbtunnel *ut = container_of(gdriver, struct usbtunnel,
-		g.driver);
+		gadget_driver);
 	int err;
 
 	dev_dbg(&gadget->dev, "<%s>\n", __func__);
 	set_gadget_data(gadget, ut);
-	ut->g.gadget = gadget;
-	ut->g.ctrl.req = usb_ep_alloc_request(gadget->ep0, GFP_KERNEL);
-	if (!ut->g.ctrl.req) {
+	ut->gadget = gadget;
+	ut->ctrl.req = usb_ep_alloc_request(gadget->ep0, GFP_KERNEL);
+	if (!ut->ctrl.req) {
 		err = -ENOMEM;
 		goto fail_usb_ep_alloc_request;
 	}
-	ut->g.ctrl.req->buf = kmalloc(USBTUNNEL_EP0_BUFSIZ, GFP_KERNEL);
-	if (!ut->g.ctrl.req->buf) {
+	ut->ctrl.req->buf = kmalloc(USBTUNNEL_EP0_BUFSIZ, GFP_KERNEL);
+	if (!ut->ctrl.req->buf) {
 		err = -ENOMEM;
 		goto fail_kmalloc_ctrl_req_buf;
 	}
-	ut->g.ctrl.req->complete = usbtunnel_ep0_req_complete;
-	ut->g.ctrl.req->context = ut;
+	ut->ctrl.req->complete = usbtunnel_ep0_req_complete;
+	ut->ctrl.req->context = ut;
 	gadget->ep0->driver_data = ut;
 	return 0;
 
 fail_kmalloc_ctrl_req_buf:
-	usb_ep_free_request(gadget->ep0, ut->g.ctrl.req);
+	usb_ep_free_request(gadget->ep0, ut->ctrl.req);
 fail_usb_ep_alloc_request:
 	return err;
 }
@@ -270,7 +266,7 @@ static void usbtunnel_gadget_unbind(struct usb_gadget *gadget)
 	struct usbtunnel *ut = get_gadget_data(gadget);
 
 	dev_dbg(&gadget->dev, "<%s>\n", __func__);
-	free_ep_req(gadget->ep0, ut->g.ctrl.req);
+	free_ep_req(gadget->ep0, ut->ctrl.req);
 }
 
 static void usbtunnel_set_configuration_hook(struct usbtunnel *ut)
@@ -280,31 +276,31 @@ static void usbtunnel_set_configuration_hook(struct usbtunnel *ut)
 	struct usb_host_endpoint *ep;
 	unsigned int i, j;
 
-	for (i = 0; i < ut->h.udev->descriptor.bNumConfigurations; i++)
-		if (ut->h.udev->config[i].desc.bConfigurationValue ==
-				ut->g.ctrl.setup.value) {
-			config = &ut->h.udev->config[i];
+	for (i = 0; i < ut->udev->descriptor.bNumConfigurations; i++)
+		if (ut->udev->config[i].desc.bConfigurationValue ==
+				ut->ctrl.setup.value) {
+			config = &ut->udev->config[i];
 			break;
 		}
-	if (i == ut->h.udev->descriptor.bNumConfigurations) {
-		dev_warn(&ut->h.udev->dev, "configuration %d not found\n",
-			ut->g.ctrl.setup.value);
+	if (i == ut->udev->descriptor.bNumConfigurations) {
+		dev_warn(&ut->udev->dev, "configuration %d not found\n",
+			ut->ctrl.setup.value);
 		/* TODO do more? nothing will work if we just roll with this. */
 		return;
 	}
-	dev_info(&ut->g.gadget->dev, "USB_REQ_SET_CONFIGURATION\n");
-	dev_info(&ut->h.udev->dev, "bNumConfigurations = %d\n",
-		ut->h.udev->descriptor.bNumConfigurations);
-	dev_info(&ut->h.udev->dev, "bNumInterfaces = %d\n",
+	dev_info(&ut->gadget->dev, "USB_REQ_SET_CONFIGURATION\n");
+	dev_info(&ut->udev->dev, "bNumConfigurations = %d\n",
+		ut->udev->descriptor.bNumConfigurations);
+	dev_info(&ut->udev->dev, "bNumInterfaces = %d\n",
 		config->desc.bNumInterfaces);
 	for (i = 0; i < config->desc.bNumInterfaces; i++) {
 		interface = config->interface[i];
-		dev_info(&ut->h.udev->dev, "interface@%d: bNumEndpoints = %d\n",
+		dev_info(&ut->udev->dev, "interface@%d: bNumEndpoints = %d\n",
 			i, interface->cur_altsetting->desc.bNumEndpoints);
 		for (j = 0; j < interface->cur_altsetting->desc.bNumEndpoints;
 				j++) {
 			ep = &interface->cur_altsetting->endpoint[j];
-			dev_info(&ut->h.udev->dev,
+			dev_info(&ut->udev->dev,
 				"ep@%d.%d: bEndpointAddress 0x%02x\n",
 				i, j, ep->desc.bEndpointAddress);
 		}
@@ -313,7 +309,7 @@ static void usbtunnel_set_configuration_hook(struct usbtunnel *ut)
 
 static int usbtunnel_translate_configuration(struct usbtunnel *ut)
 {
-	void *buf = ut->g.ctrl.req->buf;
+	void *buf = ut->ctrl.req->buf;
 	struct usb_config_descriptor *cdesc = buf;
 	unsigned int i, j, x;
 	struct usb_interface_descriptor *idesc;
@@ -323,7 +319,7 @@ static int usbtunnel_translate_configuration(struct usbtunnel *ut)
 	bool populate_map = true;
 	int err;
 
-	if (le16_to_cpu(cdesc->wTotalLength) > ut->g.ctrl.setup.length)
+	if (le16_to_cpu(cdesc->wTotalLength) > ut->ctrl.setup.length)
 		return 0;
 	list_for_each_entry(map, &ut->maps_list, link)
 		if (map->config == cdesc->bConfigurationValue) {
@@ -335,7 +331,7 @@ static int usbtunnel_translate_configuration(struct usbtunnel *ut)
 		if (!map)
 			return -ENOMEM;
 		map->config = cdesc->bConfigurationValue;
-		dev_info(&ut->h.udev->dev,
+		dev_info(&ut->udev->dev,
 			"mapping endpoints for configuration %d\n",
 			map->config);
 	}
@@ -355,13 +351,13 @@ static int usbtunnel_translate_configuration(struct usbtunnel *ut)
 				maxpacket =  edesc->wMaxPacketSize;
 				map->map[x].hep = edesc->bEndpointAddress;
 				map->map[x].gep = usb_ep_autoconfig(
-					ut->g.gadget, edesc);
+					ut->gadget, edesc);
 				if (!map->map[x].gep) {
 					err = -EBUSY;
 					goto out;
 				}
 				edesc->wMaxPacketSize = maxpacket;
-				dev_info(&ut->h.udev->dev,
+				dev_info(&ut->udev->dev,
 					"host ep 0x%02x -> gadget ep 0x%02x\n",
 					map->map[x].hep,
 					edesc->bEndpointAddress);
@@ -375,7 +371,7 @@ static int usbtunnel_translate_configuration(struct usbtunnel *ut)
 	err = 0;
 out:
 	if (populate_map) {
-		usb_ep_autoconfig_reset(ut->g.gadget);
+		usb_ep_autoconfig_reset(ut->gadget);
 		if (err)
 			kfree(map);
 		else
@@ -387,43 +383,43 @@ out:
 static void usbtunnel_ctrl_work(struct work_struct *work)
 {
 	struct usbtunnel *ut = container_of(work, struct usbtunnel,
-		g.ctrl.work);
+		ctrl.work);
 	unsigned int pipe;
 	int err;
 
-	dev_dbg(&ut->g.gadget->dev, "<%s> in=%d status=%d\n", __func__,
-		ut->g.ctrl.state.in, ut->g.ctrl.state.status);
+	dev_dbg(&ut->gadget->dev, "<%s> in=%d status=%d\n", __func__,
+		ut->ctrl.state.in, ut->ctrl.state.status);
 	/* we were called because it's time to perform a control transaction */
-	pipe = ut->g.ctrl.state.in ? usb_rcvctrlpipe(ut->h.udev, 0) :
-		usb_sndctrlpipe(ut->h.udev, 0);
-	if (ut->g.ctrl.setup.request == USB_REQ_SET_CONFIGURATION) {
-		err = usb_set_configuration(ut->h.udev, ut->g.ctrl.setup.value);
+	pipe = ut->ctrl.state.in ? usb_rcvctrlpipe(ut->udev, 0) :
+		usb_sndctrlpipe(ut->udev, 0);
+	if (ut->ctrl.setup.request == USB_REQ_SET_CONFIGURATION) {
+		err = usb_set_configuration(ut->udev, ut->ctrl.setup.value);
 		if (!err)
 			usbtunnel_set_configuration_hook(ut);
 	} else {
-		err = usb_control_msg(ut->h.udev, pipe,
-			ut->g.ctrl.setup.request, ut->g.ctrl.setup.requesttype,
-			ut->g.ctrl.setup.value, ut->g.ctrl.setup.index,
-			ut->g.ctrl.req->buf, ut->g.ctrl.setup.length,
+		err = usb_control_msg(ut->udev, pipe,
+			ut->ctrl.setup.request, ut->ctrl.setup.requesttype,
+			ut->ctrl.setup.value, ut->ctrl.setup.index,
+			ut->ctrl.req->buf, ut->ctrl.setup.length,
 			USBTUNNEL_CONTROL_MSG_TIMEOUT);
-		if (err >= 0 && (ut->g.ctrl.setup.value >> 8) ==
-				USB_DT_CONFIG && ut->g.ctrl.setup.request ==
+		if (err >= 0 && (ut->ctrl.setup.value >> 8) ==
+				USB_DT_CONFIG && ut->ctrl.setup.request ==
 					USB_REQ_GET_DESCRIPTOR)
 			err = usbtunnel_translate_configuration(ut);
 	}
 	if (err < 0) {
-		dev_err(&ut->h.udev->dev, "usb_control_msg returned %d\n", err);
+		dev_err(&ut->udev->dev, "usb_control_msg returned %d\n", err);
 		return;
 	}
 	/* we made the transaction. now what? */
-	if (ut->g.ctrl.state.status) {
-		if (ut->g.ctrl.state.in || !ut->g.ctrl.setup.length) {
+	if (ut->ctrl.state.status) {
+		if (ut->ctrl.state.in || !ut->ctrl.setup.length) {
 			/* send status */
-			ut->g.ctrl.req->length = 0;
-			err = usb_ep_queue(ut->g.gadget->ep0, ut->g.ctrl.req,
+			ut->ctrl.req->length = 0;
+			err = usb_ep_queue(ut->gadget->ep0, ut->ctrl.req,
 				GFP_KERNEL);
 			if (err)
-				dev_err(&ut->g.gadget->dev,
+				dev_err(&ut->gadget->dev,
 					"<%s:%d> usb_ep_queue returned %d\n",
 					__func__, __LINE__, err);
 		}
@@ -431,19 +427,19 @@ static void usbtunnel_ctrl_work(struct work_struct *work)
 		return;
 	}
 	/* from here on we know we're not in status phase */
-	if (ut->g.ctrl.state.in) {
+	if (ut->ctrl.state.in) {
 		/* we got data from the device, send it to the host */
-		ut->g.ctrl.req->length = ut->g.ctrl.setup.length;
-		err = usb_ep_queue(ut->g.gadget->ep0, ut->g.ctrl.req,
+		ut->ctrl.req->length = ut->ctrl.setup.length;
+		err = usb_ep_queue(ut->gadget->ep0, ut->ctrl.req,
 			GFP_KERNEL);
 		if (err) {
-			dev_err(&ut->g.gadget->dev,
+			dev_err(&ut->gadget->dev,
 				"<%s:%d> usb_ep_queue returned %d\n",
 				__func__, __LINE__, err);
 			return;
 		}
 	} else {
-		dev_err(&ut->g.gadget->dev, "<%s:%d> shouldn't get here\n",
+		dev_err(&ut->gadget->dev, "<%s:%d> shouldn't get here\n",
 			__func__, __LINE__);
 	}
 }
@@ -456,8 +452,8 @@ static int usbtunnel_gadget_setup(struct usb_gadget *gadget,
 	unsigned long flags;
 	int ret;
 
-	spin_lock_irqsave(&ut->g.ctrl.pending.lock, flags);
-	if (!ut->g.ctrl.pending.in_progress) {
+	spin_lock_irqsave(&ut->ctrl.pending.lock, flags);
+	if (!ut->ctrl.pending.in_progress) {
 		ret = usbtunnel_gadget_do_setup(ut, ctrl);
 	} else {
 		pending = kmalloc(sizeof(*pending), GFP_ATOMIC);
@@ -465,11 +461,11 @@ static int usbtunnel_gadget_setup(struct usb_gadget *gadget,
 			ret = -ENOMEM;
 		} else {
 			memcpy(&pending->ctrl, ctrl, sizeof(*ctrl));
-			list_add_tail(&pending->link, &ut->g.ctrl.pending.list);
+			list_add_tail(&pending->link, &ut->ctrl.pending.list);
 			ret = 0;
 		}
 	}
-	spin_unlock_irqrestore(&ut->g.ctrl.pending.lock, flags);
+	spin_unlock_irqrestore(&ut->ctrl.pending.lock, flags);
 	return ret;
 }
 
@@ -535,17 +531,17 @@ static int usbtunnel_add(const char *buf, size_t len)
 
 	memcpy(ut->port, buf, portlen);
 	memcpy(ut->udc, sep, udclen);
-	snprintf(ut->g.function,  sizeof(ut->g.function), "usbtunnel.%s",
+	snprintf(ut->function,  sizeof(ut->function), "usbtunnel.%s",
 		ut->port);
 	pr_info("tunneling port %s to udc %s\n", ut->port, ut->udc);
-	ut->g.driver = usbtunnel_gadget_driver_template;
-	ut->g.driver.function = ut->g.function;
-	ut->g.driver.driver.name = ut->g.function;
-	ut->g.driver.udc_name = ut->udc;
-	INIT_WORK(&ut->g.ctrl.work, usbtunnel_ctrl_work);
-	spin_lock_init(&ut->g.ctrl.pending.lock);
-	INIT_LIST_HEAD(&ut->g.ctrl.pending.list);
-	ut->g.ctrl.pending.in_progress = false;
+	ut->gadget_driver = usbtunnel_gadget_driver_template;
+	ut->gadget_driver.function = ut->function;
+	ut->gadget_driver.driver.name = ut->function;
+	ut->gadget_driver.udc_name = ut->udc;
+	INIT_WORK(&ut->ctrl.work, usbtunnel_ctrl_work);
+	spin_lock_init(&ut->ctrl.pending.lock);
+	INIT_LIST_HEAD(&ut->ctrl.pending.list);
+	ut->ctrl.pending.in_progress = false;
 	INIT_LIST_HEAD(&ut->maps_list);
 
 	spin_lock_irqsave(&usbtunnel_list_lock, flags);
@@ -586,7 +582,7 @@ static int usbtunnel_del(const char *buf, size_t len)
 	kfree(s);
 	if (!ut)
 		return -EINVAL;
-	if (ut->h.udev) {
+	if (ut->udev) {
 		pr_err("can't remove tunnel on port %s while active!\n",
 			ut->port);
 		return -EBUSY;
